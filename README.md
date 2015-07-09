@@ -10,8 +10,8 @@ Python Based ARM CoreSight Debug and Trace Tools
 Bus 001 Device 006: ID 0403:cff8 Future Technology Devices International, Ltd Amontec JTAGkey
 ...
 ```
- 1. Create a file in /etc/udev/rules.d (e.g. 80-jtag.rules) with this information:
+ 2. Create a file in /etc/udev/rules.d (e.g. 80-jtag.rules) with this information:
 ```
 SUBSYSTEMS=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="cff8", MODE="0666"
 ```
- 1. Unplug and Re-plug in the USB device to have the changes take effect.
+ 3. Unplug and Re-plug in the USB device to have the changes take effect.
