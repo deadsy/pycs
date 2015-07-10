@@ -14,6 +14,7 @@ import getopt
 import ft2232
 import jtag
 import util
+import swj_dp
 
 #------------------------------------------------------------------------------
 
@@ -59,6 +60,7 @@ class user_interface(cmd.Cmd):
         self.jtag_driver = ft2232.jtagkey(sn = _serial)
         self.jtag_chain = jtag.jtag(self.jtag_driver)
         self.jtag_chain.scan(jtag.IDCODE_BCM58535)
+        self.jtag_dp = swj_dp.jtag_dp(self.jtag_chain)
         self.interactive = interactive
         self.set_prompt()
         self.use_rawinput = self.interactive
@@ -187,7 +189,9 @@ class user_interface(cmd.Cmd):
     def do_test(self, args):
         """test function
         test<cr>"""
-        pass
+        print('%x' % self.jtag_dp.rd_idcode())
+        print('%x' % self.jtag_dp.rd_apacc())
+        print('%x' % self.jtag_dp.rd_dpacc())
 
 #------------------------------------------------------------------------------
 
