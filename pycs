@@ -12,6 +12,7 @@ import cmd
 import getopt
 
 import ft2232
+import jlink
 import jtag
 import util
 import swj_dp
@@ -57,7 +58,8 @@ class user_interface(cmd.Cmd):
 
     def __init__(self, stdin = None, interactive = True):
         cmd.Cmd.__init__(self, stdin = stdin)
-        self.jtag_driver = ft2232.jtagkey(sn = _serial)
+        #self.jtag_driver = ft2232.jtagkey(sn = _serial)
+        self.jtag_driver = jlink.jtag(sn = _serial)
         self.jtag_chain = jtag.jtag(self.jtag_driver)
         self.jtag_chain.scan(jtag.IDCODE_BCM58535)
         self.jtag_dp = swj_dp.jtag_dp(self.jtag_chain)
