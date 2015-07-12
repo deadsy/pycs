@@ -20,6 +20,10 @@ from usbtools import UsbTools
 _TRST_TIME = 0.01
 _SRST_TIME = 0.01
 
+_MHz = 1000000.0
+_KHz = 1000.0
+_FREQ = 12.0 * _MHz
+
 #------------------------------------------------------------------------------
 # usb vendor:product IDs
 
@@ -148,6 +152,17 @@ class JLink(object):
     EMU_CAP_RESERVED_3         : "Reserved",
   }
 
+  # CPU Capabilities: EMU_CMD_GET_CPU_CAPS bits
+  CPU_CAP_RESERVED  = 0
+  CPU_CAP_WRITE_MEM = 1
+  CPU_CAP_READ_MEM  = 2
+
+  cpu_capabilities = {
+    CPU_CAP_RESERVED    : "Always 1.",
+    CPU_CAP_WRITE_MEM   : "CPU_CMD_WRITE_MEM",
+    CPU_CAP_READ_MEM    : "CPU_CMD_READ_MEM",
+  }
+
   # hardware types
   HW_TYPE_JLINK                 = 0
   HW_TYPE_JTRACE                = 1
@@ -168,6 +183,13 @@ class JLink(object):
     HW_TYPE_JLINK_LITE_XMC4200  : "J-Link Lite-XMC4200",
     HW_TYPE_LPCLINK2            : "J-Link on LPC-Link2",
   }
+
+  # interface selection
+  TIF_JTAG = 0
+  TIF_SWD = 1
+
+  # speed (in KHz)
+  MAX_SPEED = 12000
 
   def __init__(self):
     self.usb_dev = None
@@ -195,6 +217,9 @@ class JLink(object):
     self._set_interface(config, interface)
     self.max_packet_size = self._get_max_packet_size()
     self.caps = self.get_capabilities()
+    # work out which HW_JTAG command to used
+    ver = self.get_hw_version()
+    self.hw_jtag_cmd = (JLink.EMU_CMD_HW_JTAG2, JLink.EMU_CMD_HW_JTAG3)[ver['major'] >= 5]
 
   def close(self):
     """Close the J-Link interface"""
@@ -307,7 +332,13 @@ class JLink(object):
     if not (self.caps & (1 << JLink.EMU_CAP_GET_HW_VERSION)):
       raise JLinkError("EMU_CMD_GET_HW_VERSION not supported")
     self.write_data(Array('B', [JLink.EMU_CMD_GET_HW_VERSION,]))
-    return struct.unpack('<I', self.read_data(4))[0]
+    x, = struct.unpack('<I', self.read_data(4))
+    ver = {}
+    ver['type'] = (x / 1000000) % 100
+    ver['major'] = (x / 10000) % 100
+    ver['minor'] = (x / 100) % 100
+    ver['revision'] = x % 100
+    return ver
 
   def get_max_mem_block(self):
     """Return the maximum memory block sizwe of the device"""
@@ -323,6 +354,57 @@ class JLink(object):
     self.write_data(Array('B', [JLink.EMU_CMD_READ_CONFIG,]))
     return self.read_data(256)
 
+  def get_state(self):
+    """Return the state of the JTAG interface pins"""
+    self.write_data(Array('B', [JLink.EMU_CMD_GET_STATE,]))
+    x = struct.unpack('<HBBBBBB', self.read_data(8))
+    state = {}
+    state['vref'] = x[0]
+    state['tck'] = x[1]
+    state['tdi'] = x[2]
+    state['tdo'] = x[3]
+    state['tms'] = x[4]
+    state['srst'] = x[5]
+    state['trst'] = x[6]
+    return state
+
+  def get_interfaces(self):
+    """Return a bitmask of available interfaces"""
+    if not (self.caps & (1 << JLink.EMU_CAP_SELECT_IF)):
+      raise JLinkError("EMU_CMD_SELECT_IF not supported")
+    self.write_data(Array('B', [JLink.EMU_CMD_SELECT_IF, 0xff]))
+    return struct.unpack('<I', self.read_data(4))[0]
+
+  def select_interface(self, itf):
+    """Select the JTAG/SWD interface"""
+    x = self.get_interfaces()
+    if not (x & (1 << itf)):
+      raise JLinkError("interface %d not supported" % itf)
+    self.write_data(Array('B', [JLink.EMU_CMD_SELECT_IF, itf]))
+    return struct.unpack('<I', self.read_data(4))[0]
+
+  def register(self):
+    """Taken from openocd jlink.c - not sure what it does
+       comment says - "Registration is sometimes necessary for SWD to work"
+       Segger doesn't document it.
+    """
+    if not (self.caps & (1 << JLink.EMU_CAP_REGISTER)):
+      raise JLinkError("EMU_CMD_SELECT_IF not supported")
+    cmd = [JLink.EMU_CMD_REGISTER,JLink.EMU_CMD_REGISTER,0,0,0,0,0,0,0,0,0,0,0,0]
+    self.write_data(Array('B', cmd))
+    x = self.read_data(76)
+
+  def set_frequency(self, f):
+    """set JTAG frequency (Hz)"""
+    if f < 0:
+      speed = 0xffff
+    else:
+      speed = int(f / 1000.0)
+      if speed > JLink.MAX_SPEED:
+        speed = JLink.MAX_SPEED
+    cmd = [JLink.EMU_CMD_SET_SPEED, speed & 0xff, (speed >> 8) & 0xff,]
+    self.write_data(Array('B', cmd))
+
   def trst(self, x):
     """Control the TRST line"""
     cmd = (JLink.EMU_CMD_HW_TRST0, JLink.EMU_CMD_HW_TRST1)[x]
@@ -333,29 +415,51 @@ class JLink(object):
     cmd = (JLink.EMU_CMD_HW_RESET0, JLink.EMU_CMD_HW_RESET1)[x]
     self.write_data(Array('B', [cmd,]))
 
+  def get_cpu_capabilities(self):
+    """Return CPU capabilities"""
+    if not (self.caps & (1 << JLink.EMU_CAP_GET_CPU_CAPS)):
+      raise JLinkError("EMU_CMD_GET_CPU_CAPS not supported")
+    cmd = [JLink.EMU_CMD_GET_CPU_CAPS, 9, JLink.TIF_JTAG, 0, 0]
+    self.write_data(Array('B', cmd))
+    return struct.unpack('<I', self.read_data(4))[0]
+
+  def read_mem_arm(self, adr, n):
+    """Read n bytes from adr on an ARMv7/9
+       experimental - doesn't work
+    """
+    if not (self.caps & (1 << JLink.EMU_CAP_RW_MEM_ARM79)):
+      raise JLinkError("EMU_CMD_READ_MEM_ARM79 not supported")
+    # TODO - make this configurable
+    total_ir_len = 4
+    num_devices = 1
+    device_pos = 0
+    ir_pre = 0
+    is_arm9 = 0
+    is_big_endian = 0
+    cmd = [JLink.EMU_CMD_READ_MEM_ARM79, total_ir_len, num_devices, device_pos, ir_pre, is_arm9, is_big_endian, 0, 0, 1]
+    adr = [adr & 0xff, (adr >> 8) & 0xff, (adr >> 16) & 0xff, (adr >> 24) & 0xff]
+    n = [n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >> 24) & 0xff]
+    cmd.extend(adr)
+    cmd.extend(n)
+    self.write_data(Array('B', cmd))
+    status, = struct.unpack('B', self.read_data(1))
+    print status
+
   def __str__(self):
     s = ['%s' % x for x in self.get_version()]
     s.append('capabilities 0x%08x' % self.caps)
     for i in range(32):
       if self.caps & (1 << i):
         s.append('capability (%2d) %s' % (i, JLink.capabilities[i]))
-    hw_version = self.get_hw_version()
-    x = []
-    x.append('hardware version %d:' % hw_version)
-    hw_type = (hw_version / 1000000) % 100
-    x.append('type %d (%s)' % (hw_type, JLink.hw_type[hw_type]))
-    x.append('major %d' % ((hw_version / 10000) % 100))
-    x.append('minor %d' % ((hw_version / 100) % 100))
-    x.append('revision %d' % (hw_version % 100))
+    s.append('cpu capabilities 0x%08x' % self.get_cpu_capabilities())
+    x = ['%s %d' % (k, v) for (k,v) in self.get_hw_version().items()]
     s.append(' '.join(x))
+    s.append('hw_jtag_cmd 0x%02x' % self.hw_jtag_cmd)
     s.append('max mem block %d bytes' % self.get_max_mem_block())
+    x = ['%s %d' % (k, v) for (k,v) in self.get_state().items()]
+    s.append(' '.join(x))
     s = ['jlink: %s' % x for x in s]
     return '\n'.join(s)
-
-#Info : Vref = 0.0 TCK = 1 TDI = 1 TDO = 1 TMS = 1 SRST = 1 TRST = 1
-#Error: Vref too low. Check Target Power
-#Info : J-Link JTAG Interface ready
-#Info : clock speed 6000 kHz
 
   # --- Private implementation -------------------------------------------
 
@@ -424,6 +528,16 @@ class jtag:
     self.sn = devices[0][2]
     self.jlink = JLink()
     self.jlink.open(self.vid, self.pid, serial = self.sn)
+    state = self.jlink.get_state()
+    # check VREF and SRST
+    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
+    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
+    self.jlink.select_interface(JLink.TIF_JTAG)
+    # set ~trst and ~srst high
+    self.jlink.trst(1)
+    self.jlink.srst(1)
+    # set the jtag clock frequency
+    self.jlink.set_frequency(_FREQ)
     print self.jlink
     print self
 
