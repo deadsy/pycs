@@ -12,6 +12,8 @@ import struct
 import time
 import usb.core
 import usb.util
+import tap
+import bits
 from array import array as Array
 from usbtools import UsbTools
 
@@ -423,6 +425,24 @@ class JLink(object):
     self.write_data(Array('B', cmd))
     return struct.unpack('<I', self.read_data(4))[0]
 
+  def check_error(self):
+    """return the sticky error value"""
+    cmd = [JLink.EMU_CMD_HW_JTAG_GET_RESULT,]
+    self.write_data(Array('B', cmd))
+    return struct.unpack('B', self.read_data(1))[0]
+
+  def hw_jtag_write(self, tms, tdi):
+    """write to, but don't read from the TAP state machine."""
+    assert len(tms) == len(tdi)
+    n = len(tms)
+    cmd = [JLink.EMU_CMD_HW_JTAG_WRITE, 0, n & 0xff, (n >> 8) & 0xff]
+    #cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
+    cmd.extend(tms.get())
+    cmd.extend(tdi.get())
+    self.write_data(Array('B', cmd))
+    if self.check_error() != 0:
+      raise JLinkError("EMU_CMD_HW_JTAG_WRITE error")
+
   def read_mem_arm(self, adr, n):
     """Read n bytes from adr on an ARMv7/9
        experimental - doesn't work
@@ -538,12 +558,37 @@ class jtag:
     self.jlink.srst(1)
     # set the jtag clock frequency
     self.jlink.set_frequency(_FREQ)
+    # reset the JTAG state machine
+    self.tap = tap.tap()
+    self.state_reset()
+
     print self.jlink
     print self
 
   def __del__(self):
     if self.jlink:
       self.jlink.close()
+
+  def state_x(self, dst):
+    """change the TAP state from self.state to dst"""
+    tms_bits = self.tap.tms(self.state, dst)
+    if not tms_bits:
+      # no state change
+      assert self.state == dst
+      return
+    n = len(tms_bits)
+    x = 0
+    for i in range(n):
+      x = (x << 1) + tms_bits[i]
+    tms = bits.bits(n, x)
+    tdi = bits.bits(n, 0)
+    self.jlink.hw_jtag_write(tms, tdi)
+    self.state = dst
+
+  def state_reset(self):
+    """from *any* state go to the reset state"""
+    self.state = '*'
+    self.state_x('RESET')
 
   def scan_ir(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the IR in the JTAG chain"""
