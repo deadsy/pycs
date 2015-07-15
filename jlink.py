@@ -3,7 +3,7 @@
 
 Segger J-Link Driver
 
-Tested with the J-Link Base
+Tested with J-Link Base/EDU
 
 """
 #------------------------------------------------------------------------------
@@ -433,10 +433,9 @@ class JLink(object):
 
   def hw_jtag_write(self, tms, tdi):
     """write to, but don't read from the TAP state machine."""
-    assert len(tms) == len(tdi)
     n = len(tms)
+    assert len(tdi) == n
     cmd = [JLink.EMU_CMD_HW_JTAG_WRITE, 0, n & 0xff, (n >> 8) & 0xff]
-    #cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
     cmd.extend(tms.get())
     cmd.extend(tdi.get())
     self.write_data(Array('B', cmd))
@@ -561,6 +560,8 @@ class jtag:
     # reset the JTAG state machine
     self.tap = tap.tap()
     self.state_reset()
+    self.sir_end_state = 'IDLE'
+    self.sdr_end_state = 'IDLE'
 
     print self.jlink
     print self
@@ -571,18 +572,16 @@ class jtag:
 
   def state_x(self, dst):
     """change the TAP state from self.state to dst"""
-    tms_bits = self.tap.tms(self.state, dst)
-    if not tms_bits:
+    tms = self.tap.tms(self.state, dst)
+    if not tms:
       # no state change
       assert self.state == dst
       return
-    n = len(tms_bits)
+    n = len(tms)
     x = 0
-    for i in range(n):
-      x = (x << 1) + tms_bits[i]
-    tms = bits.bits(n, x)
-    tdi = bits.bits(n, 0)
-    self.jlink.hw_jtag_write(tms, tdi)
+    for i in range(n - 1, -1, -1):
+      x = (x << 1) + tms[i]
+    self.jlink.hw_jtag_write(bits.bits(n, x), bits.bits(n, 0))
     self.state = dst
 
   def state_reset(self):
@@ -592,20 +591,22 @@ class jtag:
 
   def scan_ir(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the IR in the JTAG chain"""
-    #self.state_x('IRSHIFT')
+    self.state_x('IRSHIFT')
     #self.shift_data(tdi, tdo, self.sir_end_state)
+    self.state_x(self.sir_end_state)
 
   def scan_dr(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the DR in the JTAG chain"""
-    #self.state_x('DRSHIFT')
+    self.state_x('DRSHIFT')
     #self.shift_data(tdi, tdo, self.sdr_end_state)
+    self.state_x(self.sdr_end_state)
 
   def trst(self):
     """pulse the test reset line"""
     self.jlink.trst(0)
     time.sleep(_TRST_TIME)
     self.jlink.trst(1)
-    #self.state_reset()
+    self.state_reset()
 
   def srst(self):
     """pulse the system reset line"""
