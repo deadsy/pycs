@@ -508,6 +508,14 @@ class JLink(object):
 
 #------------------------------------------------------------------------------
 
+def tms_jlink(bits):
+  """convert a tms bit sequence into a form suitable for the J-Link device"""
+  n = len(tms)
+  x = 0
+  for i in range(n - 1, -1, -1):
+    x = (x << 1) + tms[i]
+  return x
+
 class jtag:
 
   def __init__(self, sn = None):
@@ -547,15 +555,9 @@ class jtag:
 
   def state_x(self, dst):
     """change the TAP state from self.state to dst"""
-    tms = self.tap.tms(self.state, dst)
-    if not tms:
-      # no state change
-      assert self.state == dst
+    if self.state == dst:
       return
-    n = len(tms)
-    x = 0
-    for i in range(n - 1, -1, -1):
-      x = (x << 1) + tms[i]
+    x = tms_jlink(self.tap.tms(self.state, dst))
     self.jlink.hw_jtag_write(bits.bits(n, x), bits.bits(n, 0))
     self.state = dst
 

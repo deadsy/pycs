@@ -120,12 +120,9 @@ class ft2232:
 
     def state_x(self, dst):
         """change the TAP state from self.state to dst"""
-        bits = self.tap.tms(self.state, dst)
-        if not bits:
-            # no state change
-            assert self.state == dst
-            return
-        tms = tms_mpsse(bits)
+        if self.state == dst:
+          return
+        tms = tms_mpsse(self.tap.tms(self.state, dst))
         cmd = _MPSSE_WRITE_TMS | _MPSSE_BITMODE | _MPSSE_LSB | _MPSSE_WRITE_NEG
         self.write((cmd, tms[0], tms[1]), True)
         self.state = dst
