@@ -244,7 +244,7 @@ class JLink(object):
     except usb.core.USBError, e:
       raise JLinkError('UsbError: %s' % str(e))
 
-  def read_data_bytes(self, size, attempt=1):
+  def read_data(self, size, attempt=1):
     """Read data in chunks from the chip."""
     # Packet size sanity check
     if not self.max_packet_size:
@@ -312,17 +312,13 @@ class JLink(object):
     # never reached
     raise JLinkError("Internal error")
 
-  def read_data(self, size):
-    """Read data in chunks from the chip."""
-    return self.read_data_bytes(size).tostring()
-
   def get_version(self):
     """Return the firmware version"""
     self.write_data(Array('B', [JLink.EMU_CMD_VERSION,]))
     n, = struct.unpack('<H', self.read_data(2))
     x = self.read_data(n)
     # split on nulls, get rid of empty strings
-    return [s for s in x.split('\x00') if len(s)]
+    return [s for s in x.tostring().split('\x00') if len(s)]
 
   def get_capabilities(self):
     """Return capabilities"""
@@ -425,44 +421,24 @@ class JLink(object):
     self.write_data(Array('B', cmd))
     return struct.unpack('<I', self.read_data(4))[0]
 
-  def check_error(self):
-    """return the sticky error value"""
-    cmd = [JLink.EMU_CMD_HW_JTAG_GET_RESULT,]
-    self.write_data(Array('B', cmd))
-    return struct.unpack('B', self.read_data(1))[0]
-
-  def hw_jtag_write(self, tms, tdi):
-    """write to, but don't read from the TAP state machine."""
+  def hw_jtag_write(self, tms, tdi, tdo = None):
     n = len(tms)
     assert len(tdi) == n
-    cmd = [JLink.EMU_CMD_HW_JTAG_WRITE, 0, n & 0xff, (n >> 8) & 0xff]
+    cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
     cmd.extend(tms.get())
     cmd.extend(tdi.get())
     self.write_data(Array('B', cmd))
-    if self.check_error() != 0:
-      raise JLinkError("EMU_CMD_HW_JTAG_WRITE error")
-
-  def read_mem_arm(self, adr, n):
-    """Read n bytes from adr on an ARMv7/9
-       experimental - doesn't work
-    """
-    if not (self.caps & (1 << JLink.EMU_CAP_RW_MEM_ARM79)):
-      raise JLinkError("EMU_CMD_READ_MEM_ARM79 not supported")
-    # TODO - make this configurable
-    total_ir_len = 4
-    num_devices = 1
-    device_pos = 0
-    ir_pre = 0
-    is_arm9 = 0
-    is_big_endian = 0
-    cmd = [JLink.EMU_CMD_READ_MEM_ARM79, total_ir_len, num_devices, device_pos, ir_pre, is_arm9, is_big_endian, 0, 0, 1]
-    adr = [adr & 0xff, (adr >> 8) & 0xff, (adr >> 16) & 0xff, (adr >> 24) & 0xff]
-    n = [n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, (n >> 24) & 0xff]
-    cmd.extend(adr)
-    cmd.extend(n)
-    self.write_data(Array('B', cmd))
-    status, = struct.unpack('B', self.read_data(1))
-    print status
+    nbytes = (n + 7) >> 3
+    assert nbytes % 64
+    if self.hw_jtag_cmd == JLink.EMU_CMD_HW_JTAG3:
+      rd = self.read_data(nbytes + 1)
+      if rd[-1] != 0:
+        raise JLinkError("EMU_CMD_HW_JTAG3 error")
+      rd = rd[:-1]
+    else:
+      rd = self.read_data(nbytes)
+    if tdo:
+      tdo.set(n, rd)
 
   def __str__(self):
     s = ['%s' % x for x in self.get_version()]
@@ -473,7 +449,6 @@ class JLink(object):
     s.append('cpu capabilities 0x%08x' % self.get_cpu_capabilities())
     x = ['%s %d' % (k, v) for (k,v) in self.get_hw_version().items()]
     s.append(' '.join(x))
-    s.append('hw_jtag_cmd 0x%02x' % self.hw_jtag_cmd)
     s.append('max mem block %d bytes' % self.get_max_mem_block())
     x = ['%s %d' % (k, v) for (k,v) in self.get_state().items()]
     s.append(' '.join(x))
@@ -584,6 +559,10 @@ class jtag:
     self.jlink.hw_jtag_write(bits.bits(n, x), bits.bits(n, 0))
     self.state = dst
 
+  def shift_data(self, tdi, tdo):
+    tms = bits.bits(len(tdi), 0)
+    self.jlink.hw_jtag_write(tms, tdi, tdo)
+
   def state_reset(self):
     """from *any* state go to the reset state"""
     self.state = '*'
@@ -592,13 +571,13 @@ class jtag:
   def scan_ir(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the IR in the JTAG chain"""
     self.state_x('IRSHIFT')
-    #self.shift_data(tdi, tdo, self.sir_end_state)
+    self.shift_data(tdi, tdo)
     self.state_x(self.sir_end_state)
 
   def scan_dr(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the DR in the JTAG chain"""
     self.state_x('DRSHIFT')
-    #self.shift_data(tdi, tdo, self.sdr_end_state)
+    self.shift_data(tdi, tdo)
     self.state_x(self.sdr_end_state)
 
   def trst(self):
