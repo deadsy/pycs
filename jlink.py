@@ -437,7 +437,8 @@ class JLink(object):
       rd = rd[:-1]
     else:
       rd = self.read_data(nbytes)
-    if tdo:
+
+    if tdo is not None:
       tdo.set(n, rd)
 
   def __str__(self):
@@ -508,14 +509,6 @@ class JLink(object):
 
 #------------------------------------------------------------------------------
 
-def tms_jlink(bits):
-  """convert a tms bit sequence into a form suitable for the J-Link device"""
-  n = len(tms)
-  x = 0
-  for i in range(n - 1, -1, -1):
-    x = (x << 1) + tms[i]
-  return x
-
 class jtag:
 
   def __init__(self, sn = None):
@@ -546,9 +539,6 @@ class jtag:
     self.sir_end_state = 'IDLE'
     self.sdr_end_state = 'IDLE'
 
-    print self.jlink
-    print self
-
   def __del__(self):
     if self.jlink:
       self.jlink.close()
@@ -557,7 +547,13 @@ class jtag:
     """change the TAP state from self.state to dst"""
     if self.state == dst:
       return
-    x = tms_jlink(self.tap.tms(self.state, dst))
+    tms = self.tap.tms(self.state, dst)
+    # convert the tms sequence into bytes
+    n = len(tms)
+    x = 0
+    for i in range(n - 1, -1, -1):
+      x = (x << 1) + tms[i]
+    # send the sequence
     self.jlink.hw_jtag_write(bits.bits(n, x), bits.bits(n, 0))
     self.state = dst
 
@@ -596,9 +592,8 @@ class jtag:
     self.jlink.srst(1)
 
   def __str__(self):
-      s = []
-      s.append('Segger J-Link %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
-      return ', '.join(s)
+    s = []
+    s.append('Segger J-Link %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
+    return ', '.join(s)
 
 #------------------------------------------------------------------------------
-
