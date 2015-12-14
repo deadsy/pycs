@@ -58,16 +58,25 @@ class user_interface(cmd.Cmd):
 
     def __init__(self, stdin = None, interactive = True):
         cmd.Cmd.__init__(self, stdin = stdin)
+
+        # pick a jtag interface device
         #self.jtag_driver = ft2232.jtagkey(sn = _serial)
         self.jtag_driver = jlink.jtag(sn = _serial)
+
         self.jtag_chain = jtag.jtag(self.jtag_driver)
+
+        # pick a target chip
+        #self.jtag_chain.scan(jtag.IDCODE_BCM47452)
         self.jtag_chain.scan(jtag.IDCODE_BCM58535)
+        #self.jtag_chain.scan(jtag.IDCODE_BCM58625)
+
         self.jtag_dp = swj_dp.jtag_dp(self.jtag_chain)
         self.interactive = interactive
         self.set_prompt()
         self.use_rawinput = self.interactive
         self.running = True
         self.put(_version_str)
+        self.do_jtag()
 
     def set_prompt(self):
         self.prompt = ('', '> ')[self.interactive]
@@ -103,7 +112,7 @@ class user_interface(cmd.Cmd):
         'help <command>' or '? <command>' gives help on <command>"""
         cmd.Cmd.do_help(self, args)
 
-    def do_jtag(self, args):
+    def do_jtag(self, args = None):
         """display jtag information"""
         self.put('driver: %s\n' % self.jtag_driver)
         self.put('%s\n' % self.jtag_chain)
@@ -192,8 +201,9 @@ class user_interface(cmd.Cmd):
         """test function
         test<cr>"""
         print('%x' % self.jtag_dp.rd_idcode())
-        print('%x' % self.jtag_dp.rd_apacc())
-        print('%x' % self.jtag_dp.rd_dpacc())
+        print('%x' % self.jtag_dp.rd_ctrl_stat())
+        #print('%x' % self.jtag_dp.rd_apacc())
+        #print('%x' % self.jtag_dp.rd_dpacc())
 
 #------------------------------------------------------------------------------
 

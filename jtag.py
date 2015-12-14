@@ -22,10 +22,17 @@ _idcode_length = 32
 # Device ID Codes and Lookup Table
 
 IDCODE_BCM58535 = 0x4ba00477
+IDCODE_BCM47452 = 0x104ae17f
+
+IDCODE_BCM58625 = 0x0035b17f
+
 IDCODE_NO_DEVICE = 0xffffffff
 
+
 device_table = (
+    (IDCODE_BCM58625, 'Broadcom BCM58625', 4, 0xffffffff),
     (IDCODE_BCM58535, 'Broadcom BCM58535', 4, 0xffffffff),
+    (IDCODE_BCM47452, 'Broadcom BCM47452', 4, 0xffffffff),
 )
 
 def lookup_device(x):
@@ -53,24 +60,28 @@ class jtag:
         self.irlen_before = 0
         self.irlen_after = 0
         found = False
-        for idcode in self.reset_idcodes():
+        chain_idcodes = self.reset_idcodes()
+        for idcode in chain_idcodes:
             (name, irlen, mask) = lookup_device(idcode)
             if name == 'unknown':
                 raise Error, 'unknown device on jtag chain - idcode 0x%08x' % idcode
             if idcode_x == idcode & mask:
+                # found the target device
                 found = True
                 self.irlen = irlen
                 self.idcode = idcode
                 self.name = name
                 continue
-            if not found:
-                self.irlen_before += irlen
-                self.ndevs_before += 1
+            if found:
+              # after the target device
+              self.irlen_after += irlen
+              self.ndevs_after += 1
             else:
-                self.irlen_after += irlen
-                self.ndevs_after += 1
-        if self.idcode == IDCODE_NO_DEVICE:
-            raise Error, 'unable to find device on jtag chain - idcode 0x%08x' % self.idcode
+              # before the target device
+              self.irlen_before += irlen
+              self.ndevs_before += 1
+        if not found:
+            raise Error, 'unable to find idcode 0x%08x on jtag chain (found %s)' % (idcode_x, ', '.join(['0x%08x' % v for v in chain_idcodes]))
         if (self.irlen_before + self.irlen + self.irlen_after) != self.irlen_total:
             raise Error, 'incorrect ir lengths - %d + (%d) + %d != %d' % (self.irlen_before, self.irlen, self.irlen_after, self.irlen_total)
 
