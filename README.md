@@ -1,6 +1,12 @@
 # pycs
 Python Based ARM CoreSight Debug and Trace Tools
 
+# Status
+
+ * Functional JTAGKey driver
+ * Buggy JLink driver
+ * Early development swj-dp layer
+
 # Setup JTAG Device Permissions
 
 1. Use "lsusb" to get the VID:PID information

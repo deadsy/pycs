@@ -5,6 +5,8 @@ Segger J-Link Driver
 
 Tested with J-Link Base/EDU
 
+Note: EDU == Base (so far as I can tell)
+
 """
 #------------------------------------------------------------------------------
 
@@ -593,7 +595,7 @@ class jtag:
 
   def __str__(self):
     s = []
-    s.append('Segger J-Link %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
+    s.append('Segger J-Link usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
     return ', '.join(s)
 
 #------------------------------------------------------------------------------

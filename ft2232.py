@@ -318,7 +318,7 @@ class jtagkey(ft2232):
 
     def __str__(self):
         s = []
-        s.append('JTAGKey %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
+        s.append('JTAGKey usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
         s.append('%s @ %.1f MHz' % (self.ftdi.ic_name, (self.freq / _MHz)))
         return ', '.join(s)
 
