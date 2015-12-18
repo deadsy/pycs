@@ -427,8 +427,8 @@ class JLink(object):
     n = len(tms)
     assert len(tdi) == n
     cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
-    cmd.extend(tms.get_reverse())
-    cmd.extend(tdi.get_reverse())
+    cmd.extend(tms.get())
+    cmd.extend(tdi.get())
     self.write_data(Array('B', cmd))
     nbytes = (n + 7) >> 3
     assert nbytes % 64
@@ -548,13 +548,14 @@ class jtag:
     if self.state == dst:
       return
     tms = bits.bits()
-    tms.append_list(tap.lookup(self.state, dst))
+    tms.append_tuple_reverse(tap.lookup(self.state, dst))
     # send the sequence
     self.jlink.hw_jtag_write(tms, bits.bits(len(tms)))
     self.state = dst
 
   def shift_data(self, tdi, tdo):
-    tms = bits.bits(len(tdi), 0)
+    n = len(tdi)
+    tms = bits.bits(n, 1 << (n-1))
     self.jlink.hw_jtag_write(tms, tdi, tdo)
 
   def state_reset(self):
@@ -566,12 +567,14 @@ class jtag:
     """write (and possibly read) a bit stream through the IR in the JTAG chain"""
     self.state_x('IRSHIFT')
     self.shift_data(tdi, tdo)
+    self.state = 'IREXIT1'
     self.state_x(self.sir_end_state)
 
   def scan_dr(self, tdi, tdo = None):
     """write (and possibly read) a bit stream through the DR in the JTAG chain"""
     self.state_x('DRSHIFT')
     self.shift_data(tdi, tdo)
+    self.state = 'DREXIT1'
     self.state_x(self.sdr_end_state)
 
   def trst(self):

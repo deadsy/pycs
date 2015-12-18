@@ -4,8 +4,8 @@ Bit Buffer Operations
 
 Notes:
 Represents bit buffers with Python's arbitrary length integers.
-Transmit order for bits (as printed) is left to right.
-The most signifcant bit of the internal value is transmitted first.
+The least signifcant bit of the internal value is transmitted first.
+That is: the transmit order is right to left (as printed)
 """
 #-----------------------------------------------------------------------------
 
@@ -35,39 +35,41 @@ class bits:
     self.n = n
     self.val = 0
 
+  def append_val(self, n, val):
+    """append n bits from val to the bit buffer"""
+    val &= ((1 << n) - 1)
+    val <<= self.n
+    self.val |= val
+    self.n += n
+
   def append(self, bits):
     """append a bit buffer to the bit buffer"""
     self.append_val(bits.n, bits.val)
 
-  def append_val(self, n, val):
-    """append n bits from val to the bit buffer"""
-    val &= ((1 << n) - 1)
-    self.val <<= n
-    self.val |= val
-    self.n += n
-
   def append_ones(self, n):
     """append n 1 bits to the bit buffer"""
-    val = ((1 << n) - 1)
-    self.val <<= n
-    self.val |= val
-    self.n += n
+    self.append_val(n, (1 << n) - 1)
 
   def append_zeroes(self, n):
     """append n 0 bits to the bit buffer"""
-    self.val <<= n
-    self.n += n
+    self.append_val(n, 0)
 
   def append_str(self, s):
     """append bits from a 0/1 string"""
     self.append_val(len(s), int(s, 2))
 
-  def append_list(self, l):
-    """append bits from a 0/1 list"""
+  def append_tuple(self, t):
+    """append bits from a 0/1 tuple"""
     x = 0
-    for b in l:
+    for b in t:
       x = (x << 1) + b
-    self.append_val(len(l), x)
+    self.append_val(len(t), x)
+
+  def append_tuple_reverse(self, t):
+    """reverse a 0/1 tuple before appending"""
+    l = list(t)
+    l.reverse()
+    self.append_tuple(l)
 
   def drop_lsb(self, n):
     """drop the least significant n bits"""
