@@ -427,8 +427,8 @@ class JLink(object):
     n = len(tms)
     assert len(tdi) == n
     cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
-    cmd.extend(tms.get())
-    cmd.extend(tdi.get())
+    cmd.extend(tms.get_reverse())
+    cmd.extend(tdi.get_reverse())
     self.write_data(Array('B', cmd))
     nbytes = (n + 7) >> 3
     assert nbytes % 64
@@ -439,7 +439,6 @@ class JLink(object):
       rd = rd[:-1]
     else:
       rd = self.read_data(nbytes)
-
     if tdo is not None:
       tdo.set(n, rd)
 

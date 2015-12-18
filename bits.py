@@ -88,6 +88,14 @@ class bits:
         self.val |= (bit_in << (self.n - 1))
         return bit_out
 
+    def reverse(self):
+        """reverse the bits"""
+        x = 0
+        for i in xrange(self.n):
+          if (self.val >> i) & 1:
+            x |= 1 << (self.n - 1 - i)
+        self.val = x
+
     def get(self):
         """return a byte array of the bits"""
         a = array.array('B')
@@ -104,6 +112,11 @@ class bits:
                 break
         return a
 
+    def get_reverse(self):
+        """reverse the bits before returning the byte array"""
+        self.reverse()
+        return self.get()
+
     def set(self, n, a):
         """set the bits from a byte array"""
         self.val = 0
@@ -111,6 +124,15 @@ class bits:
         for i in range(len(a) - 1, -1, -1):
             self.val <<= 8
             self.val |= a[i]
+
+    def from_str(self, s):
+        """set the bits from a 0/1 string"""
+        self.n = len(s)
+        self.val = 0
+        for c in s:
+          self.val <<= 1
+          if c == '1':
+            self.val += 1
 
     def scan(self, format):
         """using the format tuple, scan the buffer and return a tuple of values"""

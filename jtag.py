@@ -22,12 +22,9 @@ _idcode_length = 32
 # Device ID Codes and Lookup Table
 
 IDCODE_BCM58535 = 0x4ba00477
-IDCODE_BCM47452 = 0x104ae17f
-
+IDCODE_BCM47452 = 0x5ba00477
 IDCODE_BCM58625 = 0x0035b17f
-
 IDCODE_NO_DEVICE = 0xffffffff
-
 
 device_table = (
     (IDCODE_BCM58625, 'Broadcom BCM58625', 4, 0xffffffff),
