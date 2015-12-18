@@ -29,6 +29,11 @@ state_machine = {
     'IRUPDATE': ('IDLE','DRSELECT'),
 }
 
+#-----------------------------------------------------------------------------
+# build a cache of all state transitions for fast lookup
+
+tap_cache = {}
+
 def search(path, current, dst):
     """return the shortest state path linking src and dst states"""
     # are we done?
@@ -67,23 +72,25 @@ def tms(path, current):
         current = state
     return tuple(s)
 
+def init_cache():
+  states = state_machine.keys()
+  for src in states:
+    for dst in states:
+      path = search([], src, dst)
+      tap_cache['%s->%s' % (src, dst)] = tms(path, src)
+  # any state to RESET
+  tap_cache['*->RESET'] = (1,1,1,1,1)
+
+def lookup(src, dst):
+  if len(tap_cache) == 0:
+    init_cache()
+  return tap_cache['%s->%s' % (src, dst)]
+
 #-----------------------------------------------------------------------------
 
-class tap(object):
-    """JTAG TAP State Machine"""
-
-    def __init__(self):
-        """build and cache all state transitions for fast lookup"""
-        self.cache = {}
-        states = state_machine.keys()
-        for src in states:
-            for dst in states:
-                path = search([], src, dst)
-                self.cache['%s->%s' % (src, dst)] = tms(path, src)
-        # any state to RESET
-        self.cache['*->RESET'] = (1,1,1,1,1)
-
-    def tms(self, src, dst):
-        return self.cache['%s->%s' % (src, dst)]
+#class tap(object):
+#  """JTAG TAP State Machine"""
+#  def __init__(self):
+#    pass
 
 #-----------------------------------------------------------------------------

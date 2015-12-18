@@ -535,7 +535,6 @@ class jtag:
     # set the jtag clock frequency
     self.jlink.set_frequency(_FREQ)
     # reset the JTAG state machine
-    self.tap = tap.tap()
     self.state_reset()
     self.sir_end_state = 'IDLE'
     self.sdr_end_state = 'IDLE'
@@ -548,7 +547,7 @@ class jtag:
     """change the TAP state from self.state to dst"""
     if self.state == dst:
       return
-    tms = self.tap.tms(self.state, dst)
+    tms = tap.lookup(self.state, dst)
     # convert the tms sequence into bytes
     n = len(tms)
     x = 0

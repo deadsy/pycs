@@ -97,7 +97,6 @@ class ft2232:
         self.freq = self.ftdi.open_mpsse(self.vid, self.pid, itf, serial = self.sn, frequency = _FREQ)
         self.wrbuf = array.array('B')
         self.gpio_init()
-        self.tap = tap.tap()
         self.state_reset()
         self.sir_end_state = 'IDLE'
         self.sdr_end_state = 'IDLE'
@@ -122,7 +121,7 @@ class ft2232:
         """change the TAP state from self.state to dst"""
         if self.state == dst:
           return
-        tms = tms_mpsse(self.tap.tms(self.state, dst))
+        tms = tms_mpsse(tap.lookup(self.state, dst))
         cmd = _MPSSE_WRITE_TMS | _MPSSE_BITMODE | _MPSSE_LSB | _MPSSE_WRITE_NEG
         self.write((cmd, tms[0], tms[1]), True)
         self.state = dst
@@ -169,7 +168,7 @@ class ft2232:
         # the last bit of output data is bit 7 of the tms value (goes onto tdi)
         # continue to read to get the last bit of tdo data
         cmd = read_cmd | _MPSSE_WRITE_TMS | _MPSSE_BITMODE | _MPSSE_LSB | _MPSSE_WRITE_NEG
-        tms = tms_mpsse(self.tap.tms(self.state, end_state))
+        tms = tms_mpsse(tap.lookup(self.state, end_state))
         self.write((cmd, tms[0], tms[1] | last_bit))
         self.state = end_state
 
