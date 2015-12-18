@@ -137,6 +137,13 @@ class bits:
       if c == '1':
         self.val += 1
 
+  def from_list(self, l):
+    """set the bits from a 0/1 list"""
+    self.n = len(l)
+    self.val = 0
+    for bit in l:
+      self.val = (self.val << 1) + bit
+
   def bit_str(self):
     """return a 0/1 string"""
     s = []

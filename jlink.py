@@ -424,6 +424,8 @@ class JLink(object):
     return struct.unpack('<I', self.read_data(4))[0]
 
   def hw_jtag_write(self, tms, tdi, tdo = None):
+    #print('tms: %s' % tms.bit_str())
+    #print('tdi: %s' % tdi.bit_str())
     n = len(tms)
     assert len(tdi) == n
     cmd = [self.hw_jtag_cmd, 0, n & 0xff, (n >> 8) & 0xff]
@@ -441,6 +443,7 @@ class JLink(object):
       rd = self.read_data(nbytes)
     if tdo is not None:
       tdo.set(n, rd)
+      #print('tdo: %s' % tdo.bit_str())
 
   def __str__(self):
     s = ['%s' % x for x in self.get_version()]
@@ -547,14 +550,10 @@ class jtag:
     """change the TAP state from self.state to dst"""
     if self.state == dst:
       return
-    tms = tap.lookup(self.state, dst)
-    # convert the tms sequence into bytes
-    n = len(tms)
-    x = 0
-    for i in range(n - 1, -1, -1):
-      x = (x << 1) + tms[i]
+    tms = bits.bits()
+    tms.from_list(tap.lookup(self.state, dst))
     # send the sequence
-    self.jlink.hw_jtag_write(bits.bits(n, x), bits.bits(n, 0))
+    self.jlink.hw_jtag_write(tms, bits.bits(len(tms)))
     self.state = dst
 
   def shift_data(self, tdi, tdo):
