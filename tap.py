@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #-----------------------------------------------------------------------------
 """
 Generate TMS sequences for JTAG TAP state machine transitions
@@ -6,7 +5,6 @@ Generate TMS sequences for JTAG TAP state machine transitions
 Note:
 State names are taken from the SVF file specification.
 This keeps things simple when processing SVF files.
-
 """
 #-----------------------------------------------------------------------------
 

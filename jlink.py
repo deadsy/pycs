@@ -1,12 +1,10 @@
 #------------------------------------------------------------------------------
 """
-
 Segger J-Link Driver
 
+Notes:
 Tested with J-Link Base/EDU
-
-Note: EDU == Base (so far as I can tell)
-
+J-Link EDU == J-Link Base (so far as I can tell)
 """
 #------------------------------------------------------------------------------
 
@@ -341,7 +339,7 @@ class JLink(object):
     return ver
 
   def get_max_mem_block(self):
-    """Return the maximum memory block sizwe of the device"""
+    """Return the maximum memory block size of the device"""
     if not (self.caps & (1 << JLink.EMU_CAP_GET_MAX_BLOCK_SIZE)):
       raise JLinkError("EMU_CMD_GET_MAX_MEM_BLOCK not supported")
     self.write_data(Array('B', [JLink.EMU_CMD_GET_MAX_MEM_BLOCK,]))
@@ -463,16 +461,15 @@ class JLink(object):
   # --- Private implementation -------------------------------------------
 
   def _wrap_api(self):
-      """Deal with PyUSB API breaks"""
-      import inspect
-      args, varargs, varkw, defaults = \
-          inspect.getargspec(usb.core.Device.read)
-      if (len(args) > 2) and (args[3] == 'interface'):
-          usb_api = 1  # Require "interface" parameter
-      else :
-          usb_api = 2
-      for m in ('write', 'read'):
-          setattr(self, '_%s' % m, getattr(self, '_%s_v%d' % (m, usb_api)))
+    """Deal with PyUSB API breaks"""
+    import inspect
+    args, varargs, varkw, defaults = inspect.getargspec(usb.core.Device.read)
+    if (len(args) > 2) and (args[3] == 'interface'):
+      usb_api = 1  # Require "interface" parameter
+    else :
+      usb_api = 2
+    for m in ('write', 'read'):
+      setattr(self, '_%s' % m, getattr(self, '_%s_v%d' % (m, usb_api)))
 
   def _set_interface(self, config, ifnum):
     """Select the interface to use on the J-Link device"""
@@ -551,7 +548,7 @@ class jtag:
     if self.state == dst:
       return
     tms = bits.bits()
-    tms.from_list(tap.lookup(self.state, dst))
+    tms.append_list(tap.lookup(self.state, dst))
     # send the sequence
     self.jlink.hw_jtag_write(tms, bits.bits(len(tms)))
     self.state = dst

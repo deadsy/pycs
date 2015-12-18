@@ -1,14 +1,14 @@
 #-----------------------------------------------------------------------------
 """
-
 Bit Buffer Operations
 
-Represent bit buffers with Python's arbitrary length integers.
-
+Notes:
+Represents bit buffers with Python's arbitrary length integers.
+Transmit order for bits (as printed) is left to right.
+The most signifcant bit of the internal value is transmitted first.
 """
 #-----------------------------------------------------------------------------
 
-import random
 import array
 
 #-----------------------------------------------------------------------------
@@ -35,10 +35,6 @@ class bits:
     self.n = n
     self.val = 0
 
-  def random(self, n):
-    """set n bits to random values"""
-    self.append_str(''.join([('0', '1')[random.randint(0, 1)] for i in xrange(n)]))
-
   def append(self, bits):
     """append a bit buffer to the bit buffer"""
     self.append_val(bits.n, bits.val)
@@ -63,8 +59,15 @@ class bits:
     self.n += n
 
   def append_str(self, s):
-    """append a bit string to the bit buffer"""
+    """append bits from a 0/1 string"""
     self.append_val(len(s), int(s, 2))
+
+  def append_list(self, l):
+    """append bits from a 0/1 list"""
+    x = 0
+    for b in l:
+      x = (x << 1) + b
+    self.append_val(len(l), x)
 
   def drop_lsb(self, n):
     """drop the least significant n bits"""
@@ -127,22 +130,6 @@ class bits:
     for i in xrange(len(a) - 1, -1, -1):
       self.val <<= 8
       self.val |= a[i]
-
-  def from_str(self, s):
-    """set the bits from a 0/1 string"""
-    self.n = len(s)
-    self.val = 0
-    for c in s:
-      self.val <<= 1
-      if c == '1':
-        self.val += 1
-
-  def from_list(self, l):
-    """set the bits from a 0/1 list"""
-    self.n = len(l)
-    self.val = 0
-    for bit in l:
-      self.val = (self.val << 1) + bit
 
   def bit_str(self):
     """return a 0/1 string"""
