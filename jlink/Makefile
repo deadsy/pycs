@@ -8,7 +8,7 @@ OBJ = $(patsubst %.c, %.o, $(wildcard *.c))
 CFLAGS = -Wall -Wextra -Wstrict-prototypes
 CFLAGS += -Werror
 
-LDFLAGS = -L. 
+LDFLAGS = -L /home/jasonh/tmp/JLink_Linux_V510o_x86_64
 LIBS = -ljlinkarm
 
 .c.o:

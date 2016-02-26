@@ -1,8 +1,8 @@
 #ifndef JLINK_API_H
 #define JLINK_API_H
 char *JLINKARM_GetCompileDateTime(void);
-char *JLINKARM_GetDLLVersion(void);
-char *JLINK_GetDLLVersion(void);
+int JLINKARM_GetDLLVersion(void);
+int JLINK_GetDLLVersion(void); // calls JLINKARM_GetDLLVersion
 // JLINK_AddMirrorArea
 // JLINK_AddMirrorAreaEx
 // JLINKARM_AddMirrorArea

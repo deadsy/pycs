@@ -6,6 +6,12 @@ class type_char_ptr:
   def emit_c(self):
     return 'char *'
 
+class type_int:
+  def __init__(self, name = None):
+    self.name = name
+  def emit_c(self):
+    return 'int '
+
 class type_void:
   def __init(self):
     pass
@@ -13,37 +19,23 @@ class type_void:
     return 'void'
 
 class func:
-  def __init__(self, enable, name, ret_type, arg_list):
+  def __init__(self, enable, name, ret_type, arg_list, comments = None):
     self.enable = enable
     self.name = name
     self.ret_type = ret_type
     self.arg_list = arg_list
+    self.comments = comments
 
   def emit_c_proto(self):
+    s = []
     if self.enable:
       args = ''.join([x.emit_c() for x in self.arg_list])
-      s = '%s%s(%s);' % (self.ret_type.emit_c(), self.name, args)
+      s.append('%s%s(%s);' % (self.ret_type.emit_c(), self.name, args))
+      if self.comments != None:
+        s.append('// %s' % self.comments)
     else:
-      s = '// %s' % self.name
-    return s
-
-
-#T138C 000:500 JLINKARM_GetHardwareVersion()  returns 0x13880 (0000ms, 0500ms total)
-#T138C 000:500 JLINKARM_GetDLLVersion()  returns 41109 (0000ms, 0500ms total)
-#T138C 000:500 JLINKARM_GetCompileDateTime() (0000ms, 0500ms total)
-#T138C 000:501 JLINKARM_Reset()
-#T138C 049:024 JLINKARM_Close() (0034ms, 0502ms total)
-
-#T138C 000:385 JLINKARM_SetWarnOutHandler(...) (0000ms, 0385ms total)
-#T138C 000:385 JLINKARM_OpenEx(...)
-#T138C 000:499 JLINKARM_SetErrorOutHandler(...) (0000ms, 0499ms total)
-#T138C 000:499 JLINKARM_TIF_Select(JLINKARM_TIF_JTAG)  returns 0x00 (0000ms, 0499ms total)
-#T138C 000:499 JLINKARM_SetSpeed(2000) (0000ms, 0499ms total)
-#T138C 000:500 JLINKARM_GetFirmwareString(...) (0000ms, 0500ms total)
-#T138C 000:500 JLINKARM_GetFirmwareString(...) (0000ms, 0500ms total)
-#T138C 000:500 JLINKARM_SetResetType(JLINKARM_RESET_TYPE_NORMAL)  returns JLINKARM_RESET_TYPE_NORMAL (0000ms, 0500ms total)
-#T138C 000:502 JLINKARM_GetIdData(...) (0000ms, 0502ms total)
-
+      s.append('// %s' % self.name)
+    return ' '.join(s)
 
 functions = [
   func(False, 'JLINK_AddMirrorArea', None, None),
@@ -143,7 +135,7 @@ functions = [
   func(False, 'JLINKARM_GetDebugInfo', None, None),
   func(False, 'JLINKARM_GetDeviceFamily', None, None),
   func(False, 'JLINKARM_GetDeviceId', None, None),
-  func(True, 'JLINKARM_GetDLLVersion', type_char_ptr(), [type_void(),]),
+  func(True, 'JLINKARM_GetDLLVersion', type_int(), [type_void(),]),
   func(False, 'JLINKARM_GetEmbeddedFWString', None, None),
   func(False, 'JLINKARM_GetEmbeddedFWVersion', None, None),
   func(False, 'JLINKARM_GetEmuCaps', None, None),
@@ -418,7 +410,7 @@ functions = [
   func(False, 'JLINK_GetConfigData', None, None),
   func(False, 'JLINK_GetDebugInfo', None, None),
   func(False, 'JLINK_GetDeviceFamily', None, None),
-  func(True, 'JLINK_GetDLLVersion', type_char_ptr(), [type_void(),]),
+  func(True, 'JLINK_GetDLLVersion', type_int(), [type_void(),], 'calls JLINKARM_GetDLLVersion'),
   func(False, 'JLINK_GetEmbeddedFWString', None, None),
   func(False, 'JLINK_GetEmbeddedFWVersion', None, None),
   func(False, 'JLINK_GetEmuCaps', None, None),
