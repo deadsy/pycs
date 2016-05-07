@@ -1,228 +1,110 @@
 #!/usr/bin/python
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 """
 pycs - Python Based ARM CoreSight Debug and Trace Tools
 """
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 import sys
-sys.path.append('./ftdi')
-
-import cmd
 import getopt
 
-import ft2232
-import jlink
-import jtag
-import util
-import swj_dp
+import conio
+import cli
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 _version_str = 'pycs: ARM CoreSight Tool 1.0\n'
-_serial = None
+_usb_number = 0
+_target = ''
 
-#------------------------------------------------------------------------------
+_supported_targets = ('st_mb1035b',)
+
+# -----------------------------------------------------------------------------
 
 def Print_Usage(argv):
-    print 'Usage: %s [options] [file]' % argv[0]
-    print 'Options:'
-    print '%-15s%s' % ('-s <serial>', 'serial number of JTAG device to use')
-    print '%-15s%s' % ('file', 'input script read from file')
+  print 'Usage: %s [options]' % argv[0]
+  print 'Options:'
+  print '%-15s%s' % ('-t <target>', 'target name')
+  print '%-15s%s' % ('-u <number>', 'usb number of JLINK device to use')
 
-def error(msg, usage = False):
-    print msg
-    if usage:
-        Print_Usage(sys.argv)
-    sys.exit(1)
+
+def error(msg, usage=False):
+  print msg
+  if usage:
+    Print_Usage(sys.argv)
+  sys.exit(1)
+
 
 def Process_Options(argv):
-    """process command line options"""
-    global _serial
-    try:
-        (opts, args) = getopt.getopt(sys.argv[1:], "s:")
-    except getopt.GetoptError, err:
-        error(str(err), True)
-    # process options
-    for (opt, val) in opts:
-        if opt == '-s':
-            _serial = val
-    # validate arguments
-    if len(args) >= 2:
-        error('too many arguments', True)
-    return args
+  """process command line options"""
+  global _usb_number
+  global _target
 
-#------------------------------------------------------------------------------
+  try:
+    (opts, args) = getopt.getopt(sys.argv[1:], "t:u:")
+  except getopt.GetoptError, err:
+    error(str(err), True)
+  # process options
+  for (opt, val) in opts:
+    if opt == '-u':
+      _usb_number = int(val)
+    elif opt == '-t':
+      _target = val
 
-class user_interface(cmd.Cmd):
+  # validate arguments
+  if _target == '':
+    error('must specify a target', True)
 
-    def __init__(self, stdin = None, interactive = True):
-        cmd.Cmd.__init__(self, stdin = stdin)
+  if not _usb_number in range(16):
+    error('usb number out of range')
 
-        # pick a jtag interface device
-        #self.jtag_driver = ft2232.jtagkey(sn = _serial)
-        self.jtag_driver = jlink.jtag(sn = _serial)
+  if not _target in _supported_targets:
+    error('supported targets: %s' % ' '.join(_supported_targets))
 
-        self.jtag_chain = jtag.jtag(self.jtag_driver)
+# -----------------------------------------------------------------------------
 
-        # pick a target chip
-        #self.jtag_chain.scan(jtag.IDCODE_BCM47452)
-        self.jtag_chain.scan(jtag.IDCODE_BCM58535)
-        #self.jtag_chain.scan(jtag.IDCODE_BCM58625)
+class user_interface(object):
 
-        self.jtag_dp = swj_dp.jtag_dp(self.jtag_chain)
-        self.interactive = interactive
-        self.set_prompt()
-        self.use_rawinput = self.interactive
-        self.running = True
-        self.put(_version_str)
-        self.do_jtag()
+  def __init__(self):
+    self.io = conio.console()
+    self.cli = cli.cli(self)
 
-    def set_prompt(self):
-        self.prompt = ('', '> ')[self.interactive]
+  def find_target(self, target):
+    """find and select a target"""
+    module = __import__(target)
+    module.target(self, _usb_number)
 
-    def run(self):
-        while self.running:
-            self.cmdloop()
+  def exit(self):
+    self.cli.exit()
 
-    def put(self, s):
-        sys.stdout.write(s)
-        sys.stdout.flush()
+  def put(self, s):
+    self.io.put(s)
 
-    def emptyline(self):
-        pass
+  def run(self):
+    self.cli.run()
 
-    def postcmd(self, stop, line):
-        self.set_prompt()
-        return stop
+  def close(self):
+    self.io.close()
 
-    def do_exit(self, args):
-        """exit from ui"""
-        self.running = False
-        return True
+  def cmd_help(self, ui, args):
+    self.cli.general_help()
 
-    def do_EOF(self, args):
-        """exit from ui"""
-        self.put('\n')
-        return self.do_exit(args)
-
-    def do_help(self, args):
-        """get help on commands
-        'help' or '?' prints a list of commands for which help is available
-        'help <command>' or '? <command>' gives help on <command>"""
-        cmd.Cmd.do_help(self, args)
-
-    def do_jtag(self, args = None):
-        """display jtag information"""
-        self.put('driver: %s\n' % self.jtag_driver)
-        self.put('%s\n' % self.jtag_chain)
-
-    def do_halt(self, args = None):
-        """do_halt help"""
-        pass
-
-    def do_run(self, args):
-        """do_run help"""
-        pass
-
-    def do_srst(self, args):
-        """pulse system reset line
-        srst<cr>"""
-        self.jtag_driver.srst()
-
-    def do_trst(self, args):
-        """pulse test reset line
-        trst<cr>"""
-        self.jtag_driver.trst()
-
-    def do_regs(self, args):
-        """display current user registers
-        regs<cr>"""
-        pass
-
-    def do_m2d(self, args):
-        """memory to display
-        m2d <adr> [len]
-        address (hex)
-        length (hex) - default is 0x40"""
-        pass
-
-    def do_m2f(self, args):
-        """memory to file
-        m2f <adr> <len> [file]
-        address (hex)
-        length (hex)
-        filename - default is mem.bin"""
-        pass
-
-    def do_rd8(self, args):
-        """read 8 bits from memory
-        rd8 <adr>"""
-        pass
-
-    def do_rd16(self, args):
-        """read 16 bits from memory
-        rd16 <adr>"""
-        pass
-
-    def do_rd32(self, args):
-        """read 32 bits from memory
-        rd32 <adr>"""
-        pass
-
-    def do_wr8(self, args):
-        """write 8 bits to memory
-        wr8 <adr> [val]"""
-        pass
-
-    def do_wr16(self, args):
-        """write 16 bits to memory
-        wr16 <adr> [val]"""
-        pass
-
-    def do_wr32(self, args):
-        """write 32 bits to memory
-        wr32 <adr> [val]"""
-        pass
-
-    def do_da(self, args):
-        """disassemble memory
-        da <adr> [n]
-        address (hex) - default is current pc
-        n instructions (dec) - default is 16"""
-        pass
-
-    def do_step(self, args):
-        """step an instruction
-        step<cr>"""
-        pass
-
-    def do_test(self, args):
-        """test function
-        test<cr>"""
-        print('%x' % self.jtag_dp.rd_idcode())
-        print('%x' % self.jtag_dp.rd_ctrl_stat())
-        #print('%x' % self.jtag_dp.rd_apacc())
-        #print('%x' % self.jtag_dp.rd_dpacc())
-
-#------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 def main():
-    args = Process_Options(sys.argv)
-    if len(args) >= 1:
-        # script mode
-        f = open(args[0], 'rt')
-        ui = user_interface(stdin = f, interactive = False)
-        ui.run()
-        f.close()
-    else:
-        # interactive mode
-        ui = user_interface()
-        ui.run()
-    sys.exit(0)
-
-#------------------------------------------------------------------------------
+  Process_Options(sys.argv)
+  ui = user_interface()
+  ui.put('\n%s' % _version_str)
+  if _target:
+    ui.find_target(_target)
+  try:
+    ui.run()
+  except:
+    ui.close()
+    raise
+  ui.close()
+  sys.exit(0)
 
 main()
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
