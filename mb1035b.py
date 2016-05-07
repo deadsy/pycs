@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-st_mb1035b
+Target file for mb1035b
 
 STM32F3 Discovery Board with STM32F303VCT6 SoC
 
@@ -11,7 +11,8 @@ STM32F3 Discovery Board with STM32F303VCT6 SoC
 import conio
 import cli
 import jlink
-import cortex_m
+import cortexm
+import stm32f3
 
 # -----------------------------------------------------------------------------
 
@@ -21,11 +22,12 @@ class target(object):
   def __init__(self, ui, usb_number):
     self.ui = ui
     self.jlink = jlink.JLink(usb_number, 'cortex-m4', jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortex_m.cortex_m(self, ui, self.jlink)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink)
+    self.soc = stm32f3.soc(self.cpu, 'STM32F303VCT6')
 
     self.menu_root = (
       ('cpu', 'cpu functions', self.cpu.menu_cpu),
-      ('da', 'disassemble memory', self.cpu.cmd_disassemble, cortex_m._help_disassemble),
+      ('da', 'disassemble memory', self.cpu.cmd_disassemble, cortexm._help_disassemble),
       ('exit', 'exit the application', self.cmd_exit),
       ('go', 'exit debug mode, run until breakpoint', self.cpu.cmd_go),
       ('halt', 'stop running, enter debug mode', self.cpu.cmd_halt),
@@ -33,6 +35,7 @@ class target(object):
       ('jlink', 'jlink information', self.cmd_jlink),
       ('mem', 'memory functions', self.cpu.menu_memory),
       ('regs', 'general registers', self.cpu.cmd_user_registers),
+      ('soc', 'soc functions', self.soc.menu),
     )
 
     self.ui.cli.set_root(self.menu_root)

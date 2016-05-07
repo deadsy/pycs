@@ -266,12 +266,10 @@ def maskshift(field):
   else:
     return (((1 << (field[0] - field[1] + 1)) - 1) << field[1], field[1])
 
-
 def bits(val, field):
   """return the bits (masked and shifted) from the value"""
   (mask, shift) = maskshift(field)
   return (val & mask) >> shift
-
 
 def masked(val, field):
   """return the bits (masked only) from the value"""
@@ -324,6 +322,15 @@ def bitfield_h(val, fields):
     else:
       l.append(('%s(%s)' % (name, func(bits(val, field)))))
   return ' '.join(l)
+
+# -----------------------------------------------------------------------------
+
+def format_bit(x, c):
+  if x == 0:
+    return '.'
+  elif x == 1:
+    return c
+  return ' '
 
 # -----------------------------------------------------------------------------
 
