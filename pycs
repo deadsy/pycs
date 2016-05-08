@@ -17,7 +17,7 @@ _version_str = 'pycs: ARM CoreSight Tool 1.0\n'
 _usb_number = 0
 _target = ''
 
-_supported_targets = ('mb1035b',)
+_supported_targets = ('mb1035b', 'saml21')
 
 # -----------------------------------------------------------------------------
 

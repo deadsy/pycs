@@ -459,6 +459,7 @@ class cortexm(object):
     self.jlink.step()
 
   def NVIC_GetPriority(self, irq, bits):
+    """return the priority encoding for an exception"""
     if irq == Reset_IRQn:
       return -3
     elif irq == NMI_IRQn:
@@ -466,13 +467,14 @@ class cortexm(object):
     elif irq == HardFault_IRQn:
       return -1
     elif irq < 0:
-      i = irq + NUM_SYS_EXC - 4
-      return self.rd(SCB_SHP(i), 8) >> (8 - bits)
+      # system exceptions
+      return self.rd(SCB_SHP(irq + NUM_SYS_EXC - 4), 8) >> (8 - bits)
     else:
+      # interrupt handlers
       return self.rd(NVIC_IP(irq), 8) >> (8 - bits)
 
   def NVIC_GetPriorityGrouping(self):
-    """read priority grouping field"""
+    """return the priority grouping number"""
     return (self.rd(SCB_AIRCR, 32) >> 8) & 7
 
   def cmd_rd(self, ui, args, n):

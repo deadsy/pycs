@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------
 """
 
-Target file for mb1035b
+Target file for Atmel SAM L21 Xplained Pro Evaluation Board
 
-STM32F3 Discovery Board with STM32F303VCT6 SoC
+ATSAML21J18B SoC
 
 """
 # -----------------------------------------------------------------------------
@@ -12,18 +12,18 @@ import conio
 import cli
 import jlink
 import cortexm
-import stm32f3
+import atsam
 
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """mb1035b- STM32F3 Discovery Board with STM32F303VCT6 SoC"""
+  """saml21 - Atmel SAM L21 Xplained Pro Evaluation Board"""
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    self.jlink = jlink.JLink(usb_number, 'cortex-m4', jlink._JLINKARM_TIF_SWD)
+    self.jlink = jlink.JLink(usb_number, 'cortex-m0+', jlink._JLINKARM_TIF_SWD)
     self.cpu = cortexm.cortexm(self, ui, self.jlink)
-    self.soc = stm32f3.soc(self.cpu, 'STM32F303VCT6')
+    self.soc = atsam.soc(self.cpu, 'ATSAML21J18B')
 
     self.menu_root = (
       ('cpu', 'cpu functions', self.cpu.menu_cpu),
@@ -43,7 +43,7 @@ class target(object):
     self.cmd_jlink(self.ui, None)
 
   def set_prompt(self):
-    self.ui.cli.set_prompt(('\nmb1035b*> ', '\nmb1035b> ')[self.jlink.is_halted()])
+    self.ui.cli.set_prompt(('\nsaml21*> ', '\nsaml21> ')[self.jlink.is_halted()])
 
   def cmd_jlink(self, ui, args):
     """display jlink information"""
