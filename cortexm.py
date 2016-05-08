@@ -309,6 +309,27 @@ def NVIC_ISPR(idx): return (NVIC_BASE + 0x100 + (idx * 4))
 def NVIC_IABR(idx): return (NVIC_BASE + 0x200 + (idx * 4))
 def NVIC_IP(idx): return (NVIC_BASE + 0x300 + idx)
 
+def NVIC_DecodePriority(priority, group, bits):
+  """decode a priority level"""
+  group &= 7
+  pre_bits = (7 - group, bits)[(7 - group) > bits]
+  sub_bits = bits - pre_bits
+  pre = (priority >> sub_bits) & ((1 << (pre_bits)) - 1)
+  sub = priority & ((1 << sub_bits) - 1)
+  return (pre, sub)
+
+def NVIC_DecodeString(group, bits):
+  """return a priority decode string"""
+  group &= 7
+  pre_bits = (7 - group, bits)[(7 - group) > bits]
+  sub_bits = bits - pre_bits
+  s = []
+  s.append('p' * pre_bits)
+  s.append('s' * sub_bits)
+  s.append('.' * (8 - pre_bits - sub_bits))
+  s.append(' %d bits group %d' % (bits, group))
+  return ''.join(s)
+
 # -----------------------------------------------------------------------------
 
 def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
@@ -437,7 +458,7 @@ class cortexm(object):
     """single step the cpu"""
     self.jlink.step()
 
-  def NVIC_GetPriority(self, irq, priority_bits):
+  def NVIC_GetPriority(self, irq, bits):
     if irq == Reset_IRQn:
       return -3
     elif irq == NMI_IRQn:
@@ -446,9 +467,9 @@ class cortexm(object):
       return -1
     elif irq < 0:
       i = irq + NUM_SYS_EXC - 4
-      return self.rd(SCB_SHP(i), 8) >> (8 - priority_bits)
+      return self.rd(SCB_SHP(i), 8) >> (8 - bits)
     else:
-      return self.rd(NVIC_IP(irq), 8) >> (8 - priority_bits)
+      return self.rd(NVIC_IP(irq), 8) >> (8 - bits)
 
   def NVIC_GetPriorityGrouping(self):
     """read priority grouping field"""
@@ -676,7 +697,7 @@ def exceptions_str(cpu, soc):
   icsr = cpu.rd(SCB_ICSR, 32)
   shcsr = cpu.rd(SCB_SHCSR, 32)
 
-  s.append('%-19s: %d %s' % ('priority grouping', group, ''))
+  s.append('%-19s: %s' % ('priority grouping', NVIC_DecodeString(group, soc.priority_bits)))
   s.append('%-19s: %08x' % ('vector table', vtable))
   s.append('Name                 Exc Irq EPA Prio Vector')
   for i in sorted(soc.exceptions.keys()):
@@ -734,10 +755,7 @@ def exceptions_str(cpu, soc):
     if priority < 0:
       tmp = '%-4d' % priority
     else:
-      #NVIC_DecodePriority(priority, group, &pre, &sub)
-      #tmp = '%d.%d' % (pre, sub)
-      tmp = ''
-
+      tmp = '%d.%d' % NVIC_DecodePriority(priority, group, soc.priority_bits)
     l.append('%-4s ' % tmp)
 
     # vector
