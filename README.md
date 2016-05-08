@@ -59,16 +59,18 @@ It has an interactive CLI.
 
 ## Hooking up ST Development Boards
 
+![mb1035b_image](https://github.com/deadsy/pycs/blob/master/pics/mb1035b.jpg "mb1035b_image")
+
 The ST boards have a 6 pin SWD debug connector.
 The JLINK has a 20 pin connector.
 
- * Pin 1 (VDD_TARGET) - No Connect (this is NOT a target reference voltage!)
- * Pin 2 (SWCLK) - Pin 9 (SWCLK) on JLINK
- * Pin 3 (GND) - Pin 4 (GND) on JLINK
- * Pin 4 (SWDIO) - Pin 7 (SWDIO) on JLINK
- * Pin 5 (NRST) - Pin 15 (RESET) on JLINK
- * Pin 6 (SWO) - Pin 13 (SWO) on JLINK (optional)
- * 3V Vdd - Pin 1 (VTref) on JLINK 
+ * Board Pin 1 (VDD_TARGET) - No Connect (this is not actually a target reference voltage)
+ * Board Pin 2 (SWCLK) - JLINK Pin 9 (SWCLK)
+ * Board Pin 3 (GND) - JLINK Pin 4 (GND)
+ * Board Pin 4 (SWDIO) - JLINK Pin 7 (SWDIO)
+ * Board Pin 5 (NRST) - JLINK Pin 15 (RESET)
+ * Board Pin 6 (SWO) - JLINK Pin 13 (SWO) - this is optional
+ * Board 3V Vdd - JLINK Pin 1 (VTref)
 
 Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to the Discovery CPU.
 
