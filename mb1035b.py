@@ -3,7 +3,7 @@
 
 Target file for mb1035b
 
-STM32F3 Discovery Board with STM32F303VCT6 SoC
+STM32F3 Discovery Board with STM32F303xC SoC
 
 """
 # -----------------------------------------------------------------------------
@@ -12,18 +12,24 @@ import conio
 import cli
 import jlink
 import cortexm
-import stm32f3
+import stm32
+
+# -----------------------------------------------------------------------------
+
+soc_name = 'STM32F303xC'
+prompt = 'mb1035b'
 
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """mb1035b- STM32F3 Discovery Board with STM32F303VCT6 SoC"""
+  """mb1035b- STM32F3 Discovery Board with STM32F303xC SoC"""
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    self.jlink = jlink.JLink(usb_number, 'cortex-m4', jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink)
-    self.soc = stm32f3.soc(self.cpu, 'STM32F303VCT6')
+    info = stm32.lookup(soc_name)
+    self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
+    self.soc = stm32.soc(self.cpu, info)
 
     self.menu_root = (
       ('cpu', 'cpu functions', self.cpu.menu_cpu),
@@ -43,7 +49,8 @@ class target(object):
     self.cmd_jlink(self.ui, None)
 
   def set_prompt(self):
-    self.ui.cli.set_prompt(('\nmb1035b*> ', '\nmb1035b> ')[self.jlink.is_halted()])
+    indicator = ('*', '')[self.jlink.is_halted()]
+    self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
   def cmd_jlink(self, ui, args):
     """display jlink information"""

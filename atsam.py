@@ -53,19 +53,39 @@ soc_vector_table0 = {
 
 #-----------------------------------------------------------------------------
 
+ATSAML21J18B_info = {
+  'name': 'ATSAML21J18B',
+  'cpu_type': 'cortex-m0+',
+  'priority_bits': 2,
+  'vector_table': soc_vector_table0,
+}
+
+#-----------------------------------------------------------------------------
+
+soc_db = {}
+
+def db_insert(info):
+  soc_db[info['name']] = info
+
+def lookup(name):
+  if soc_db.has_key(name):
+    return soc_db[name]
+  assert False, 'unknown SoC device %s' % device
+
+db_insert(ATSAML21J18B_info)
+
+#-----------------------------------------------------------------------------
+
 class soc(object):
   """Atmel SAM SoC"""
 
-  def __init__(self, cpu, device):
+  def __init__(self, cpu, info):
     self.cpu = cpu
+    self.info = info
     self.menu = (
       ('exceptions', 'show exception status', self.cmd_exceptions),
     )
-    if device == 'ATSAML21J18B':
-      self.exceptions = cortexm.build_exceptions(soc_vector_table0)
-      self.priority_bits = 4
-    else:
-      assert False, 'unknown SoC device %s' % device
+    self.exceptions = cortexm.build_exceptions(info['vector_table'])
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""

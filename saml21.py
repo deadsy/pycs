@@ -16,14 +16,20 @@ import atsam
 
 # -----------------------------------------------------------------------------
 
+soc_name = 'ATSAML21J18B'
+prompt = 'saml21'
+
+# -----------------------------------------------------------------------------
+
 class target(object):
   """saml21 - Atmel SAM L21 Xplained Pro Evaluation Board"""
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    self.jlink = jlink.JLink(usb_number, 'cortex-m0+', jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink)
-    self.soc = atsam.soc(self.cpu, 'ATSAML21J18B')
+    info = atsam.lookup(soc_name)
+    self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
+    self.soc = atsam.soc(self.cpu, info)
 
     self.menu_root = (
       ('cpu', 'cpu functions', self.cpu.menu_cpu),
@@ -43,7 +49,8 @@ class target(object):
     self.cmd_jlink(self.ui, None)
 
   def set_prompt(self):
-    self.ui.cli.set_prompt(('\nsaml21*> ', '\nsaml21> ')[self.jlink.is_halted()])
+    indicator = ('*', '')[self.jlink.is_halted()]
+    self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
   def cmd_jlink(self, ui, args):
     """display jlink information"""

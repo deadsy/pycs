@@ -75,7 +75,7 @@ _reg_names = (
 )
 
 # -----------------------------------------------------------------------------
-# Memory mapping of Cortex-M4 Hardware
+# Memory mapping of Cortex-Mx Hardware
 
 SCS_BASE        = 0xE000E000 # System Control Space Base Address
 ITM_BASE        = 0xE0000000 # ITM Base Address
@@ -91,16 +91,40 @@ FPU_BASE        = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 # -----------------------------------------------------------------------------
 # SysTick
 
+def CLKSOURCE_format(x):
+  return '(%d) %s' % (x, ('cpuclk', 'extclk')[x == 0])
+
+f = []
+f.append(fld('COUNTFLAG', 16, 16))
+f.append(fld('CLKSOURCE', 2, 2, CLKSOURCE_format))
+f.append(fld('TICKINT', 1, 1))
+f.append(fld('ENABLE', 0, 0))
+SysTick_CTRL_fields = fld_set('SysTick_CTRL', f)
+
+def TENMS_format(x):
+  return ('0', '(0x%06x) %.2f MHz' % (x, float(x)/1e+4))[x != 0]
+
+f = []
+f.append(fld('NOREF', 31, 31))
+f.append(fld('SKEW', 30, 30))
+f.append(fld('TENMS', 23, 0, TENMS_format))
+SysTick_CALIB_fields = fld_set('SysTick_CALIB', f)
+
 r = []
-r.append(reg('CTRL', 0x00, '(R/W) SysTick Control and Status Register', None))
+r.append(reg('CTRL', 0x00, '(R/W) SysTick Control and Status Register', SysTick_CTRL_fields))
 r.append(reg('LOAD', 0x04, '(R/W) SysTick Reload Value Register', None))
 r.append(reg('VAL', 0x08, '(R/W) SysTick Current Value Register', None))
-r.append(reg('CALIB', 0x0c, '(R/ ) SysTick Calibration Register', None))
+r.append(reg('CALIB', 0x0c, '(R/ ) SysTick Calibration Register', SysTick_CALIB_fields))
 systick_regs = reg_set('SysTick', r)
 
 SysTick_CTRL = (SysTick_BASE + 0x00)
 SysTick_LOAD = (SysTick_BASE + 0x04)
 SysTick_VAL = (SysTick_BASE + 0x08)
+
+systick_regs = {
+  'cortex-m4': (systick_regs, SysTick_BASE),
+  'cortex-m0+': (systick_regs, SysTick_BASE),
+}
 
 # -----------------------------------------------------------------------------
 # System Control Block
@@ -161,13 +185,30 @@ r.append(reg('ISAR[2]', 0x068, '(R/ ) Instruction Set Attributes Register', None
 r.append(reg('ISAR[3]', 0x06c, '(R/ ) Instruction Set Attributes Register', None))
 r.append(reg('ISAR[4]', 0x070, '(R/ ) Instruction Set Attributes Register', None))
 r.append(reg('CPACR', 0x088, '(R/W) Coprocessor Access Control Register', None))
-scb_regs = reg_set('System Control Block', r)
+scb_m4_regs = reg_set('SCB for Cortex-M4', r)
+
+r = []
+r.append(reg('CPUID', 0x000, '(R/ ) CPUID Base Register', CPUID_fields))
+r.append(reg('ICSR', 0x004, '(R/W) Interrupt Control and State Register', None))
+r.append(reg('VTOR', 0x008, '(R/W) Vector Table Offset Register', None))
+r.append(reg('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register', None))
+r.append(reg('SCR', 0x010, '(R/W) System Control Register', None))
+r.append(reg('CCR', 0x014, '(R/W) Configuration Control Register', None))
+r.append(reg('SHPR2', 0x01c, '(R/W) System Handlers Priority Registers', None))
+r.append(reg('SHPR3', 0x020, '(R/W) System Handlers Priority Registers', None))
+r.append(reg('SHCSR', 0x024, '(R/W) System Handler Control and State Register', None))
+scb_m0_plus_regs = reg_set('SCB for Cortex-M0+', r)
+
+scb_regs = {
+  'cortex-m4': (scb_m4_regs, SCB_BASE),
+  'cortex-m0+': (scb_m0_plus_regs, SCB_BASE),
+}
 
 SCB_ICSR = (SCB_BASE + 0x004)
 SCB_VTOR = (SCB_BASE + 0x008)
 SCB_AIRCR = (SCB_BASE + 0x00c)
 SCB_SHCSR = (SCB_BASE + 0x024)
-def SCB_SHP(idx): return (SCB_BASE + 0x018 + idx)
+def SCB_SHPR(idx): return (SCB_BASE + 0x018 + idx)
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
@@ -184,7 +225,20 @@ r.append(reg('RBAR_A2', 0x01C, '(R/W) MPU Alias 2 Region Base Address Register',
 r.append(reg('RASR_A2', 0x020, '(R/W) MPU Alias 2 Region Attribute and Size Register', None))
 r.append(reg('RBAR_A3', 0x024, '(R/W) MPU Alias 3 Region Base Address Register', None))
 r.append(reg('RASR_A3', 0x028, '(R/W) MPU Alias 3 Region Attribute and Size Register', None))
-mpu_regs = reg_set('Memory Protection Unit', r)
+mpu_m4_regs = reg_set('MPU for Cortex-M4', r)
+
+r = []
+r.append(reg('TYPE', 0x000, '(R/ ) MPU Type Register', None))
+r.append(reg('CTRL', 0x004, '(R/W) MPU Control Register', None))
+r.append(reg('RNR', 0x008, '(R/W) MPU Region RNRber Register', None))
+r.append(reg('RBAR', 0x00C, '(R/W) MPU Region Base Address Register', None))
+r.append(reg('RASR', 0x010, '(R/W) MPU Region Attribute and Size Register', None))
+mpu_m0_plus_regs = reg_set('MPU for Cortex-M0+', r)
+
+mpu_regs = {
+  'cortex-m4': (mpu_m4_regs, MPU_BASE),
+  'cortex-m0+': (mpu_m0_plus_regs, MPU_BASE),
+}
 
 # -----------------------------------------------------------------------------
 # Floating Point Unit
@@ -195,7 +249,11 @@ r.append(reg('FPCAR', 0x008, '(R/W) Floating-Point Context Address Register', No
 r.append(reg('FPDSCR', 0x00C, '(R/W) Floating-Point Default Status Control Register', None))
 r.append(reg('MVFR0', 0x010, '(R/ ) Media and FP Feature Register 0', None))
 r.append(reg('MVFR1', 0x014, '(R/ ) Media and FP Feature Register 1', None))
-fpu_regs = reg_set('Floating Point Unit', r)
+fpu_m4_regs = reg_set('Floating Point Unit', r)
+
+fpu_regs = {
+  'cortex-m4': (fpu_m4_regs, FPU_BASE),
+}
 
 # -----------------------------------------------------------------------------
 # Nested Vectored Interrupt Controller
@@ -302,33 +360,32 @@ r.append(reg('IP[57]', 0x3e4, '(R/W) Interrupt Priority Register', None))
 r.append(reg('IP[58]', 0x3e8, '(R/W) Interrupt Priority Register', None))
 r.append(reg('IP[59]', 0x3ec, '(R/W) Interrupt Priority Register', None))
 r.append(reg('STIR', 0xe00, '( /W) Software Trigger Interrupt Register', None))
-nvic_regs = reg_set('Nested Vectored Interrupt Controller', r)
+nvic_m4_regs = reg_set('NVIC for Cortex-M4', r)
+
+r = []
+r.append(reg('ISER[0]', 0x000, '(R/W) Interrupt Set Enable Register', None))
+r.append(reg('ICER[0]', 0x080, '(R/W) Interrupt Clear Enable Register', None))
+r.append(reg('ISPR[0]', 0x100, '(R/W) Interrupt Set Pending Register', None))
+r.append(reg('ICPR[0]', 0x180, '(R/W) Interrupt Clear Pending Register', None))
+r.append(reg('IP[0]', 0x300, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[1]', 0x304, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[2]', 0x308, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[3]', 0x30c, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[4]', 0x310, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[5]', 0x314, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[6]', 0x318, '(R/W) Interrupt Priority Register', None))
+r.append(reg('IP[7]', 0x31c, '(R/W) Interrupt Priority Register', None))
+nvic_m0_plus_regs = reg_set('NVIC for Cortex-M0+', r)
+
+nvic_regs = {
+  'cortex-m4': (nvic_m4_regs, NVIC_BASE),
+  'cortex-m0+': (nvic_m0_plus_regs, NVIC_BASE),
+}
 
 def NVIC_ISER(idx): return (NVIC_BASE + 0x000 + (idx * 4))
 def NVIC_ISPR(idx): return (NVIC_BASE + 0x100 + (idx * 4))
 def NVIC_IABR(idx): return (NVIC_BASE + 0x200 + (idx * 4))
 def NVIC_IP(idx): return (NVIC_BASE + 0x300 + idx)
-
-def NVIC_DecodePriority(priority, group, bits):
-  """decode a priority level"""
-  group &= 7
-  pre_bits = (7 - group, bits)[(7 - group) > bits]
-  sub_bits = bits - pre_bits
-  pre = (priority >> sub_bits) & ((1 << (pre_bits)) - 1)
-  sub = priority & ((1 << sub_bits) - 1)
-  return (pre, sub)
-
-def NVIC_DecodeString(group, bits):
-  """return a priority decode string"""
-  group &= 7
-  pre_bits = (7 - group, bits)[(7 - group) > bits]
-  sub_bits = bits - pre_bits
-  s = []
-  s.append('p' * pre_bits)
-  s.append('s' * sub_bits)
-  s.append('.' * (8 - pre_bits - sub_bits))
-  s.append(' %d bits group %d' % (bits, group))
-  return ''.join(s)
 
 # -----------------------------------------------------------------------------
 
@@ -366,10 +423,12 @@ def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
 
 class cortexm(object):
 
-  def __init__(self, target, ui, jlink):
+  def __init__(self, target, ui, jlink, cpu_type, priority_bits):
     self.target = target
     self.ui = ui
     self.jlink = jlink
+    self.cpu_type = cpu_type
+    self.priority_bits = priority_bits
     self.saved_regs = []
     self.width = 32
 
@@ -458,7 +517,7 @@ class cortexm(object):
     """single step the cpu"""
     self.jlink.step()
 
-  def NVIC_GetPriority(self, irq, bits):
+  def NVIC_GetPriority(self, irq):
     """return the priority encoding for an exception"""
     if irq == Reset_IRQn:
       return -3
@@ -468,14 +527,35 @@ class cortexm(object):
       return -1
     elif irq < 0:
       # system exceptions
-      return self.rd(SCB_SHP(irq + NUM_SYS_EXC - 4), 8) >> (8 - bits)
+      return self.rd(SCB_SHPR(irq + NUM_SYS_EXC - 4), 8) >> (8 - self.priority_bits)
     else:
       # interrupt handlers
-      return self.rd(NVIC_IP(irq), 8) >> (8 - bits)
+      return self.rd(NVIC_IP(irq), 8) >> (8 - self.priority_bits)
 
   def NVIC_GetPriorityGrouping(self):
     """return the priority grouping number"""
     return (self.rd(SCB_AIRCR, 32) >> 8) & 7
+
+  def NVIC_DecodePriority(self, priority, group):
+    """decode a priority level"""
+    group &= 7
+    pre_bits = (7 - group, self.priority_bits)[(7 - group) > self.priority_bits]
+    sub_bits = self.priority_bits - pre_bits
+    pre = (priority >> sub_bits) & ((1 << (pre_bits)) - 1)
+    sub = priority & ((1 << sub_bits) - 1)
+    return (pre, sub)
+
+  def NVIC_DecodeString(self, group):
+    """return a priority decode string"""
+    group &= 7
+    pre_bits = (7 - group, self.priority_bits)[(7 - group) > self.priority_bits]
+    sub_bits = self.priority_bits - pre_bits
+    s = []
+    s.append('p' * pre_bits)
+    s.append('s' * sub_bits)
+    s.append('.' * (8 - pre_bits - sub_bits))
+    s.append(' %d bits group %d' % (self.priority_bits, group))
+    return ''.join(s)
 
   def cmd_rd(self, ui, args, n):
     """memory read command for n bits"""
@@ -607,25 +687,36 @@ class cortexm(object):
   def cmd_step(self, ui, args):
     self.step()
 
+  def display_regs(self, ui, regs_by_type):
+    """display a register set by cpu type"""
+    if regs_by_type.has_key(self.cpu_type):
+      (regs, base) = regs_by_type[self.cpu_type]
+      ui.put('%s\n' % regs.emit(self, base))
+    else:
+      ui.put('not defined for %s\n' % self.cpu_type)
+
   def cmd_systick(self, ui, args):
     """display systick registers"""
-    ui.put('%s\n' % systick_regs.emit(self, SysTick_BASE))
+    self.display_regs(ui, systick_regs)
 
   def cmd_scb(self, ui, args):
     """display system control block registers"""
-    ui.put('%s\n' % scb_regs.emit(self, SCB_BASE))
+    self.display_regs(ui, scb_regs)
 
   def cmd_fpu(self, ui, args):
     """display floating point unit registers"""
-    ui.put('%s\n' % fpu_regs.emit(self, FPU_BASE))
+    if self.cpu_type in ('cortex-m0+',):
+      ui.put('%s devices do not have an fpu\n' % self.cpu_type)
+    else:
+      self.display_regs(ui, fpu_regs)
 
   def cmd_mpu(self, ui, args):
     """display memory protection unit registers"""
-    ui.put('%s\n' % mpu_regs.emit(self, MPU_BASE))
+    self.display_regs(ui, mpu_regs)
 
   def cmd_nvic(self, ui, args):
     """display nested vectored interrupt controller registers"""
-    ui.put('%s\n' % nvic_regs.emit(self, NVIC_BASE))
+    self.display_regs(ui, nvic_regs)
 
   def cmd_systick_rate(self, ui, args):
     """measure systick rate"""
@@ -699,7 +790,7 @@ def exceptions_str(cpu, soc):
   icsr = cpu.rd(SCB_ICSR, 32)
   shcsr = cpu.rd(SCB_SHCSR, 32)
 
-  s.append('%-19s: %s' % ('priority grouping', NVIC_DecodeString(group, soc.priority_bits)))
+  s.append('%-19s: %s' % ('priority grouping', cpu.NVIC_DecodeString(group)))
   s.append('%-19s: %08x' % ('vector table', vtable))
   s.append('Name                 Exc Irq EPA Prio Vector')
   for i in sorted(soc.exceptions.keys()):
@@ -753,11 +844,11 @@ def exceptions_str(cpu, soc):
     l.append(' ')
 
     # priority
-    priority = cpu.NVIC_GetPriority(irq, soc.priority_bits)
+    priority = cpu.NVIC_GetPriority(irq)
     if priority < 0:
       tmp = '%-4d' % priority
     else:
-      tmp = '%d.%d' % NVIC_DecodePriority(priority, group, soc.priority_bits)
+      tmp = '%d.%d' % cpu.NVIC_DecodePriority(priority, group)
     l.append('%-4s ' % tmp)
 
     # vector

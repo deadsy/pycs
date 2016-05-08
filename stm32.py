@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------
 """
 
-SoC file for stm32f3x devices
+SoC file for stm32 devices
 
 """
 #-----------------------------------------------------------------------------
@@ -139,20 +139,39 @@ soc_vector_table1 = {
 
 #-----------------------------------------------------------------------------
 
-class soc(object):
-  """stm32f3x SoC"""
+STM32F303xC_info = {
+  'name': 'STM32F303xC',
+  'cpu_type': 'cortex-m4',
+  'priority_bits': 4,
+  'vector_table': soc_vector_table0
+}
 
-  def __init__(self, cpu, device):
+#-----------------------------------------------------------------------------
+
+soc_db = {}
+
+def db_insert(info):
+  soc_db[info['name']] = info
+
+def lookup(name):
+  if soc_db.has_key(name):
+    return soc_db[name]
+  assert False, 'unknown SoC device %s' % device
+
+db_insert(STM32F303xC_info)
+
+#-----------------------------------------------------------------------------
+
+class soc(object):
+  """stm32 SoC"""
+
+  def __init__(self, cpu, info):
     self.cpu = cpu
+    self.info = info
     self.menu = (
       ('exceptions', 'show exception status', self.cmd_exceptions),
     )
-
-    if device == 'STM32F303VCT6':
-      self.exceptions = cortexm.build_exceptions(soc_vector_table0)
-      self.priority_bits = 4
-    else:
-      assert False, 'unknown SoC device %s' % device
+    self.exceptions = cortexm.build_exceptions(info['vector_table'])
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""
