@@ -121,6 +121,9 @@ SysTick_CTRL = (SysTick_BASE + 0x00)
 SysTick_LOAD = (SysTick_BASE + 0x04)
 SysTick_VAL = (SysTick_BASE + 0x08)
 
+# systick is a 24-bit down counter
+SysTick_MAXCOUNT = (1 << 24) - 1
+
 systick_regs = {
   'cortex-m4': (systick_regs, SysTick_BASE),
   'cortex-m0+': (systick_regs, SysTick_BASE),
@@ -718,32 +721,52 @@ class cortexm(object):
     """display nested vectored interrupt controller registers"""
     self.display_regs(ui, nvic_regs)
 
-  def cmd_systick_rate(self, ui, args):
-    """measure systick rate"""
-    # We compare the host time against the systick counter to work
-    # out the update frequency. The start/stop times are a bit loose
-    # with the result that the determined frequency will be a slight
-    # over-estimate.
-    ui.put('measuring systick rate ...\n')
-    # zero the counter
+  def systick_rate(self, t, cpuclk):
+    """return the systick count after t seconds"""
     self.halt()
+    # save the current settings
+    saved_ctrl = self.rd(SysTick_CTRL, 32)
     saved_load = self.rd(SysTick_LOAD, 32)
-    start = (1 << 24) - 1
-    self.wr(SysTick_LOAD, start, 32)
-    self.wr(SysTick_VAL, 0, 32)
+    saved_val = self.rd(SysTick_VAL, 32)
+    # setup systick
+    self.wr(SysTick_CTRL, (cpuclk << 2) | (1 << 0), 32)
+    self.wr(SysTick_VAL, SysTick_MAXCOUNT, 32)
+    self.wr(SysTick_LOAD, SysTick_MAXCOUNT, 32)
     # run for a while
     self.go()
     t_start = time.time()
-    time.sleep(2.0)
+    time.sleep(t)
     t = time.time() - t_start
     self.halt()
     # read the counter
     stop = self.rd(SysTick_VAL, 32)
+    # restore the saved settings
+    self.wr(SysTick_VAL, saved_val, 32)
     self.wr(SysTick_LOAD, saved_load, 32)
-    c = start - stop
-    ui.put('%d counts in %f secs\n' % (c, t))
-    mhz = c / (1000000 * t)
-    ui.put('%.2f Mhz\n' % mhz)
+    self.wr(SysTick_CTRL, saved_load, 32)
+    # return the tick count and time
+    return (SysTick_MAXCOUNT - stop, t)
+
+  def measure_systick(self, ui, msg, cpuclk):
+    """measure systick rate"""
+    ui.put('%s clock rate: ' % msg)
+    # short trial measurement that hopefully will not underflow
+    (c, t) = self.systick_rate(0.1, cpuclk)
+    if c:
+      # longer measurement for better accuracy
+      t = 0.8 * t * float(SysTick_MAXCOUNT) / float(c)
+      # clamp the time to a maximum limit
+      if t > 5:
+        t = 5
+      (c, t) = self.systick_rate(t, cpuclk)
+      mhz = c / (1000000 * t)
+      ui.put('%.2f Mhz\n' % mhz)
+    else:
+      ui.put('fail: systick did not decrement\n')
+
+  def cmd_systick_rate(self, ui, args):
+    self.measure_systick(ui, 'external', 0)
+    self.measure_systick(ui, 'cpu', 1)
 
 # -----------------------------------------------------------------------------
 # return a string for the current state of the exceptions
