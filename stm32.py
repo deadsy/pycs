@@ -7,6 +7,34 @@ SoC file for stm32 devices
 #-----------------------------------------------------------------------------
 
 import cortexm
+import util
+from util import reg, reg_set, fld, fld_set
+
+#-----------------------------------------------------------------------------
+# GPIO
+
+r = []
+r.append(reg('MODER', 0x00, '', None))
+r.append(reg('OTYPER', 0x04, '', None))
+r.append(reg('OSPEEDR', 0x08, '', None))
+r.append(reg('PUPDR', 0x0C, '', None))
+r.append(reg('IDR', 0x10, '', None))
+r.append(reg('ODR', 0x14, '', None))
+r.append(reg('BSRR', 0x18, '', None))
+r.append(reg('LCKR', 0x1C, '', None))
+r.append(reg('AFRL', 0x20, '', None))
+r.append(reg('AFRH', 0x24, '', None))
+r.append(reg('BRR', 0x28, '', None))
+gpio_regs = reg_set('GPIO', r)
+
+# TODO some sort of per platform selection for gpio info
+def gpio_n(n):
+  """return (name, base) for gpio[n]"""
+  if n >= 6:
+    return None
+  name = ('A','B','C','D','E','F')[n]
+  base = 0x48000000  + (0x400 * n)
+  return (name, base)
 
 #-----------------------------------------------------------------------------
 # SoC Exception Tables
@@ -162,6 +190,11 @@ db_insert(STM32F303xC_info)
 
 #-----------------------------------------------------------------------------
 
+gpio_help = (
+  ('<cr>', 'display all gpios'),
+  ('[n]', 'display gpio[n]'),
+)
+
 class soc(object):
   """stm32 SoC"""
 
@@ -170,11 +203,34 @@ class soc(object):
     self.info = info
     self.menu = (
       ('exceptions', 'show exception status', self.cmd_exceptions),
+      ('gpio', 'gpio registers', self.cmd_gpio, gpio_help)
     )
     self.exceptions = cortexm.build_exceptions(info['vector_table'])
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""
     ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
+
+  def cmd_gpio(self, ui, args):
+    """display gpio registers"""
+    num_gpios = 6
+    # default is to display all gpios
+    gpio_set = list(range(num_gpios))
+    if util.wrong_argc(ui, args, (0,1,)):
+      return
+    if len(args) == 1:
+      n = util.int_arg(ui, args[0], (0, num_gpios - 1), 10)
+      if n is None:
+        return
+      gpio_set = (n,)
+    # display the gpio registers
+    s = []
+    for n in gpio_set:
+      x = gpio_n(n)
+      if x is None:
+        break
+      (name, base) = x
+      s.append('GPIO%s\n%s\n' % (name, gpio_regs.emit(self.cpu, base)))
+    ui.put('\n'.join(s))
 
 #-----------------------------------------------------------------------------

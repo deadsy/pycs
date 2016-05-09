@@ -41,7 +41,7 @@ class target(object):
       ('jlink', 'jlink information', self.cmd_jlink),
       ('mem', 'memory functions', self.cpu.menu_memory),
       ('regs', 'general registers', self.cpu.cmd_user_registers),
-      ('soc', 'soc functions', self.soc.menu),
+      ('soc', 'system on chip functions', self.soc.menu),
     )
 
     self.ui.cli.set_root(self.menu_root)

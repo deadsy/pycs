@@ -751,7 +751,7 @@ class cortexm(object):
     """measure systick rate"""
     ui.put('%s clock rate: ' % msg)
     # short trial measurement that hopefully will not underflow
-    (c, t) = self.systick_rate(0.1, cpuclk)
+    (c, t) = self.systick_rate(0.05, cpuclk)
     if c:
       # longer measurement for better accuracy
       t = 0.8 * t * float(SysTick_MAXCOUNT) / float(c)
