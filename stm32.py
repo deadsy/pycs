@@ -12,6 +12,20 @@ from util import fld, fld_set
 from regs import reg32, reg16, reg8, regset, memio
 
 #-----------------------------------------------------------------------------
+# Flash
+
+r = []
+r.append(reg32('ACR', 0x00))
+r.append(reg32('KEYR', 0x04))
+r.append(reg32('OPTKEYR', 0x08))
+r.append(reg32('SR', 0x0C))
+r.append(reg32('CR', 0x10))
+r.append(reg32('AR',0x14))
+r.append(reg32('OBR', 0x1C))
+r.append(reg32('WRPR', 0x20))
+flash_regs = regset('Flash', r)
+
+#-----------------------------------------------------------------------------
 # GPIO
 
 r = []
@@ -38,11 +52,13 @@ def gpio_n(n):
   return (name, base)
 
 #-----------------------------------------------------------------------------
-# SoC Exception Tables
+# STM32F3 devices
+
+# Vector Tables
 # irq_number : name
 
-# Table 81. STM32F303xB/C/D/E, STM32F358xC and STM32F398xE vector table
-soc_vector_table0 = {
+# STM32F303xB/C/D/E, STM32F358xC and STM32F398xE
+vtable0 = {
   0: 'WWDG',
   1: 'PVD',
   2: 'TAMPER_STAMP',
@@ -119,8 +135,8 @@ soc_vector_table0 = {
   84: 'SPI4',
 }
 
-# Table 82. STM32F303x6/8and STM32F328x8 vector table
-soc_vector_table1 = {
+# STM32F303x6/8and STM32F328x8
+vtable1 = {
   0: 'WWDG',
   1: 'PVD',
   2: 'TAMPER_STAMP',
@@ -166,13 +182,46 @@ soc_vector_table1 = {
   81: 'FPU',
 }
 
-#-----------------------------------------------------------------------------
+# Memory Maps
+# name: (base address, size in bytes)
 
+# STM32F303xB/C and STM32F358xC
+memmap0 = {
+  'Flash interface': (0x40022000, 1 * KiB),
+  'GPIOA': (0x48000000, 1 * KiB),
+  'GPIOB': (0x48000400, 1 * KiB),
+  'GPIOC': (0x48000800, 1 * KiB),
+  'GPIOD': (0x48000c00, 1 * KiB),
+  'GPIOE': (0x48001000, 1 * KiB),
+  'GPIOF': (0x48001400, 1 * KiB),
+}
+
+STM32F303xB_info = {
+  'name': 'STM32F303xB',
+  'memmap': memmap0,
+}
 STM32F303xC_info = {
   'name': 'STM32F303xC',
   'cpu_type': 'cortex-m4',
   'priority_bits': 4,
-  'vector_table': soc_vector_table0
+  'vtable': vtable0,
+  'memmap': memmap0,
+}
+STM32F358xC_info = {
+  'name': 'STM32F358xC',
+  'memmap': memmap0,
+}
+STM32F303xD_info = {
+}
+STM32F303xE_info = {
+}
+STM32F398xE_info = {
+}
+STM32F303x6_info = {
+}
+STM32F303x8_info = {
+}
+STM32F328x8_info = {
 }
 
 #-----------------------------------------------------------------------------
@@ -187,7 +236,15 @@ def lookup(name):
     return soc_db[name]
   assert False, 'unknown SoC device %s' % device
 
+db_insert(STM32F303xB_info)
 db_insert(STM32F303xC_info)
+db_insert(STM32F358xC_info)
+db_insert(STM32F303xD_info)
+db_insert(STM32F303xE_info)
+db_insert(STM32F398xE_info)
+db_insert(STM32F303x6_info)
+db_insert(STM32F303x8_info)
+db_insert(STM32F328x8_info)
 
 #-----------------------------------------------------------------------------
 
