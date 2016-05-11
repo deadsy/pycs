@@ -8,24 +8,25 @@ SoC file for stm32 devices
 
 import cortexm
 import util
-from util import reg, reg_set, fld, fld_set
+from util import fld, fld_set
+from regs import reg32, reg16, reg8, regset, memio
 
 #-----------------------------------------------------------------------------
 # GPIO
 
 r = []
-r.append(reg('MODER', 0x00, '', None))
-r.append(reg('OTYPER', 0x04, '', None))
-r.append(reg('OSPEEDR', 0x08, '', None))
-r.append(reg('PUPDR', 0x0C, '', None))
-r.append(reg('IDR', 0x10, '', None))
-r.append(reg('ODR', 0x14, '', None))
-r.append(reg('BSRR', 0x18, '', None))
-r.append(reg('LCKR', 0x1C, '', None))
-r.append(reg('AFRL', 0x20, '', None))
-r.append(reg('AFRH', 0x24, '', None))
-r.append(reg('BRR', 0x28, '', None))
-gpio_regs = reg_set('GPIO', r)
+r.append(reg32('MODER', 0x00))
+r.append(reg32('OTYPER', 0x04))
+r.append(reg32('OSPEEDR', 0x08))
+r.append(reg32('PUPDR', 0x0C))
+r.append(reg32('IDR', 0x10))
+r.append(reg32('ODR', 0x14))
+r.append(reg32('BSRR', 0x18))
+r.append(reg32('LCKR', 0x1C))
+r.append(reg32('AFRL', 0x20))
+r.append(reg32('AFRH', 0x24))
+r.append(reg32('BRR', 0x28))
+gpio_regs = regset('GPIO', r)
 
 # TODO some sort of per platform selection for gpio info
 def gpio_n(n):

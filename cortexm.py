@@ -12,7 +12,8 @@ import time
 import util
 import io
 import jlink
-from util import reg, reg_set, fld, fld_set
+from util import fld, fld_set
+from regs import reg32, reg16, reg8, regset, memio
 
 # -----------------------------------------------------------------------------
 
@@ -111,22 +112,18 @@ f.append(fld('TENMS', 23, 0, TENMS_format))
 SysTick_CALIB_fields = fld_set('SysTick_CALIB', f)
 
 r = []
-r.append(reg('CTRL', 0x00, '(R/W) SysTick Control and Status Register', SysTick_CTRL_fields))
-r.append(reg('LOAD', 0x04, '(R/W) SysTick Reload Value Register', None))
-r.append(reg('VAL', 0x08, '(R/W) SysTick Current Value Register', None))
-r.append(reg('CALIB', 0x0c, '(R/ ) SysTick Calibration Register', SysTick_CALIB_fields))
-systick_regs = reg_set('SysTick', r)
-
-SysTick_CTRL = (SysTick_BASE + 0x00)
-SysTick_LOAD = (SysTick_BASE + 0x04)
-SysTick_VAL = (SysTick_BASE + 0x08)
+r.append(reg32('CTRL', 0x00, SysTick_CTRL_fields)) # (R/W) SysTick Control and Status Register
+r.append(reg32('LOAD', 0x04)) # (R/W) SysTick Reload Value Register
+r.append(reg32('VAL', 0x08)) # (R/W) SysTick Current Value Register
+r.append(reg32('CALIB', 0x0c, SysTick_CALIB_fields)) # (R/ ) SysTick Calibration Register
+systick_mX_regs = regset('SysTick', r)
 
 # systick is a 24-bit down counter
 SysTick_MAXCOUNT = (1 << 24) - 1
 
 systick_regs = {
-  'cortex-m4': (systick_regs, SysTick_BASE),
-  'cortex-m0+': (systick_regs, SysTick_BASE),
+  'cortex-m4': (systick_mX_regs, SysTick_BASE),
+  'cortex-m0+': (systick_mX_regs, SysTick_BASE),
 }
 
 # -----------------------------------------------------------------------------
@@ -140,12 +137,12 @@ def Implementor_format(x):
 
 def Part_Number_format(x):
   names = {
-    0xc60: 'Cortex-M0+',
-    0xc20: 'Cortex-M0',
-    0xc21: 'Cortex-M1',
-    0xc23: 'Cortex-M3',
-    0xc24: 'Cortex-M4',
-    0xc27: 'Cortex-M7',
+    0xc60: 'cortex-m0+',
+    0xc20: 'cortex-m0',
+    0xc21: 'cortex-m1',
+    0xc23: 'cortex-m3',
+    0xc24: 'cortex-m4',
+    0xc27: 'cortex-m7',
   }
   return '(0x%03x) %s' % (x, names.get(x, '?'))
 
@@ -158,85 +155,84 @@ f.append(fld('Revision', 3, 0))
 CPUID_fields = fld_set('CPUID', f)
 
 r = []
-r.append(reg('CPUID', 0x000, '(R/ ) CPUID Base Register', CPUID_fields))
-r.append(reg('ICSR', 0x004, '(R/W) Interrupt Control and State Register', None))
-r.append(reg('VTOR', 0x008, '(R/W) Vector Table Offset Register', None))
-r.append(reg('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register', None))
-r.append(reg('SCR', 0x010, '(R/W) System Control Register', None))
-r.append(reg('CCR', 0x014, '(R/W) Configuration Control Register', None))
-r.append(reg('SHP[4..7]', 0x018, '(R/W) System Handlers Priority Registers', None))
-r.append(reg('SHP[8..11]', 0x01c, '(R/W) System Handlers Priority Registers', None))
-r.append(reg('SHP[12..15]', 0x020, '(R/W) System Handlers Priority Registers', None))
-r.append(reg('SHCSR', 0x024, '(R/W) System Handler Control and State Register', None))
-r.append(reg('CFSR', 0x028, '(R/W) Configurable Fault Status Register', None))
-r.append(reg('HFSR', 0x02C, '(R/W) HardFault Status Register', None))
-r.append(reg('DFSR', 0x030, '(R/W) Debug Fault Status Register', None))
-r.append(reg('MMFAR', 0x034, '(R/W) MemManage Fault Address Register', None))
-r.append(reg('BFAR', 0x038, '(R/W) BusFault Address Register', None))
-r.append(reg('AFSR', 0x03C, '(R/W) Auxiliary Fault Status Register', None))
-r.append(reg('PFR[0]', 0x040, '(R/ ) Processor Feature Register', None))
-r.append(reg('PFR[1]', 0x044, '(R/ ) Processor Feature Register', None))
-r.append(reg('DFR', 0x048, ' (R/ ) Debug Feature Register', None))
-r.append(reg('ADR', 0x04C, ' (R/ ) Auxiliary Feature Register', None))
-r.append(reg('MMFR[0]', 0x050, '(R/ ) Memory Model Feature Register', None))
-r.append(reg('MMFR[1]', 0x054, '(R/ ) Memory Model Feature Register', None))
-r.append(reg('MMFR[2]', 0x058, '(R/ ) Memory Model Feature Register', None))
-r.append(reg('MMFR[3]', 0x05c, '(R/ ) Memory Model Feature Register', None))
-r.append(reg('ISAR[0]', 0x060, '(R/ ) Instruction Set Attributes Register', None))
-r.append(reg('ISAR[1]', 0x064, '(R/ ) Instruction Set Attributes Register', None))
-r.append(reg('ISAR[2]', 0x068, '(R/ ) Instruction Set Attributes Register', None))
-r.append(reg('ISAR[3]', 0x06c, '(R/ ) Instruction Set Attributes Register', None))
-r.append(reg('ISAR[4]', 0x070, '(R/ ) Instruction Set Attributes Register', None))
-r.append(reg('CPACR', 0x088, '(R/W) Coprocessor Access Control Register', None))
-scb_m4_regs = reg_set('SCB for Cortex-M4', r)
+r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
+r.append(reg32('ICSR', 0x004)) # (R/W) Interrupt Control and State Register
+r.append(reg32('VTOR', 0x008)) # (R/W) Vector Table Offset Register
+r.append(reg32('AIRCR', 0x00C)) # (R/W) Application Interrupt and Reset Control Register
+r.append(reg32('SCR', 0x010)) # (R/W) System Control Register
+r.append(reg32('CCR', 0x014)) # (R/W) Configuration Control Register
+r.append(reg8('SHPR', 0x018, None)) # base register for access
+r.append(reg32('SHPR1', 0x018)) # (R/W) System Handlers Priority Registers
+r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
+r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
+r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
+r.append(reg32('CFSR', 0x028)) # (R/W) Configurable Fault Status Register
+r.append(reg8('MMSR', 0x028)) # (R/W) MemManage Fault Status Register
+r.append(reg8('BFSR', 0x029)) # (R/W) BusFault Status Register
+r.append(reg16('UFSR', 0x02a)) # (R/W) UsageFault Status Register
+r.append(reg32('HFSR', 0x02C)) # (R/W) HardFault Status Register
+r.append(reg32('DFSR', 0x030)) # (R/W) Debug Fault Status Register
+r.append(reg32('MMFAR', 0x034)) # (R/W) MemManage Fault Address Register
+r.append(reg32('BFAR', 0x038)) # (R/W) BusFault Address Register
+r.append(reg32('AFSR', 0x03C)) # (R/W) Auxiliary Fault Status Register
+r.append(reg32('PFR[0]', 0x040)) # (R/ ) Processor Feature Register
+r.append(reg32('PFR[1]', 0x044)) # (R/ ) Processor Feature Register
+r.append(reg32('DFR', 0x048)) # (R/ ) Debug Feature Register
+r.append(reg32('ADR', 0x04C)) # (R/ ) Auxiliary Feature Register
+r.append(reg32('MMFR[0]', 0x050)) # (R/ ) Memory Model Feature Register
+r.append(reg32('MMFR[1]', 0x054)) # (R/ ) Memory Model Feature Register
+r.append(reg32('MMFR[2]', 0x058)) # (R/ ) Memory Model Feature Register
+r.append(reg32('MMFR[3]', 0x05c)) # (R/ ) Memory Model Feature Register
+r.append(reg32('ISAR[0]', 0x060)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ISAR[1]', 0x064)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ISAR[2]', 0x068)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ISAR[3]', 0x06c)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ISAR[4]', 0x070)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('CPACR', 0x088)) # (R/W) Coprocessor Access Control Register
+scb_m4_regs = regset('SCB for Cortex-M4', r)
 
 r = []
-r.append(reg('CPUID', 0x000, '(R/ ) CPUID Base Register', CPUID_fields))
-r.append(reg('ICSR', 0x004, '(R/W) Interrupt Control and State Register', None))
-r.append(reg('VTOR', 0x008, '(R/W) Vector Table Offset Register', None))
-r.append(reg('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register', None))
-r.append(reg('SCR', 0x010, '(R/W) System Control Register', None))
-r.append(reg('CCR', 0x014, '(R/W) Configuration Control Register', None))
-r.append(reg('SHPR2', 0x01c, '(R/W) System Handlers Priority Registers', None))
-r.append(reg('SHPR3', 0x020, '(R/W) System Handlers Priority Registers', None))
-r.append(reg('SHCSR', 0x024, '(R/W) System Handler Control and State Register', None))
-scb_m0_plus_regs = reg_set('SCB for Cortex-M0+', r)
+r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
+r.append(reg32('ICSR', 0x004)) # (R/W) Interrupt Control and State Register
+r.append(reg32('VTOR', 0x008)) # (R/W) Vector Table Offset Register
+r.append(reg32('AIRCR', 0x00C)) # (R/W) Application Interrupt and Reset Control Register
+r.append(reg32('SCR', 0x010)) # (R/W) System Control Register
+r.append(reg32('CCR', 0x014)) # (R/W) Configuration Control Register
+r.append(reg8('SHPR', 0x018, None)) # base register for access
+r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
+r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
+r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
+scb_m0_plus_regs = regset('SCB for Cortex-M0+', r)
 
 scb_regs = {
   'cortex-m4': (scb_m4_regs, SCB_BASE),
   'cortex-m0+': (scb_m0_plus_regs, SCB_BASE),
 }
 
-SCB_ICSR = (SCB_BASE + 0x004)
-SCB_VTOR = (SCB_BASE + 0x008)
-SCB_AIRCR = (SCB_BASE + 0x00c)
-SCB_SHCSR = (SCB_BASE + 0x024)
-def SCB_SHPR(idx): return (SCB_BASE + 0x018 + idx)
-
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
 
 r = []
-r.append(reg('TYPE', 0x000, '(R/ ) MPU Type Register', None))
-r.append(reg('CTRL', 0x004, '(R/W) MPU Control Register', None))
-r.append(reg('RNR', 0x008, '(R/W) MPU Region RNRber Register', None))
-r.append(reg('RBAR', 0x00C, '(R/W) MPU Region Base Address Register', None))
-r.append(reg('RASR', 0x010, '(R/W) MPU Region Attribute and Size Register', None))
-r.append(reg('RBAR_A1', 0x014, '(R/W) MPU Alias 1 Region Base Address Register', None))
-r.append(reg('RASR_A1', 0x018, '(R/W) MPU Alias 1 Region Attribute and Size Register', None))
-r.append(reg('RBAR_A2', 0x01C, '(R/W) MPU Alias 2 Region Base Address Register', None))
-r.append(reg('RASR_A2', 0x020, '(R/W) MPU Alias 2 Region Attribute and Size Register', None))
-r.append(reg('RBAR_A3', 0x024, '(R/W) MPU Alias 3 Region Base Address Register', None))
-r.append(reg('RASR_A3', 0x028, '(R/W) MPU Alias 3 Region Attribute and Size Register', None))
-mpu_m4_regs = reg_set('MPU for Cortex-M4', r)
+r.append(reg32('TYPE', 0x000)) # (R/ ) MPU Type Register
+r.append(reg32('CTRL', 0x004)) # (R/W) MPU Control Register
+r.append(reg32('RNR', 0x008)) # (R/W) MPU Region RNRber Register
+r.append(reg32('RBAR', 0x00C)) # (R/W) MPU Region Base Address Register
+r.append(reg32('RASR', 0x010)) # (R/W) MPU Region Attribute and Size Register
+r.append(reg32('RBAR_A1', 0x014)) # (R/W) MPU Alias 1 Region Base Address Register
+r.append(reg32('RASR_A1', 0x018)) # (R/W) MPU Alias 1 Region Attribute and Size Register
+r.append(reg32('RBAR_A2', 0x01C)) # (R/W) MPU Alias 2 Region Base Address Register
+r.append(reg32('RASR_A2', 0x020)) # (R/W) MPU Alias 2 Region Attribute and Size Register
+r.append(reg32('RBAR_A3', 0x024)) # (R/W) MPU Alias 3 Region Base Address Register
+r.append(reg32('RASR_A3', 0x028)) # (R/W) MPU Alias 3 Region Attribute and Size Register
+mpu_m4_regs = regset('MPU for Cortex-M4', r)
 
 r = []
-r.append(reg('TYPE', 0x000, '(R/ ) MPU Type Register', None))
-r.append(reg('CTRL', 0x004, '(R/W) MPU Control Register', None))
-r.append(reg('RNR', 0x008, '(R/W) MPU Region RNRber Register', None))
-r.append(reg('RBAR', 0x00C, '(R/W) MPU Region Base Address Register', None))
-r.append(reg('RASR', 0x010, '(R/W) MPU Region Attribute and Size Register', None))
-mpu_m0_plus_regs = reg_set('MPU for Cortex-M0+', r)
+r.append(reg32('TYPE', 0x000)) # (R/ ) MPU Type Register
+r.append(reg32('CTRL', 0x004)) # (R/W) MPU Control Register
+r.append(reg32('RNR', 0x008)) # (R/W) MPU Region RNRber Register
+r.append(reg32('RBAR', 0x00C)) # (R/W) MPU Region Base Address Register
+r.append(reg32('RASR', 0x010)) # (R/W) MPU Region Attribute and Size Register
+mpu_m0_plus_regs = regset('MPU for Cortex-M0+', r)
 
 mpu_regs = {
   'cortex-m4': (mpu_m4_regs, MPU_BASE),
@@ -247,12 +243,12 @@ mpu_regs = {
 # Floating Point Unit
 
 r = []
-r.append(reg('FPCCR', 0x004, '(R/W) Floating-Point Context Control Register', None))
-r.append(reg('FPCAR', 0x008, '(R/W) Floating-Point Context Address Register', None))
-r.append(reg('FPDSCR', 0x00C, '(R/W) Floating-Point Default Status Control Register', None))
-r.append(reg('MVFR0', 0x010, '(R/ ) Media and FP Feature Register 0', None))
-r.append(reg('MVFR1', 0x014, '(R/ ) Media and FP Feature Register 1', None))
-fpu_m4_regs = reg_set('Floating Point Unit', r)
+r.append(reg32('FPCCR', 0x004)) # (R/W) Floating-Point Context Control Register
+r.append(reg32('FPCAR', 0x008)) # (R/W) Floating-Point Context Address Register
+r.append(reg32('FPDSCR', 0x00C)) # (R/W) Floating-Point Default Status Control Register
+r.append(reg32('MVFR0', 0x010)) # (R/ ) Media and FP Feature Register 0
+r.append(reg32('MVFR1', 0x014)) # (R/ ) Media and FP Feature Register 1
+fpu_m4_regs = regset('Floating Point Unit', r)
 
 fpu_regs = {
   'cortex-m4': (fpu_m4_regs, FPU_BASE),
@@ -262,133 +258,131 @@ fpu_regs = {
 # Nested Vectored Interrupt Controller
 
 r = []
-r.append(reg('ISER[0]', 0x000, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[1]', 0x004, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[2]', 0x008, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[3]', 0x00c, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[4]', 0x010, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[5]', 0x014, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[6]', 0x018, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ISER[7]', 0x01c, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ICER[0]', 0x080, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[1]', 0x084, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[2]', 0x088, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[3]', 0x08c, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[4]', 0x090, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[5]', 0x094, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[6]', 0x098, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ICER[7]', 0x09c, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ISPR[0]', 0x100, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[1]', 0x104, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[2]', 0x108, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[3]', 0x10c, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[4]', 0x110, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[5]', 0x114, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[6]', 0x118, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ISPR[7]', 0x11c, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ICPR[0]', 0x180, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[1]', 0x184, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[2]', 0x188, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[3]', 0x18c, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[4]', 0x190, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[5]', 0x194, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[6]', 0x198, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('ICPR[7]', 0x19c, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('IABR[0]', 0x200, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[1]', 0x204, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[2]', 0x208, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[3]', 0x20c, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[4]', 0x210, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[5]', 0x214, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[6]', 0x218, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IABR[7]', 0x21c, '(R/W) Interrupt Active bit Register', None))
-r.append(reg('IP[0]', 0x300, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[1]', 0x304, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[2]', 0x308, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[3]', 0x30c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[4]', 0x310, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[5]', 0x314, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[6]', 0x318, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[7]', 0x31c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[8]', 0x320, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[9]', 0x324, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[10]', 0x328, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[11]', 0x32c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[12]', 0x330, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[13]', 0x334, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[14]', 0x338, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[15]', 0x33c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[16]', 0x340, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[17]', 0x344, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[18]', 0x348, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[19]', 0x34c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[20]', 0x350, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[21]', 0x354, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[22]', 0x358, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[23]', 0x35c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[24]', 0x360, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[25]', 0x364, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[26]', 0x368, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[27]', 0x36c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[28]', 0x370, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[29]', 0x374, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[30]', 0x378, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[31]', 0x37c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[32]', 0x380, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[33]', 0x384, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[34]', 0x388, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[35]', 0x38c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[36]', 0x390, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[37]', 0x394, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[38]', 0x398, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[39]', 0x39c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[40]', 0x3a0, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[41]', 0x3a4, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[42]', 0x3a8, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[43]', 0x3ac, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[44]', 0x3b0, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[45]', 0x3b4, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[46]', 0x3b8, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[47]', 0x3bc, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[48]', 0x3c0, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[49]', 0x3c4, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[50]', 0x3c8, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[51]', 0x3cc, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[52]', 0x3d0, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[53]', 0x3d4, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[54]', 0x3d8, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[55]', 0x3dc, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[56]', 0x3e0, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[57]', 0x3e4, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[58]', 0x3e8, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[59]', 0x3ec, '(R/W) Interrupt Priority Register', None))
-r.append(reg('STIR', 0xe00, '( /W) Software Trigger Interrupt Register', None))
-nvic_m4_regs = reg_set('NVIC for Cortex-M4', r)
+r.append(reg32('ISER0', 0x000)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER1', 0x004)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER2', 0x008)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER3', 0x00c)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER4', 0x010)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER5', 0x014)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER6', 0x018)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ISER7', 0x01c)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ICER0', 0x080)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER1', 0x084)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER2', 0x088)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER3', 0x08c)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER4', 0x090)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER5', 0x094)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER6', 0x098)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ICER7', 0x09c)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ISPR0', 0x100)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR1', 0x104)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR2', 0x108)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR3', 0x10c)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR4', 0x110)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR5', 0x114)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR6', 0x118)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ISPR7', 0x11c)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ICPR0', 0x180)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR1', 0x184)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR2', 0x188)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR3', 0x18c)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR4', 0x190)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR5', 0x194)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR6', 0x198)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('ICPR7', 0x19c)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('IABR0', 0x200)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR1', 0x204)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR2', 0x208)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR3', 0x20c)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR4', 0x210)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR5', 0x214)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR6', 0x218)) # (R/W) Interrupt Active bit Register
+r.append(reg32('IABR7', 0x21c)) # (R/W) Interrupt Active bit Register
+r.append(reg8('IPR', 0x300, None)) # byte access
+r.append(reg32('IPR0', 0x300)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR1', 0x304)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR2', 0x308)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR3', 0x30c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR4', 0x310)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR5', 0x314)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR6', 0x318)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR7', 0x31c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR8', 0x320)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR9', 0x324)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR10', 0x328)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR11', 0x32c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR12', 0x330)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR13', 0x334)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR14', 0x338)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR15', 0x33c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR16', 0x340)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR17', 0x344)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR18', 0x348)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR19', 0x34c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR20', 0x350)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR21', 0x354)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR22', 0x358)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR23', 0x35c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR24', 0x360)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR25', 0x364)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR26', 0x368)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR27', 0x36c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR28', 0x370)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR29', 0x374)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR30', 0x378)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR31', 0x37c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR32', 0x380)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR33', 0x384)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR34', 0x388)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR35', 0x38c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR36', 0x390)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR37', 0x394)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR38', 0x398)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR39', 0x39c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR40', 0x3a0)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR41', 0x3a4)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR42', 0x3a8)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR43', 0x3ac)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR44', 0x3b0)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR45', 0x3b4)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR46', 0x3b8)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR47', 0x3bc)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR48', 0x3c0)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR49', 0x3c4)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR50', 0x3c8)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR51', 0x3cc)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR52', 0x3d0)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR53', 0x3d4)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR54', 0x3d8)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR55', 0x3dc)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR56', 0x3e0)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR57', 0x3e4)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR58', 0x3e8)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR59', 0x3ec)) # (R/W) Interrupt Priority Register
+r.append(reg32('STIR', 0xe00)) #( /W) Software Trigger Interrupt Register
+nvic_m4_regs = regset('NVIC for Cortex-M4', r)
 
 r = []
-r.append(reg('ISER[0]', 0x000, '(R/W) Interrupt Set Enable Register', None))
-r.append(reg('ICER[0]', 0x080, '(R/W) Interrupt Clear Enable Register', None))
-r.append(reg('ISPR[0]', 0x100, '(R/W) Interrupt Set Pending Register', None))
-r.append(reg('ICPR[0]', 0x180, '(R/W) Interrupt Clear Pending Register', None))
-r.append(reg('IP[0]', 0x300, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[1]', 0x304, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[2]', 0x308, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[3]', 0x30c, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[4]', 0x310, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[5]', 0x314, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[6]', 0x318, '(R/W) Interrupt Priority Register', None))
-r.append(reg('IP[7]', 0x31c, '(R/W) Interrupt Priority Register', None))
-nvic_m0_plus_regs = reg_set('NVIC for Cortex-M0+', r)
+r.append(reg32('ISER0', 0x000)) # (R/W) Interrupt Set Enable Register
+r.append(reg32('ICER0', 0x080)) # (R/W) Interrupt Clear Enable Register
+r.append(reg32('ISPR0', 0x100)) # (R/W) Interrupt Set Pending Register
+r.append(reg32('ICPR0', 0x180)) # (R/W) Interrupt Clear Pending Register
+r.append(reg32('IABR0', 0x200, None)) # not implemented on cortex-m0+
+r.append(reg8('IPR', 0x300, None)) # byte access
+r.append(reg32('IPR0', 0x300)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR1', 0x304)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR2', 0x308)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR3', 0x30c)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR4', 0x310)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR5', 0x314)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR6', 0x318)) # (R/W) Interrupt Priority Register
+r.append(reg32('IPR7', 0x31c)) # (R/W) Interrupt Priority Register
+nvic_m0_plus_regs = regset('NVIC for Cortex-M0+', r)
 
 nvic_regs = {
   'cortex-m4': (nvic_m4_regs, NVIC_BASE),
   'cortex-m0+': (nvic_m0_plus_regs, NVIC_BASE),
 }
-
-def NVIC_ISER(idx): return (NVIC_BASE + 0x000 + (idx * 4))
-def NVIC_ISPR(idx): return (NVIC_BASE + 0x100 + (idx * 4))
-def NVIC_IABR(idx): return (NVIC_BASE + 0x200 + (idx * 4))
-def NVIC_IP(idx): return (NVIC_BASE + 0x300 + idx)
 
 # -----------------------------------------------------------------------------
 
@@ -435,6 +429,11 @@ class cortexm(object):
     self.saved_regs = []
     self.width = 32
 
+    # setup the memory mapped registers for this cpu
+    self.scb = self.get_memio(scb_regs)
+    self.systick = self.get_memio(systick_regs)
+    self.nvic = self.get_memio(nvic_regs)
+
     self.menu_memory = (
       ('display', 'dump memory to display', self.cmd_mem2display, _help_memdisplay),
       ('>file', 'read from memory, write to file', self.cmd_mem2file, _help_mem2file),
@@ -456,6 +455,11 @@ class cortexm(object):
       ('systick', 'systick registers', self.cmd_systick),
       ('rate', 'measure systick counter rate', self.cmd_systick_rate),
     )
+
+  def get_memio(self, x_regs):
+    """return a memory accessor for a given register set"""
+    (regs, base) = x_regs[self.cpu_type]
+    return memio(regs, self, base)
 
   def rd(self, adr, n):
     """read from memory - n bits aligned"""
@@ -530,14 +534,16 @@ class cortexm(object):
       return -1
     elif irq < 0:
       # system exceptions
-      return self.rd(SCB_SHPR(irq + NUM_SYS_EXC - 4), 8) >> (8 - self.priority_bits)
+      return self.scb.rd('SHPR', irq + NUM_SYS_EXC - 4) >> (8 - self.priority_bits)
     else:
       # interrupt handlers
-      return self.rd(NVIC_IP(irq), 8) >> (8 - self.priority_bits)
+      return self.nvic.rd('IPR', irq) >> (8 - self.priority_bits)
 
   def NVIC_GetPriorityGrouping(self):
     """return the priority grouping number"""
-    return (self.rd(SCB_AIRCR, 32) >> 8) & 7
+    (regs, base) = scb_regs[self.cpu_type]
+    scb = memio(regs, self, base)
+    return (scb.rd('AIRCR') >> 8) & 7
 
   def NVIC_DecodePriority(self, priority, group):
     """decode a priority level"""
@@ -725,13 +731,13 @@ class cortexm(object):
     """return the systick count after t seconds"""
     self.halt()
     # save the current settings
-    saved_ctrl = self.rd(SysTick_CTRL, 32)
-    saved_load = self.rd(SysTick_LOAD, 32)
-    saved_val = self.rd(SysTick_VAL, 32)
+    saved_ctrl = self.systick.rd('CTRL')
+    saved_load = self.systick.rd('LOAD')
+    saved_val = self.systick.rd('VAL')
     # setup systick
-    self.wr(SysTick_CTRL, (cpuclk << 2) | (1 << 0), 32)
-    self.wr(SysTick_VAL, SysTick_MAXCOUNT, 32)
-    self.wr(SysTick_LOAD, SysTick_MAXCOUNT, 32)
+    self.systick.wr('CTRL', (cpuclk << 2) | (1 << 0))
+    self.systick.wr('VAL', SysTick_MAXCOUNT)
+    self.systick.wr('LOAD', SysTick_MAXCOUNT)
     # run for a while
     self.go()
     t_start = time.time()
@@ -739,11 +745,11 @@ class cortexm(object):
     t = time.time() - t_start
     self.halt()
     # read the counter
-    stop = self.rd(SysTick_VAL, 32)
+    stop = self.systick.rd('VAL')
     # restore the saved settings
-    self.wr(SysTick_VAL, saved_val, 32)
-    self.wr(SysTick_LOAD, saved_load, 32)
-    self.wr(SysTick_CTRL, saved_load, 32)
+    self.systick.wr('VAL', saved_val)
+    self.systick.wr('LOAD', saved_load)
+    self.systick.wr('CTRL', saved_ctrl)
     # return the tick count and time
     return (SysTick_MAXCOUNT - stop, t)
 
@@ -756,8 +762,8 @@ class cortexm(object):
       # longer measurement for better accuracy
       t = 0.8 * t * float(SysTick_MAXCOUNT) / float(c)
       # clamp the time to a maximum limit
-      if t > 5:
-        t = 5
+      if t > 4:
+        t = 4
       (c, t) = self.systick_rate(t, cpuclk)
       mhz = c / (1000000 * t)
       ui.put('%.2f Mhz\n' % mhz)
@@ -809,9 +815,9 @@ def build_exceptions(vector_table):
 def exceptions_str(cpu, soc):
   s = []
   group = cpu.NVIC_GetPriorityGrouping()
-  vtable = cpu.rd(SCB_VTOR, 32)
-  icsr = cpu.rd(SCB_ICSR, 32)
-  shcsr = cpu.rd(SCB_SHCSR, 32)
+  vtable = cpu.scb.rd('VTOR')
+  icsr = cpu.scb.rd('ICSR')
+  shcsr = cpu.scb.rd('SHCSR')
 
   s.append('%-19s: %s' % ('priority grouping', cpu.NVIC_DecodeString(group)))
   s.append('%-19s: %08x' % ('vector table', vtable))
@@ -832,9 +838,9 @@ def exceptions_str(cpu, soc):
     if irq >= 0:
       idx = (irq >> 5) & 7
       shift = irq & 31
-      enabled = (cpu.rd(NVIC_ISER(idx), 32) >> shift) & 1
-      pending = (cpu.rd(NVIC_ISPR(idx), 32) >> shift) & 1
-      active = (cpu.rd(NVIC_IABR(idx), 32) >> shift) & 1
+      enabled = (cpu.nvic.rd('ISER0', idx) >> shift) & 1
+      pending = (cpu.nvic.rd('ISPR0', idx) >> shift) & 1
+      active = (cpu.nvic.rd('IABR0', idx) >> shift) & 1
     else:
       if irq == NMI_IRQn:
         enabled = 1
@@ -859,7 +865,7 @@ def exceptions_str(cpu, soc):
       elif irq == PendSV_IRQn:
         pending = (icsr >> 28) & 1
       elif irq == SysTick_IRQn:
-        enabled = (cpu.rd(SysTick_CTRL, 32) >> 1) & 1
+        enabled = (cpu.systick.rd('CTRL') >> 1) & 1
         pending = (icsr >> 26) & 1
     l.append(util.format_bit(enabled, 'e'))
     l.append(util.format_bit(pending, 'p'))

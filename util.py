@@ -61,45 +61,6 @@ class fld_set(object):
     return '\n'.join(s)
 
 # ----------------------------------------------------------------------------
-# register sets
-
-class reg(object):
-
-  def __init__(self, name, ofs, descr, fields):
-    self.name = name
-    self.ofs = ofs
-    self.descr = descr
-    self.fields = fields
-
-  def emit(self, cpu, base):
-    adr = base + self.ofs
-    val = cpu.rd(adr, 32)
-    s = []
-    s.append('%-32s : ' % self.name)
-    s.append('0x%08x' % adr)
-    s.append('[31:0] = ')
-    if val == 0:
-      s.append('0')
-    else:
-      s.append('0x%08x' % val)
-    s = ''.join(s)
-    if self.fields:
-      return '%s\n%s' % (s, self.fields.emit(val))
-    return s
-
-class reg_set(object):
-
-  def __init__(self, name, regs):
-    self.name = name
-    self.regs = regs
-
-  def emit(self, cpu, base):
-    s = []
-    for reg in self.regs:
-      s.append(reg.emit(cpu, base))
-    return '\n'.join(s)
-
-# ----------------------------------------------------------------------------
 # endian conversions
 
 def identity(x):
