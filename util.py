@@ -22,55 +22,13 @@ GiB = 1 << 30
 
 def memsize(s):
   """return a string for the memory size"""
-  if (s >= KiB) and (s & (KiB - 1) == 0):
-    return '%d KiB' % (s / KiB)
-  if (s >= MiB) and (s & (MiB - 1) == 0):
-    return '%d MiB' % (s / MiB)
   if (s >= GiB) and (s & (GiB - 1) == 0):
     return '%d GiB' % (s / GiB)
+  if (s >= MiB) and (s & (MiB - 1) == 0):
+    return '%d MiB' % (s / MiB)
+  if (s >= KiB) and (s & (KiB - 1) == 0):
+    return '%d KiB' % (s / KiB)
   return '%d B' % s
-
-# ----------------------------------------------------------------------------
-# register bit fields
-
-class fld(object):
-
-  def __init__(self, name, msb, lsb, fmt=None):
-    self.name = name
-    self.msb = msb
-    self.lsb = lsb
-    self.fmt = fmt
-    # derived values
-    self.mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
-
-  def emit(self, val):
-    val = (val & self.mask) >> self.lsb
-    if self.msb == self.lsb:
-      name = '%s[%d]' % (self.name, self.lsb)
-    else:
-      name = '%s[%d:%d]' % (self.name, self.msb, self.lsb)
-    pad = ' ' * 4
-    if self.fmt:
-      if callable(self.fmt):
-        val_str = self.fmt(val)
-    else:
-      if val < 10:
-        val_str = '%d' % val
-      else:
-        val_str = '0x%x' % val
-    return '%s%-29s: %s' % (pad, name, val_str)
-
-class fld_set(object):
-
-  def __init__(self, name, flds):
-    self.name = name
-    self.flds = flds
-
-  def emit(self, val):
-    s = []
-    for fld in self.flds:
-      s.append(fld.emit(val))
-    return '\n'.join(s)
 
 # ----------------------------------------------------------------------------
 # endian conversions

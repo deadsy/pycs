@@ -8,8 +8,7 @@ SoC file for stm32 devices
 
 import cortexm
 import util
-from util import fld, fld_set
-from regs import reg32, reg16, reg8, regset, memio
+from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
 #-----------------------------------------------------------------------------
 # Flash
@@ -207,25 +206,25 @@ memmap0 = {
   'flash_system': (0x1fffd800, 8 << 10, 'flash system memory'),
 
   'sram': (0x20000000, 40 << 10, 'sram'),
-  'ccm_sram': (0x10000000, 8 << 10, 'ccm_sram')
+  'ccm_sram': (0x10000000, 8 << 10, 'ccm_sram'),
 
-  #TIM7
-  #TIM6
-  #TIM4
-  #TIM3
-  #TIM2
-  #TIM1
-  #TIM17
-  #TIM16
-  #TIM15
-  #TIM8
+  'tim1': (0x40012C00, 1 << 10, 'advanced control timer'),
+  'tim2': (0x40000000, 1 << 10, 'general purpose timer'),
+  'tim3': (0x40000400, 1 << 10, 'general purpose timer'),
+  'tim4': (0x40000800, 1 << 10, 'general purpose timer'),
+  'tim6': (0x40001000, 1 << 10, 'basic timer'),
+  'tim7': (0x40001400, 1 << 10, 'basic timer'),
+  'tim8': (0x40013400, 1 << 10, 'advanced control timer'),
+  'tim15': (0x40014000, 1 << 10, 'general purpose timer'),
+  'tim16': (0x40014400, 1 << 10, 'general purpose timer'),
+  'tim17': (0x40014800, 1 << 10, 'general purpose timer'),
 
-  #UART5
-  #UART4
+  'uart4': (0x40004c00, 1 << 10, 'uart'),
+  'uart5': (0x40005000, 1 << 10, 'uart'),
 
-  #USART3
-  #USART2
-  #USART1
+  'usart1': (0x40013800, 1 << 10, 'usart'),
+  'usart2': (0x40004400, 1 << 10, 'usart'),
+  'usart3': (0x40004800, 1 << 10, 'usart'),
 
   #usb_sram
   #usb_fs

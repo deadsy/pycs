@@ -12,8 +12,7 @@ import time
 import util
 import io
 import jlink
-from util import fld, fld_set
-from regs import reg32, reg16, reg8, regset, memio
+from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
 # -----------------------------------------------------------------------------
 
