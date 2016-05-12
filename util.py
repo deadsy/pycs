@@ -19,6 +19,18 @@ MiB = 1 << 20
 GiB = 1 << 30
 
 # ----------------------------------------------------------------------------
+
+def memsize(s):
+  """return a string for the memory size"""
+  if (s >= KiB) and (s & (KiB - 1) == 0):
+    return '%d KiB' % (s / KiB)
+  if (s >= MiB) and (s & (MiB - 1) == 0):
+    return '%d MiB' % (s / MiB)
+  if (s >= GiB) and (s & (GiB - 1) == 0):
+    return '%d GiB' % (s / GiB)
+  return '%d B' % s
+
+# ----------------------------------------------------------------------------
 # register bit fields
 
 class fld(object):

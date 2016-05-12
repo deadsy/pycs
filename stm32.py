@@ -23,7 +23,7 @@ r.append(reg32('CR', 0x10))
 r.append(reg32('AR',0x14))
 r.append(reg32('OBR', 0x1C))
 r.append(reg32('WRPR', 0x20))
-flash_regs = regset('Flash', r)
+flash_regs = regset('flash interface', r)
 
 #-----------------------------------------------------------------------------
 # GPIO
@@ -40,7 +40,7 @@ r.append(reg32('LCKR', 0x1C))
 r.append(reg32('AFRL', 0x20))
 r.append(reg32('AFRH', 0x24))
 r.append(reg32('BRR', 0x28))
-gpio_regs = regset('GPIO', r)
+gpio_regs = regset('gpio', r)
 
 # TODO some sort of per platform selection for gpio info
 def gpio_n(n):
@@ -183,17 +183,77 @@ vtable1 = {
 }
 
 # Memory Maps
-# name: (base address, size in bytes)
+# name: (address, size, register set)
 
 # STM32F303xB/C and STM32F358xC
 memmap0 = {
-  'Flash interface': (0x40022000, 1 * KiB),
-  'GPIOA': (0x48000000, 1 * KiB),
-  'GPIOB': (0x48000400, 1 * KiB),
-  'GPIOC': (0x48000800, 1 * KiB),
-  'GPIOD': (0x48000c00, 1 * KiB),
-  'GPIOE': (0x48001000, 1 * KiB),
-  'GPIOF': (0x48001400, 1 * KiB),
+  'gpioa': (0x48000000, 1 << 10, gpio_regs),
+  'gpiob': (0x48000400, 1 << 10, gpio_regs),
+  'gpioc': (0x48000800, 1 << 10, gpio_regs),
+  'gpiod': (0x48000c00, 1 << 10, gpio_regs),
+  'gpioe': (0x48001000, 1 << 10, gpio_regs),
+  'gpiof': (0x48001400, 1 << 10, gpio_regs),
+
+  'adc1' : (0x50000000, 0x100, 'adc'),
+  'adc2' : (0x50000100, 0x200, 'adc'),
+  'adc12' : (0x50000300, 0x100, 'adc common'),
+  'adc3' : (0x50000400, 0x100, 'adc'),
+  'adc4' : (0x50000500, 0x200, 'adc'),
+  'adc34' : (0x50000700, 0x100, 'adc common'),
+
+  'flash': (0x40022000, 1 << 10, flash_regs),
+  'flash_option': (0x1ffff800, 2 << 10, 'flash option memory'),
+  'flash_main': (0x08000000, 256 << 10, 'flash main memory'),
+  'flash_system': (0x1fffd800, 8 << 10, 'flash system memory'),
+
+  'sram': (0x20000000, 40 << 10, 'sram'),
+  'ccm_sram': (0x10000000, 8 << 10, 'ccm_sram')
+
+  #TIM7
+  #TIM6
+  #TIM4
+  #TIM3
+  #TIM2
+  #TIM1
+  #TIM17
+  #TIM16
+  #TIM15
+  #TIM8
+
+  #UART5
+  #UART4
+
+  #USART3
+  #USART2
+  #USART1
+
+  #usb_sram
+  #usb_fs
+
+  #TSC
+  #CRC
+  #RCC
+  #DMA2
+  #DMA1
+
+  #SPI1
+  #EXTI
+  #SYSCFG
+  #COMP
+  #OPAMP
+  #DAC1
+  #PWR
+  #bxCAN
+  #I2C2
+  #I2C1
+  #I2S3ext
+  #SPI3/I2S3
+  #SPI2/I2S2
+  #I2S2ext
+  #IWDG
+  #WWDG
+  #RTC
+
 }
 
 STM32F303xB_info = {
@@ -212,16 +272,22 @@ STM32F358xC_info = {
   'memmap': memmap0,
 }
 STM32F303xD_info = {
+  'name': 'STM32F303xD',
 }
 STM32F303xE_info = {
+  'name': 'STM32F303xE',
 }
 STM32F398xE_info = {
+  'name': 'STM32F398xE',
 }
 STM32F303x6_info = {
+  'name': 'STM32F303x6',
 }
 STM32F303x8_info = {
+  'name': 'STM32F303x8',
 }
 STM32F328x8_info = {
+  'name': 'STM32F328x8',
 }
 
 #-----------------------------------------------------------------------------
@@ -261,13 +327,32 @@ class soc(object):
     self.info = info
     self.menu = (
       ('exceptions', 'show exception status', self.cmd_exceptions),
-      ('gpio', 'gpio registers', self.cmd_gpio, gpio_help)
+      ('gpio', 'gpio registers', self.cmd_gpio, gpio_help),
+      ('memmap', 'show memory map', self.cmd_memmap)
     )
-    self.exceptions = cortexm.build_exceptions(info['vector_table'])
+    self.exceptions = cortexm.build_exceptions(info['vtable'])
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""
     ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
+
+  def cmd_memmap(self, ui, args):
+    mm = self.info['memmap'].items()
+    # sort by address
+    mm.sort(key = lambda x: x[1][0])
+    next_start = 0
+    for (name, info) in mm:
+      start = info[0]
+      size = info[1]
+      end = start + size - 1
+      common_name = info[2]
+      if not type(info[2]) is str:
+        common_name = info[2].name
+      if start != next_start:
+        # reserved gap or overlap
+        ui.put('%s\n' % ('...', '!!!')[start < next_start])
+      ui.put('%-16s: %08x-%08x %-8s %s\n' % (name, start, end, util.memsize(size), common_name))
+      next_start = end + 1
 
   def cmd_gpio(self, ui, args):
     """display gpio registers"""
