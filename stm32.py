@@ -327,31 +327,14 @@ class soc(object):
     self.menu = (
       ('exceptions', 'show exception status', self.cmd_exceptions),
       ('gpio', 'gpio registers', self.cmd_gpio, gpio_help),
-      ('memmap', 'show memory map', self.cmd_memmap)
     )
     self.exceptions = cortexm.build_exceptions(info['vtable'])
+    # todo - build the tweaked map
+    self.memmap = self.info['memmap']
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""
     ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
-
-  def cmd_memmap(self, ui, args):
-    mm = self.info['memmap'].items()
-    # sort by address
-    mm.sort(key = lambda x: x[1][0])
-    next_start = 0
-    for (name, info) in mm:
-      start = info[0]
-      size = info[1]
-      end = start + size - 1
-      common_name = info[2]
-      if not type(info[2]) is str:
-        common_name = info[2].name
-      if start != next_start:
-        # reserved gap or overlap
-        ui.put('%s\n' % ('...', '!!!')[start < next_start])
-      ui.put('%-16s: %08x-%08x %-8s %s\n' % (name, start, end, util.memsize(size), common_name))
-      next_start = end + 1
 
   def cmd_gpio(self, ui, args):
     """display gpio registers"""

@@ -13,6 +13,7 @@ import cli
 import jlink
 import cortexm
 import stm32
+import mem
 
 # -----------------------------------------------------------------------------
 
@@ -30,16 +31,17 @@ class target(object):
     self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
     self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
     self.soc = stm32.soc(self.cpu, info)
+    self.mem = mem.mem(self.cpu, self.soc)
 
     self.menu_root = (
-      ('cpu', 'cpu functions', self.cpu.menu_cpu),
-      ('da', 'disassemble memory', self.cpu.cmd_disassemble, cortexm._help_disassemble),
+      ('cpu', 'cpu functions', self.cpu.menu),
+      ('da', 'disassemble memory', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('exit', 'exit the application', self.cmd_exit),
       ('go', 'exit debug mode, run until breakpoint', self.cpu.cmd_go),
       ('halt', 'stop running, enter debug mode', self.cpu.cmd_halt),
       ('help', 'general help', self.ui.cmd_help),
       ('jlink', 'jlink information', self.cmd_jlink),
-      ('mem', 'memory functions', self.cpu.menu_memory),
+      ('mem', 'memory functions', self.mem.menu),
       ('regs', 'general registers', self.cpu.cmd_user_registers),
       ('soc', 'system on chip functions', self.soc.menu),
     )

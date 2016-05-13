@@ -6,50 +6,17 @@ Cortex-M CPU Operations
 """
 # -----------------------------------------------------------------------------
 
-import random
 import time
 
 import util
-import io
 import jlink
 from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
 # -----------------------------------------------------------------------------
 
-_help_memdisplay = (
-    ('<adr> [len]', 'address (hex)'),
-    ('', 'length (hex) - default is 0x40'),
-)
-
-_help_mem2file = (
-    ('<adr> <len> [file]', 'address (hex)'),
-    ('', 'length (hex)'),
-    ('', 'filename - default is \"mem.bin\"'),
-)
-
-_help_file2mem = (
-    ('<adr> [file] [len]', 'address (hex)'),
-    ('', 'filename - default is \"mem.bin\"'),
-    ('', 'length (hex) - default is file length'),
-)
-
-_help_memrd = (
-    ('<adr>', 'address (hex)'),
-)
-
-_help_memwr = (
-    ('<adr> <val>', 'address (hex)'),
-    ('', 'value (hex)'),
-)
-
-_help_disassemble = (
+help_disassemble = (
     ('[adr] [len]', 'address (hex) - default is current pc'),
     ('', 'length (hex) - default is 0x10'),
-)
-
-_help_enable_disable = (
-    ('<cr>', 'show current state'),
-    ('[0/1]', 'disable or enable'),
 )
 
 # -----------------------------------------------------------------------------
@@ -73,20 +40,6 @@ _reg_names = (
   ('pc(r15)', jlink.REG_R15_PC),
   ('cpsr', jlink.REG_CPSR),
 )
-
-# -----------------------------------------------------------------------------
-# Memory mapping of Cortex-Mx Hardware
-
-SCS_BASE        = 0xE000E000 # System Control Space Base Address
-ITM_BASE        = 0xE0000000 # ITM Base Address
-DWT_BASE        = 0xE0001000 # DWT Base Address
-TPI_BASE        = 0xE0040000 # TPI Base Address
-CoreDebug_BASE  = 0xE000EDF0 # Core Debug Base Address
-SysTick_BASE    = (SCS_BASE + 0x0010) # SysTick Base Address
-NVIC_BASE       = (SCS_BASE + 0x0100) # NVIC Base Address
-SCB_BASE        = (SCS_BASE + 0x0D00) # System Control Block Base Address
-MPU_BASE        = (SCS_BASE + 0x0D90) # Memory Protection Unit Base Address
-FPU_BASE        = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 
 # -----------------------------------------------------------------------------
 # SysTick
@@ -115,15 +68,10 @@ r.append(reg32('CTRL', 0x00, SysTick_CTRL_fields)) # (R/W) SysTick Control and S
 r.append(reg32('LOAD', 0x04)) # (R/W) SysTick Reload Value Register
 r.append(reg32('VAL', 0x08)) # (R/W) SysTick Current Value Register
 r.append(reg32('CALIB', 0x0c, SysTick_CALIB_fields)) # (R/ ) SysTick Calibration Register
-systick_mX_regs = regset('SysTick', r)
+systick_regs = regset('system tick', r)
 
 # systick is a 24-bit down counter
 SysTick_MAXCOUNT = (1 << 24) - 1
-
-systick_regs = {
-  'cortex-m4': (systick_mX_regs, SysTick_BASE),
-  'cortex-m0+': (systick_mX_regs, SysTick_BASE),
-}
 
 # -----------------------------------------------------------------------------
 # System Control Block
@@ -188,7 +136,7 @@ r.append(reg32('ISAR[2]', 0x068)) # (R/ ) Instruction Set Attributes Register
 r.append(reg32('ISAR[3]', 0x06c)) # (R/ ) Instruction Set Attributes Register
 r.append(reg32('ISAR[4]', 0x070)) # (R/ ) Instruction Set Attributes Register
 r.append(reg32('CPACR', 0x088)) # (R/W) Coprocessor Access Control Register
-scb_m4_regs = regset('SCB for Cortex-M4', r)
+scb_m4_regs = regset('system control block', r)
 
 r = []
 r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
@@ -201,57 +149,43 @@ r.append(reg8('SHPR', 0x018, None)) # base register for access
 r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
 r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
 r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
-scb_m0_plus_regs = regset('SCB for Cortex-M0+', r)
-
-scb_regs = {
-  'cortex-m4': (scb_m4_regs, SCB_BASE),
-  'cortex-m0+': (scb_m0_plus_regs, SCB_BASE),
-}
+scb_m0_plus_regs = regset('system control block', r)
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
 
 r = []
-r.append(reg32('TYPE', 0x000)) # (R/ ) MPU Type Register
-r.append(reg32('CTRL', 0x004)) # (R/W) MPU Control Register
-r.append(reg32('RNR', 0x008)) # (R/W) MPU Region RNRber Register
-r.append(reg32('RBAR', 0x00C)) # (R/W) MPU Region Base Address Register
-r.append(reg32('RASR', 0x010)) # (R/W) MPU Region Attribute and Size Register
-r.append(reg32('RBAR_A1', 0x014)) # (R/W) MPU Alias 1 Region Base Address Register
-r.append(reg32('RASR_A1', 0x018)) # (R/W) MPU Alias 1 Region Attribute and Size Register
-r.append(reg32('RBAR_A2', 0x01C)) # (R/W) MPU Alias 2 Region Base Address Register
-r.append(reg32('RASR_A2', 0x020)) # (R/W) MPU Alias 2 Region Attribute and Size Register
-r.append(reg32('RBAR_A3', 0x024)) # (R/W) MPU Alias 3 Region Base Address Register
-r.append(reg32('RASR_A3', 0x028)) # (R/W) MPU Alias 3 Region Attribute and Size Register
-mpu_m4_regs = regset('MPU for Cortex-M4', r)
+r.append(reg32('TYPE', 0x00)) # (R/ ) MPU Type Register
+r.append(reg32('CTRL', 0x04)) # (R/W) MPU Control Register
+r.append(reg32('RNR', 0x08)) # (R/W) MPU Region RNRber Register
+r.append(reg32('RBAR', 0x0C)) # (R/W) MPU Region Base Address Register
+r.append(reg32('RASR', 0x10)) # (R/W) MPU Region Attribute and Size Register
+r.append(reg32('RBAR_A1', 0x14)) # (R/W) MPU Alias 1 Region Base Address Register
+r.append(reg32('RASR_A1', 0x18)) # (R/W) MPU Alias 1 Region Attribute and Size Register
+r.append(reg32('RBAR_A2', 0x1C)) # (R/W) MPU Alias 2 Region Base Address Register
+r.append(reg32('RASR_A2', 0x20)) # (R/W) MPU Alias 2 Region Attribute and Size Register
+r.append(reg32('RBAR_A3', 0x24)) # (R/W) MPU Alias 3 Region Base Address Register
+r.append(reg32('RASR_A3', 0x28)) # (R/W) MPU Alias 3 Region Attribute and Size Register
+mpu_m4_regs = regset('memory protection unit', r)
 
 r = []
-r.append(reg32('TYPE', 0x000)) # (R/ ) MPU Type Register
-r.append(reg32('CTRL', 0x004)) # (R/W) MPU Control Register
-r.append(reg32('RNR', 0x008)) # (R/W) MPU Region RNRber Register
-r.append(reg32('RBAR', 0x00C)) # (R/W) MPU Region Base Address Register
-r.append(reg32('RASR', 0x010)) # (R/W) MPU Region Attribute and Size Register
-mpu_m0_plus_regs = regset('MPU for Cortex-M0+', r)
-
-mpu_regs = {
-  'cortex-m4': (mpu_m4_regs, MPU_BASE),
-  'cortex-m0+': (mpu_m0_plus_regs, MPU_BASE),
-}
+r.append(reg32('TYPE', 0x00)) # (R/ ) MPU Type Register
+r.append(reg32('CTRL', 0x04)) # (R/W) MPU Control Register
+r.append(reg32('RNR', 0x08)) # (R/W) MPU Region RNRber Register
+r.append(reg32('RBAR', 0x0C)) # (R/W) MPU Region Base Address Register
+r.append(reg32('RASR', 0x10)) # (R/W) MPU Region Attribute and Size Register
+mpu_m0_plus_regs = regset('memory protection unit', r)
 
 # -----------------------------------------------------------------------------
 # Floating Point Unit
 
 r = []
-r.append(reg32('FPCCR', 0x004)) # (R/W) Floating-Point Context Control Register
-r.append(reg32('FPCAR', 0x008)) # (R/W) Floating-Point Context Address Register
-r.append(reg32('FPDSCR', 0x00C)) # (R/W) Floating-Point Default Status Control Register
-r.append(reg32('MVFR0', 0x010)) # (R/ ) Media and FP Feature Register 0
-r.append(reg32('MVFR1', 0x014)) # (R/ ) Media and FP Feature Register 1
-fpu_m4_regs = regset('Floating Point Unit', r)
-
-fpu_regs = {
-  'cortex-m4': (fpu_m4_regs, FPU_BASE),
-}
+r.append(reg32('FPCCR', 0x04)) # (R/W) Floating-Point Context Control Register
+r.append(reg32('FPCAR', 0x08)) # (R/W) Floating-Point Context Address Register
+r.append(reg32('FPDSCR', 0x0C)) # (R/W) Floating-Point Default Status Control Register
+r.append(reg32('MVFR0', 0x10)) # (R/ ) Media and FP Feature Register 0
+r.append(reg32('MVFR1', 0x14)) # (R/ ) Media and FP Feature Register 1
+fpu_regs = regset('floating point unit', r)
 
 # -----------------------------------------------------------------------------
 # Nested Vectored Interrupt Controller
@@ -359,7 +293,7 @@ r.append(reg32('IPR57', 0x3e4)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR58', 0x3e8)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR59', 0x3ec)) # (R/W) Interrupt Priority Register
 r.append(reg32('STIR', 0xe00)) #( /W) Software Trigger Interrupt Register
-nvic_m4_regs = regset('NVIC for Cortex-M4', r)
+nvic_m4_regs = regset('nested vectored interrupt controller', r)
 
 r = []
 r.append(reg32('ISER0', 0x000)) # (R/W) Interrupt Set Enable Register
@@ -376,44 +310,47 @@ r.append(reg32('IPR4', 0x310)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR5', 0x314)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR6', 0x318)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR7', 0x31c)) # (R/W) Interrupt Priority Register
-nvic_m0_plus_regs = regset('NVIC for Cortex-M0+', r)
-
-nvic_regs = {
-  'cortex-m4': (nvic_m4_regs, NVIC_BASE),
-  'cortex-m0+': (nvic_m0_plus_regs, NVIC_BASE),
-}
+nvic_m0_plus_regs = regset('nested vectored interrupt controller', r)
 
 # -----------------------------------------------------------------------------
+# Memory mapping of Cortex-Mx Hardware
 
-def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
-  """test ram memory over a given region"""
-  # test a 32 bit write at the start and end of the block
-  locns = [adr + (block_size * i) for i in range(num_blocks)]
-  locns.extend([adr - 4 + (block_size * (i + 1)) for i in range(num_blocks)])
-  max_adr = adr + (block_size * num_blocks) - 4
-  ui.put('testing %d locations %08x-%08x (32 bit write/read, %d iterations)\n' % (len(locns), adr, max_adr, iters))
+SCS_BASE        = 0xE000E000 # System Control Space Base Address
+ITM_BASE        = 0xE0000000 # ITM Base Address
+DWT_BASE        = 0xE0001000 # DWT Base Address
+TPI_BASE        = 0xE0040000 # TPI Base Address
+CoreDebug_BASE  = 0xE000EDF0 # Core Debug Base Address
+SysTick_BASE    = (SCS_BASE + 0x0010) # SysTick Base Address
+NVIC_BASE       = (SCS_BASE + 0x0100) # NVIC Base Address
+SCB_BASE        = (SCS_BASE + 0x0D00) # System Control Block Base Address
+MPU_BASE        = (SCS_BASE + 0x0D90) # Memory Protection Unit Base Address
+FPU_BASE        = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 
-  for i in range(iters):
-    # writing random values
-    ui.put('%d: writing...\n' % i)
-    saved = []
-    for adr in locns:
-      val = random.getrandbits(32)
-      cpu.wr(adr, val, 32)
-      saved.append(val)
-    # reading back values
-    ui.put('%d: reading...\n' % i)
-    bad = 0
-    for (adr, wr_val) in zip(locns, saved):
-      val = cpu.rd(adr, 32)
-      if val != wr_val:
-        ui.put('[%08x] = %08x : should be %08x, xor %08x\n' % (adr, val, wr_val, val ^ wr_val))
-        bad += 1
-    # report for this iteration
-    if not bad:
-      ui.put('%d: passed\n' % i)
-    else:
-      ui.put('%d: %d of %d locations failed\n' % (i, bad, len(locns)))
+NVIC_SIZE = 0x400
+SCB_SIZE = 0x100
+MPU_SIZE = 0x40
+SysTick_SIZE = 0x20
+FPU_SIZE = 0x20
+
+m4_memmap = {
+  'nvic': (NVIC_BASE, NVIC_SIZE, nvic_m4_regs),
+  'fpu': (FPU_BASE, FPU_SIZE, fpu_regs),
+  'mpu': (MPU_BASE,MPU_SIZE, mpu_m4_regs),
+  'scb': (SCB_BASE, SCB_SIZE, scb_m4_regs),
+  'systick': (SysTick_BASE, SysTick_SIZE, systick_regs),
+}
+
+m0_plus_memmap = {
+  'nvic': (NVIC_BASE, NVIC_SIZE, nvic_m0_plus_regs),
+  'mpu': (MPU_BASE, MPU_SIZE, mpu_m0_plus_regs),
+  'scb': (SCB_BASE, SCB_SIZE, scb_m0_plus_regs),
+  'systick': (SysTick_BASE, SysTick_SIZE, systick_regs),
+}
+
+memmaps = {
+  'cortex-m4': m4_memmap,
+  'cortex-m0+': m0_plus_memmap,
+}
 
 # -----------------------------------------------------------------------------
 
@@ -427,37 +364,20 @@ class cortexm(object):
     self.priority_bits = priority_bits
     self.saved_regs = []
     self.width = 32
+    self.memmap = memmaps[cpu_type]
 
     # setup the memory mapped registers for this cpu
-    self.scb = self.get_memio(scb_regs)
-    self.systick = self.get_memio(systick_regs)
-    self.nvic = self.get_memio(nvic_regs)
+    self.scb = self.get_memio('scb')
+    self.systick = self.get_memio('systick')
+    self.nvic = self.get_memio('nvic')
 
-    self.menu_memory = (
-      ('display', 'dump memory to display', self.cmd_mem2display, _help_memdisplay),
-      ('>file', 'read from memory, write to file', self.cmd_mem2file, _help_mem2file),
-      #('<file', 'read from file, write to memory', self.cmd_file2mem, _help_file2mem),
-      ('rd8', 'read 8 bits', self.cmd_rd8, _help_memrd),
-      ('rd16', 'read 16 bits', self.cmd_rd16, _help_memrd),
-      ('rd32', 'read 32 bits', self.cmd_rd32, _help_memrd),
-      ('test', 'read/write test of memory', self.cmd_memtest),
-      #('verify', 'verify memory against a file', self.cmd_verify, _help_file2mem),
-      ('wr8', 'write 8 bits', self.cmd_wr8, _help_memwr),
-      ('wr16', 'write 16 bits', self.cmd_wr16, _help_memwr),
-      ('wr32', 'write 32 bits', self.cmd_wr32, _help_memwr),
-    )
-    self.menu_cpu = (
-      ('fpu', 'floating point unit registers', self.cmd_fpu),
-      ('mpu', 'memory protection unit registers', self.cmd_mpu),
-      ('nvic', 'nested vectored interrupt controller registers', self.cmd_nvic),
-      ('scb', 'system control block registers', self.cmd_scb),
-      ('systick', 'systick registers', self.cmd_systick),
+    self.menu = (
       ('rate', 'measure systick counter rate', self.cmd_systick_rate),
     )
 
-  def get_memio(self, x_regs):
+  def get_memio(self, name):
     """return a memory accessor for a given register set"""
-    (regs, base) = x_regs[self.cpu_type]
+    (base, size, regs) = self.memmap[name]
     return memio(regs, self, base)
 
   def rd(self, adr, n):
@@ -565,73 +485,6 @@ class cortexm(object):
     s.append(' %d bits group %d' % (self.priority_bits, group))
     return ''.join(s)
 
-  def cmd_rd(self, ui, args, n):
-    """memory read command for n bits"""
-    if util.wrong_argc(ui, args, (1,)):
-      return
-    adr = util.sex_arg(ui, args[0], self.width)
-    if adr == None:
-      return
-    adr = util.align_adr(adr, n)
-    ui.put('[0x%08x] = ' % adr)
-    ui.put('0x%%0%dx\n' % (n/4) % self.rd(adr, n))
-
-  def cmd_rd8(self, ui, args):
-    """read 8 bits"""
-    self.cmd_rd(ui, args, 8)
-
-  def cmd_rd16(self, ui, args):
-    """read 16 bits"""
-    self.cmd_rd(ui, args, 16)
-
-  def cmd_rd32(self, ui, args):
-    """read 32 bits"""
-    self.cmd_rd(ui, args, 32)
-
-  def cmd_wr(self, ui, args, n):
-    """memory write command for n bits"""
-    if util.wrong_argc(ui, args, (1,2)):
-      return
-    adr = util.sex_arg(ui, args[0], self.width)
-    if adr == None:
-      return
-    adr = util.align_adr(adr, n)
-    val = 0
-    if len(args) == 2:
-      val = util.int_arg(ui, args[1], util.limit_32, 16)
-      if val == None:
-        return
-    val = util.mask_val(val, n)
-    self.wr(adr, val, n)
-    ui.put('[0x%08x] = ' % adr)
-    ui.put('0x%%0%dx\n' % (n/4) % val)
-
-  def cmd_wr8(self, ui, args):
-    """write 8 bits"""
-    self.cmd_wr(ui, args, 8)
-
-  def cmd_wr16(self, ui, args):
-    """write 16 bits"""
-    self.cmd_wr(ui, args, 16)
-
-  def cmd_wr32(self, ui, args):
-    """write 32 bits"""
-    self.cmd_wr(ui, args, 32)
-
-  def cmd_mem2file(self, ui, args):
-    """dump memory contents to a file"""
-    x = util.m2f_args(ui, 32, args)
-    if x is None:
-      return
-    (adr, n, name) = x
-    # adjust the address and length
-    adr = util.align_adr(adr, 32)
-    n = util.nbytes_to_nwords(n, 32)
-    # read memory, write to file object
-    mf = io.to_file(32, ui, name, n, le=True)
-    self.rd_mem(adr, n, mf)
-    mf.close()
-
   def cmd_user_registers(self, ui, args):
     """display the arm user registers"""
     self.halt()
@@ -642,26 +495,6 @@ class cortexm(object):
     self.saved_regs = regs
     for i in range(len(_reg_names)):
       ui.put('%-8s: %08x %s\n' % (_reg_names[i][0], regs[i], delta[i]))
-
-  def cmd_mem2display(self, ui, args):
-    """display memory"""
-    x = util.m2d_args(ui, 32, args)
-    if x is None:
-      return
-    (adr, n) = x
-    # address is on a 16 byte boundary
-    # n is an integral multiple of 16 bytes
-    adr &= ~15
-    n = (n + 15) & ~15
-    n = util.nbytes_to_nwords(n, 32)
-    # read memory, dump to display
-    md = io.to_display(32, ui, adr, le=True)
-    self.rd_mem(adr, n, md)
-
-  def cmd_memtest(self, ui, args):
-    """test memory"""
-    block_size = util.MiB / 4
-    memory_test(ui, self, self.target.ram_start, block_size, self.target.ram_size / block_size, 8)
 
   def cmd_disassemble(self, ui, args):
     """disassemble memory"""
@@ -694,37 +527,6 @@ class cortexm(object):
 
   def cmd_step(self, ui, args):
     self.step()
-
-  def display_regs(self, ui, regs_by_type):
-    """display a register set by cpu type"""
-    if regs_by_type.has_key(self.cpu_type):
-      (regs, base) = regs_by_type[self.cpu_type]
-      ui.put('%s\n' % regs.emit(self, base))
-    else:
-      ui.put('not defined for %s\n' % self.cpu_type)
-
-  def cmd_systick(self, ui, args):
-    """display systick registers"""
-    self.display_regs(ui, systick_regs)
-
-  def cmd_scb(self, ui, args):
-    """display system control block registers"""
-    self.display_regs(ui, scb_regs)
-
-  def cmd_fpu(self, ui, args):
-    """display floating point unit registers"""
-    if self.cpu_type in ('cortex-m0+',):
-      ui.put('%s devices do not have an fpu\n' % self.cpu_type)
-    else:
-      self.display_regs(ui, fpu_regs)
-
-  def cmd_mpu(self, ui, args):
-    """display memory protection unit registers"""
-    self.display_regs(ui, mpu_regs)
-
-  def cmd_nvic(self, ui, args):
-    """display nested vectored interrupt controller registers"""
-    self.display_regs(ui, nvic_regs)
 
   def systick_rate(self, t, cpuclk):
     """return the systick count after t seconds"""

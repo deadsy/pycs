@@ -23,12 +23,12 @@ GiB = 1 << 30
 def memsize(s):
   """return a string for the memory size"""
   if (s >= GiB) and (s & (GiB - 1) == 0):
-    return '%d GiB' % (s / GiB)
+    return '%dGiB' % (s / GiB)
   if (s >= MiB) and (s & (MiB - 1) == 0):
-    return '%d MiB' % (s / MiB)
+    return '%dMiB' % (s / MiB)
   if (s >= KiB) and (s & (KiB - 1) == 0):
-    return '%d KiB' % (s / KiB)
-  return '%d B' % s
+    return '%dKiB' % (s / KiB)
+  return '%dB' % s
 
 # ----------------------------------------------------------------------------
 # endian conversions
