@@ -277,13 +277,18 @@ class cli:
     for item in menu:
       name = item[0]
       if name.startswith(cmd):
-        descr = item[1]
+        if isinstance(item[1], tuple):
+          # submenu: the next string is the help
+          descr = item[2]
+        else:
+          # command: docstring is the help
+          descr = item[1].__doc__
         self.ui.put(help_fmt2 % (name, descr))
 
   def function_help(self, item):
     """display help for a leaf function"""
-    if len(item) > 3:
-      help_info = item[3]
+    if len(item) > 2:
+      help_info = item[2]
     else:
       help_info = cr_help
     self.display_function_help(help_info)
@@ -367,10 +372,10 @@ class cli:
       if len(matches) == 1:
         # one match - submenu/leaf
         item = matches[0]
-        if isinstance(item[2], tuple):
+        if isinstance(item[1], tuple):
           # this is a submenu
           # switch to the submenu and continue parsing
-          menu = item[2]
+          menu = item[1]
           continue
         else:
           # this is a leaf function - get the arguments
@@ -392,7 +397,7 @@ class cli:
           # call the leaf function
           self.put_history(cmdline)
           self.ui.put('\n')
-          item[2](self.ui, args)
+          item[1](self.ui, args)
           self.cl.clear()
           return True
       else:

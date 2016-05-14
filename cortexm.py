@@ -9,6 +9,7 @@ Cortex-M CPU Operations
 import time
 
 import util
+import io
 import jlink
 from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
@@ -372,13 +373,13 @@ class cortexm(object):
     self.nvic = self.get_memio('nvic')
 
     self.menu = (
-      ('rate', 'measure systick counter rate', self.cmd_systick_rate),
+      ('rate', self.cmd_systick_rate),
     )
 
   def get_memio(self, name):
-    """return a memory accessor for a given register set"""
+    """return a memory accessor for a named register set"""
     (base, size, regs) = self.memmap[name]
-    return memio(regs, self, base)
+    return memio(self, base, regs)
 
   def rd(self, adr, n):
     """read from memory - n bits aligned"""
@@ -460,8 +461,7 @@ class cortexm(object):
 
   def NVIC_GetPriorityGrouping(self):
     """return the priority grouping number"""
-    (regs, base) = scb_regs[self.cpu_type]
-    scb = memio(regs, self, base)
+    scb = self.get_memio('scb')
     return (scb.rd('AIRCR') >> 8) & 7
 
   def NVIC_DecodePriority(self, priority, group):
@@ -485,8 +485,8 @@ class cortexm(object):
     s.append(' %d bits group %d' % (self.priority_bits, group))
     return ''.join(s)
 
-  def cmd_user_registers(self, ui, args):
-    """display the arm user registers"""
+  def cmd_regs(self, ui, args):
+    """display cpu registers"""
     self.halt()
     regs = [self.jlink.rdreg(n) for (name, n) in _reg_names]
     if len(self.saved_regs) == 0:
@@ -520,12 +520,15 @@ class cortexm(object):
     self.rd_mem(adr, n, md)
 
   def cmd_go(self, ui, args):
+    """exit debug mode, run until breakpoint"""
     self.go(msg=True)
 
   def cmd_halt(self, ui, args):
+    """stop running, enter debug mode"""
     self.halt(msg=True)
 
   def cmd_step(self, ui, args):
+    """single step the cpu"""
     self.step()
 
   def systick_rate(self, t, cpuclk):
@@ -572,6 +575,7 @@ class cortexm(object):
       ui.put('fail: systick did not decrement\n')
 
   def cmd_systick_rate(self, ui, args):
+    """measure systick counter rate"""
     self.measure_systick(ui, 'external', 0)
     self.measure_systick(ui, 'cpu', 1)
 

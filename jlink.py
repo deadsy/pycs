@@ -183,6 +183,10 @@ class JLink(object):
     else:
       raise
 
+  def cmd_jlink(self, ui, args):
+    """display jlink information"""
+    ui.put('%s\n' % self)
+
   def __str__(self):
     s = []
     s.append('jlink library v%d %s' % (self.get_dll_version(), self.get_compile_data_time()))

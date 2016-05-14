@@ -100,17 +100,16 @@ class reg32(memreg):
 class memio(object):
   """bind a register set to a specific cpu/address"""
 
-  def __init__(self, regs, cpu, base):
-    # access the registers by name
-    self.name2reg = dict([(r.name, r) for r in regs.regs])
+  def __init__(self, cpu, base, regs):
     self.cpu = cpu
     self.base = base
+    self.regs = regs
 
   def rd(self, name, idx = 0):
-    return self.name2reg[name].rd(self.cpu, self.base, idx)
+    return self.regs.name2reg[name].rd(self.cpu, self.base, idx)
 
   def wr(self, name, val, idx = 0):
-    return self.name2reg[name].wr(self.cpu, self.base, val, idx)
+    return self.regs.name2reg[name].wr(self.cpu, self.base, val, idx)
 
 # -----------------------------------------------------------------------------
 
@@ -119,6 +118,8 @@ class regset(object):
   def __init__(self, name, regs):
     self.name = name
     self.regs = regs
+    # lookup the register by name
+    self.name2reg = dict([(r.name, r) for r in regs])
 
   def emit(self, cpu, base):
     s = [reg.emit(cpu, base) for reg in self.regs if not reg.fields is None]

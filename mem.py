@@ -78,19 +78,19 @@ class mem(object):
     self.cpu = cpu
 
     self.menu = (
-      ('d8', 'display memory 8 bits', self.cmd_display8, help_memdisplay),
-      ('d16', 'display memory 16 bits', self.cmd_display16, help_memdisplay),
-      ('d32', 'display memory 32 bits', self.cmd_display32, help_memdisplay),
-      ('>file', 'read from memory, write to file', self.cmd_mem2file, help_mem2file),
-      #('<file', 'read from file, write to memory', self.cmd_file2mem, help_file2mem),
-      ('map', 'display memory map', self.cmd_map),
-      ('rd8', 'read 8 bits', self.cmd_rd8, help_memrd),
-      ('rd16', 'read 16 bits', self.cmd_rd16, help_memrd),
-      ('rd32', 'read 32 bits', self.cmd_rd32, help_memrd),
-      #('verify', 'verify memory against a file', self.cmd_verify, help_file2mem),
-      ('wr8', 'write 8 bits', self.cmd_wr8, help_memwr),
-      ('wr16', 'write 16 bits', self.cmd_wr16, help_memwr),
-      ('wr32', 'write 32 bits', self.cmd_wr32, help_memwr),
+      ('compare', self.cmd_compare, help_file2mem),
+      ('d8', self.cmd_display8, help_memdisplay),
+      ('d16', self.cmd_display16, help_memdisplay),
+      ('d32', self.cmd_display32, help_memdisplay),
+      ('>file', self.cmd_mem2file, help_mem2file),
+      ('<file', self.cmd_file2mem, help_file2mem),
+      ('map', self.cmd_map),
+      ('rd8', self.cmd_rd8, help_memrd),
+      ('rd16', self.cmd_rd16, help_memrd),
+      ('rd32', self.cmd_rd32, help_memrd),
+      ('wr8', self.cmd_wr8, help_memwr),
+      ('wr16', self.cmd_wr16, help_memwr),
+      ('wr32', self.cmd_wr32, help_memwr),
     )
 
   def cmd_map(self, ui, args):
@@ -166,7 +166,7 @@ class mem(object):
     self.cmd_wr(ui, args, 32)
 
   def cmd_mem2file(self, ui, args):
-    """dump memory contents to a file"""
+    """read from memory, write to file"""
     x = util.m2f_args(ui, 32, args)
     if x is None:
       return
@@ -178,6 +178,14 @@ class mem(object):
     mf = io.to_file(32, ui, name, n, le = True)
     self.cpu.rd_mem(adr, n, mf)
     mf.close()
+
+  def cmd_file2mem(self, ui, args):
+    """read from file, write to memory"""
+    ui.put('todo\n')
+
+  def cmd_compare(self, ui, args):
+    """compare memory with a file"""
+    ui.put('todo\n')
 
   def cmd_display8(self, ui, args):
     """display memory 8 bits"""

@@ -87,6 +87,7 @@ class user_interface(object):
     self.io.close()
 
   def cmd_help(self, ui, args):
+    """general help"""
     self.cli.general_help()
 
 #-----------------------------------------------------------------------------

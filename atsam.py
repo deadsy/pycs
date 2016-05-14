@@ -9,10 +9,11 @@ SoC file for Atmel SAM Devices
 import cortexm
 
 #-----------------------------------------------------------------------------
-# SoC Exception Tables
+
+# Vector Tables
 # irq_number : name
 
-soc_vector_table0 = {
+vtable0 = {
 
   0: 'Various',
   # PM - Power Manager
@@ -51,13 +52,17 @@ soc_vector_table0 = {
   27: 'TRNG', # True Random Number Generator
 }
 
+memmap0 = {
+}
+
 #-----------------------------------------------------------------------------
 
 ATSAML21J18B_info = {
   'name': 'ATSAML21J18B',
   'cpu_type': 'cortex-m0+',
   'priority_bits': 2,
-  'vector_table': soc_vector_table0,
+  'vtable': vtable0,
+  'memmap': memmap0,
 }
 
 #-----------------------------------------------------------------------------
@@ -83,9 +88,11 @@ class soc(object):
     self.cpu = cpu
     self.info = info
     self.menu = (
-      ('exceptions', 'show exception status', self.cmd_exceptions),
+      ('exceptions', self.cmd_exceptions),
     )
-    self.exceptions = cortexm.build_exceptions(info['vector_table'])
+    self.exceptions = cortexm.build_exceptions(info['vtable'])
+    # todo - build the tweaked map
+    self.memmap = self.info['memmap']
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""

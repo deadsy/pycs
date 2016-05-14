@@ -325,19 +325,19 @@ class soc(object):
     self.cpu = cpu
     self.info = info
     self.menu = (
-      ('exceptions', 'show exception status', self.cmd_exceptions),
-      ('gpio', 'gpio registers', self.cmd_gpio, gpio_help),
+      ('exceptions', self.cmd_exceptions),
+      ('gpio', self.cmd_gpio, gpio_help),
     )
     self.exceptions = cortexm.build_exceptions(info['vtable'])
     # todo - build the tweaked map
     self.memmap = self.info['memmap']
 
   def cmd_exceptions(self, ui, args):
-    """display the exceptions table"""
+    """display exceptions table"""
     ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
 
   def cmd_gpio(self, ui, args):
-    """display gpio registers"""
+    """gpio registers"""
     num_gpios = 6
     # default is to display all gpios
     gpio_set = list(range(num_gpios))

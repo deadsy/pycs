@@ -34,31 +34,28 @@ class target(object):
     self.mem = mem.mem(self.cpu, self.soc)
 
     self.menu_root = (
-      ('cpu', 'cpu functions', self.cpu.menu),
-      ('da', 'disassemble memory', self.cpu.cmd_disassemble, cortexm.help_disassemble),
-      ('exit', 'exit the application', self.cmd_exit),
-      ('go', 'exit debug mode, run until breakpoint', self.cpu.cmd_go),
-      ('halt', 'stop running, enter debug mode', self.cpu.cmd_halt),
-      ('help', 'general help', self.ui.cmd_help),
-      ('jlink', 'jlink information', self.cmd_jlink),
-      ('mem', 'memory functions', self.mem.menu),
-      ('regs', 'general registers', self.cpu.cmd_user_registers),
-      ('soc', 'system on chip functions', self.soc.menu),
+      ('cpu', self.cpu.menu, 'cpu functions'),
+      ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
+      ('exit', self.cmd_exit),
+      ('go', self.cpu.cmd_go),
+      ('halt', self.cpu.cmd_halt),
+      ('help', self.ui.cmd_help),
+      ('jlink', self.jlink.cmd_jlink),
+      ('mem', self.mem.menu, 'memory functions'),
+      ('regs', self.cpu.cmd_regs),
+      ('soc', self.soc.menu, 'system on chip functions'),
     )
 
     self.ui.cli.set_root(self.menu_root)
     self.set_prompt()
-    self.cmd_jlink(self.ui, None)
+    self.jlink.cmd_jlink(self.ui, None)
 
   def set_prompt(self):
     indicator = ('*', '')[self.jlink.is_halted()]
     self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
-  def cmd_jlink(self, ui, args):
-    """display jlink information"""
-    ui.put('%s\n' % self.jlink)
-
   def cmd_exit(self, ui, args):
+    """exit the application"""
     self.jlink.jlink_close()
     ui.exit()
 
