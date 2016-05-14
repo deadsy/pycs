@@ -7,7 +7,6 @@ SoC file for stm32 devices
 #-----------------------------------------------------------------------------
 
 import cortexm
-import util
 from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
 #-----------------------------------------------------------------------------
@@ -40,15 +39,6 @@ r.append(reg32('AFRL', 0x20))
 r.append(reg32('AFRH', 0x24))
 r.append(reg32('BRR', 0x28))
 gpio_regs = regset('gpio', r)
-
-# TODO some sort of per platform selection for gpio info
-def gpio_n(n):
-  """return (name, base) for gpio[n]"""
-  if n >= 6:
-    return None
-  name = ('A','B','C','D','E','F')[n]
-  base = 0x48000000  + (0x400 * n)
-  return (name, base)
 
 #-----------------------------------------------------------------------------
 # STM32F3 devices
@@ -313,49 +303,26 @@ db_insert(STM32F328x8_info)
 
 #-----------------------------------------------------------------------------
 
-gpio_help = (
-  ('<cr>', 'display all gpios'),
-  ('[n]', 'display gpio[n]'),
-)
-
 class soc(object):
   """stm32 SoC"""
 
   def __init__(self, cpu, info):
     self.cpu = cpu
     self.info = info
+    self.exceptions = cortexm.build_exceptions(info['vtable'])
+    self.memmap = self.build_memmap()
+
     self.menu = (
       ('exceptions', self.cmd_exceptions),
-      ('gpio', self.cmd_gpio, gpio_help),
     )
-    self.exceptions = cortexm.build_exceptions(info['vtable'])
-    # todo - build the tweaked map
-    self.memmap = self.info['memmap']
+
+  def build_memmap(self):
+    """build the soc memory map"""
+    # TODO - build the tweaked map
+    return self.info['memmap']
 
   def cmd_exceptions(self, ui, args):
     """display exceptions table"""
     ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
-
-  def cmd_gpio(self, ui, args):
-    """gpio registers"""
-    num_gpios = 6
-    # default is to display all gpios
-    gpio_set = list(range(num_gpios))
-    if util.wrong_argc(ui, args, (0,1,)):
-      return
-    if len(args) == 1:
-      n = util.int_arg(ui, args[0], (0, num_gpios - 1), 10)
-      if n is None:
-        return
-      gpio_set = (n,)
-    # display the gpio registers
-    s = []
-    for n in gpio_set:
-      x = gpio_n(n)
-      if x is None:
-        break
-      (name, base) = x
-      s.append('GPIO%s\n%s\n' % (name, gpio_regs.emit(self.cpu, base)))
-    ui.put('\n'.join(s))
 
 #-----------------------------------------------------------------------------

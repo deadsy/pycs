@@ -123,20 +123,21 @@ r.append(reg32('DFSR', 0x030)) # (R/W) Debug Fault Status Register
 r.append(reg32('MMFAR', 0x034)) # (R/W) MemManage Fault Address Register
 r.append(reg32('BFAR', 0x038)) # (R/W) BusFault Address Register
 r.append(reg32('AFSR', 0x03C)) # (R/W) Auxiliary Fault Status Register
-r.append(reg32('PFR[0]', 0x040)) # (R/ ) Processor Feature Register
-r.append(reg32('PFR[1]', 0x044)) # (R/ ) Processor Feature Register
-r.append(reg32('DFR', 0x048)) # (R/ ) Debug Feature Register
-r.append(reg32('ADR', 0x04C)) # (R/ ) Auxiliary Feature Register
-r.append(reg32('MMFR[0]', 0x050)) # (R/ ) Memory Model Feature Register
-r.append(reg32('MMFR[1]', 0x054)) # (R/ ) Memory Model Feature Register
-r.append(reg32('MMFR[2]', 0x058)) # (R/ ) Memory Model Feature Register
-r.append(reg32('MMFR[3]', 0x05c)) # (R/ ) Memory Model Feature Register
-r.append(reg32('ISAR[0]', 0x060)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ISAR[1]', 0x064)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ISAR[2]', 0x068)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ISAR[3]', 0x06c)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ISAR[4]', 0x070)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ID_PFR0', 0x040)) # (R/ ) Processor Feature Register
+r.append(reg32('ID_PFR1', 0x044)) # (R/ ) Processor Feature Register
+r.append(reg32('ID_DFR0', 0x048)) # (R/ ) Debug Feature Register
+r.append(reg32('ID_ADR0', 0x04C)) # (R/ ) Auxiliary Feature Register
+r.append(reg32('ID_MMFR0', 0x050)) # (R/ ) Memory Model Feature Register
+r.append(reg32('ID_MMFR1', 0x054)) # (R/ ) Memory Model Feature Register
+r.append(reg32('ID_MMFR2', 0x058)) # (R/ ) Memory Model Feature Register
+r.append(reg32('ID_MMFR3', 0x05c)) # (R/ ) Memory Model Feature Register
+r.append(reg32('ID_ISAR0', 0x060)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ID_ISAR1', 0x064)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ID_ISAR2', 0x068)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ID_ISAR3', 0x06c)) # (R/ ) Instruction Set Attributes Register
+r.append(reg32('ID_ISAR4', 0x070)) # (R/ ) Instruction Set Attributes Register
 r.append(reg32('CPACR', 0x088)) # (R/W) Coprocessor Access Control Register
+r.append(reg32('STIR', 0x200)) #( /W) Software Trigger Interrupt Register
 scb_m4_regs = regset('system control block', r)
 
 r = []
@@ -151,6 +152,10 @@ r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
 r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
 r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
 scb_m0_plus_regs = regset('system control block', r)
+
+r = []
+r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
+cpuid_regs = regset('cpu id', r)
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
@@ -293,7 +298,6 @@ r.append(reg32('IPR56', 0x3e0)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR57', 0x3e4)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR58', 0x3e8)) # (R/W) Interrupt Priority Register
 r.append(reg32('IPR59', 0x3ec)) # (R/W) Interrupt Priority Register
-r.append(reg32('STIR', 0xe00)) #( /W) Software Trigger Interrupt Register
 nvic_m4_regs = regset('nested vectored interrupt controller', r)
 
 r = []
@@ -327,25 +331,23 @@ SCB_BASE        = (SCS_BASE + 0x0D00) # System Control Block Base Address
 MPU_BASE        = (SCS_BASE + 0x0D90) # Memory Protection Unit Base Address
 FPU_BASE        = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 
-NVIC_SIZE = 0x400
-SCB_SIZE = 0x100
-MPU_SIZE = 0x40
-SysTick_SIZE = 0x20
-FPU_SIZE = 0x20
+# Note: The various sets of registers are in general not in contiguous
+# regions- they are interleaved with one another while belonging to different
+# functional groups. So- we define a base address- but no size
 
 m4_memmap = {
-  'nvic': (NVIC_BASE, NVIC_SIZE, nvic_m4_regs),
-  'fpu': (FPU_BASE, FPU_SIZE, fpu_regs),
-  'mpu': (MPU_BASE,MPU_SIZE, mpu_m4_regs),
-  'scb': (SCB_BASE, SCB_SIZE, scb_m4_regs),
-  'systick': (SysTick_BASE, SysTick_SIZE, systick_regs),
+  'nvic': (NVIC_BASE, None, nvic_m4_regs),
+  'fpu': (FPU_BASE, None, fpu_regs),
+  'mpu': (MPU_BASE, None, mpu_m4_regs),
+  'scb': (SCB_BASE, None, scb_m4_regs),
+  'systick': (SysTick_BASE, None, systick_regs),
 }
 
 m0_plus_memmap = {
-  'nvic': (NVIC_BASE, NVIC_SIZE, nvic_m0_plus_regs),
-  'mpu': (MPU_BASE, MPU_SIZE, mpu_m0_plus_regs),
-  'scb': (SCB_BASE, SCB_SIZE, scb_m0_plus_regs),
-  'systick': (SysTick_BASE, SysTick_SIZE, systick_regs),
+  'nvic': (NVIC_BASE, None, nvic_m0_plus_regs),
+  'mpu': (MPU_BASE, None, mpu_m0_plus_regs),
+  'scb': (SCB_BASE, None, scb_m0_plus_regs),
+  'systick': (SysTick_BASE, None, systick_regs),
 }
 
 memmaps = {
@@ -373,6 +375,7 @@ class cortexm(object):
     self.nvic = self.get_memio('nvic')
 
     self.menu = (
+      ('cpuid', self.cmd_cpuid),
       ('rate', self.cmd_systick_rate),
     )
 
@@ -578,6 +581,11 @@ class cortexm(object):
     """measure systick counter rate"""
     self.measure_systick(ui, 'external', 0)
     self.measure_systick(ui, 'cpu', 1)
+
+  def cmd_cpuid(self, ui, args):
+    """display the cpu identifier"""
+    cpuid = memio(self, SCB_BASE, cpuid_regs)
+    ui.put('%s\n' % cpuid.emit())
 
 # -----------------------------------------------------------------------------
 # return a string for the current state of the exceptions

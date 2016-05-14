@@ -7,6 +7,102 @@ SoC file for Atmel SAM Devices
 #-----------------------------------------------------------------------------
 
 import cortexm
+from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
+
+#-----------------------------------------------------------------------------
+# Watch Dog Timer
+
+r = []
+r.append(reg8('CTRLA', 0x00))
+r.append(reg8('CONFIG', 0x01))
+r.append(reg8('EWCTRL', 0x02))
+r.append(reg8('INTENCLR', 0x04))
+r.append(reg8('INTENSET', 0x05))
+r.append(reg8('INTFLAG', 0x06))
+r.append(reg32('SYNCBUSY', 0x08))
+r.append(reg8('CLEAR', 0x0c))
+wdt_regs = regset('watch dog timer', r)
+
+#-----------------------------------------------------------------------------
+# Non-Volatile Memory Controller
+
+r = []
+r.append(reg16('CTRLA', 0x00))
+r.append(reg32('CTRLB', 0x04))
+r.append(reg32('PARAM', 0x08))
+r.append(reg8('INTENCLR', 0x0c))
+r.append(reg8('INTENSET', 0x10))
+r.append(reg8('INTFLAG', 0x14))
+r.append(reg16('STATUS', 0x18))
+r.append(reg32('ADDR', 0x1c))
+r.append(reg16('LOCK', 0x20))
+nvmctrl_regs = regset('non-volatile memory controller', r)
+
+#-----------------------------------------------------------------------------
+# IO Pin Controller
+
+r = []
+r.append(reg32('DIR', 0x00))
+r.append(reg32('DIRCLR', 0x04))
+r.append(reg32('DIRSET', 0x08))
+r.append(reg32('DIRTGL', 0x0c))
+r.append(reg32('OUT', 0x10))
+r.append(reg32('OUTCLR', 0x14))
+r.append(reg32('OUTSET', 0x18))
+r.append(reg32('OUTTGL', 0x1c))
+r.append(reg32('IN', 0x20))
+r.append(reg32('CTRL', 0x24))
+r.append(reg32('WRCONFIG', 0x28))
+r.append(reg32('EVCTRL', 0x2c))
+r.append(reg8('PMUXn0', 0x30))
+r.append(reg8('PMUXn1', 0x31))
+r.append(reg8('PMUXn2', 0x32))
+r.append(reg8('PMUXn3', 0x33))
+r.append(reg8('PMUXn4', 0x34))
+r.append(reg8('PMUXn5', 0x35))
+r.append(reg8('PMUXn6', 0x36))
+r.append(reg8('PMUXn7', 0x37))
+r.append(reg8('PMUXn8', 0x38))
+r.append(reg8('PMUXn9', 0x39))
+r.append(reg8('PMUXn10', 0x3a))
+r.append(reg8('PMUXn11', 0x3b))
+r.append(reg8('PMUXn12', 0x3c))
+r.append(reg8('PMUXn13', 0x3d))
+r.append(reg8('PMUXn14', 0x3e))
+r.append(reg8('PMUXn15', 0x3f))
+r.append(reg8('PINCFG0', 0x40))
+r.append(reg8('PINCFG1', 0x41))
+r.append(reg8('PINCFG2', 0x42))
+r.append(reg8('PINCFG3', 0x43))
+r.append(reg8('PINCFG4', 0x44))
+r.append(reg8('PINCFG5', 0x45))
+r.append(reg8('PINCFG6', 0x46))
+r.append(reg8('PINCFG7', 0x47))
+r.append(reg8('PINCFG8', 0x48))
+r.append(reg8('PINCFG9', 0x49))
+r.append(reg8('PINCFG10', 0x4a))
+r.append(reg8('PINCFG11', 0x4b))
+r.append(reg8('PINCFG12', 0x4c))
+r.append(reg8('PINCFG13', 0x4d))
+r.append(reg8('PINCFG14', 0x4e))
+r.append(reg8('PINCFG15', 0x4f))
+r.append(reg8('PINCFG16', 0x50))
+r.append(reg8('PINCFG17', 0x51))
+r.append(reg8('PINCFG18', 0x52))
+r.append(reg8('PINCFG19', 0x53))
+r.append(reg8('PINCFG20', 0x54))
+r.append(reg8('PINCFG21', 0x55))
+r.append(reg8('PINCFG22', 0x56))
+r.append(reg8('PINCFG23', 0x57))
+r.append(reg8('PINCFG24', 0x58))
+r.append(reg8('PINCFG25', 0x59))
+r.append(reg8('PINCFG26', 0x5a))
+r.append(reg8('PINCFG27', 0x5b))
+r.append(reg8('PINCFG28', 0x5c))
+r.append(reg8('PINCFG29', 0x5d))
+r.append(reg8('PINCFG30', 0x5e))
+r.append(reg8('PINCFG31', 0x5f))
+port_regs = regset('port i/o pin controller', r)
 
 #-----------------------------------------------------------------------------
 
@@ -50,12 +146,21 @@ vtable0 = {
   25: 'PTC', # Peripheral Touch Controller
   26: 'AES', # Advanced Encrytpion Standard module
   27: 'TRNG', # True Random Number Generator
+  28: 'IRQ28', # ?
 }
 
 memmap0 = {
+  'flash': (0, 256 << 10, 'flash'),
+  'rww_flash': (0x00400000, 8 << 10, 'read while write flash'),
+  'sram': (0x20000000, 32 << 10, 'sram'),
+  'lp_sram': (0x30000000, 8 << 10, 'low power sram'),
+
+  'wdt': (0x40001c00, 1 << 10, wdt_regs),
+  'nvmctrl': (0x41004000,1 << 10,nvmctrl_regs),
+  'port': (0x40002800,1 << 10,port_regs),
 }
 
-#-----------------------------------------------------------------------------
+#TODO we need a more comprehensive set of options passed through to the cpu defn.
 
 ATSAML21J18B_info = {
   'name': 'ATSAML21J18B',
@@ -87,12 +192,17 @@ class soc(object):
   def __init__(self, cpu, info):
     self.cpu = cpu
     self.info = info
+    self.exceptions = cortexm.build_exceptions(info['vtable'])
+    self.memmap = self.build_memmap()
+
     self.menu = (
       ('exceptions', self.cmd_exceptions),
     )
-    self.exceptions = cortexm.build_exceptions(info['vtable'])
-    # todo - build the tweaked map
-    self.memmap = self.info['memmap']
+
+  def build_memmap(self):
+    """build the soc memory map"""
+    # TODO - build the tweaked map
+    return self.info['memmap']
 
   def cmd_exceptions(self, ui, args):
     """display the exceptions table"""

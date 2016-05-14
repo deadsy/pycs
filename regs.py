@@ -71,8 +71,9 @@ class memreg(object):
     val = cpu.rd(adr, self.width)
     s = []
     s.append('%-32s : ' % self.name)
-    s.append('0x%08x' % adr)
-    s.append('[%d:0] = ' % (self.width - 1))
+    s.append('%08x' % adr)
+    pad = ('', ' ')[self.width == 8]
+    s.append('[%d:0] %s= ' % (self.width - 1, pad))
     if val == 0:
       s.append('0')
     else:
@@ -111,6 +112,10 @@ class memio(object):
   def wr(self, name, val, idx = 0):
     return self.regs.name2reg[name].wr(self.cpu, self.base, val, idx)
 
+  def emit(self):
+    s = [r.emit(self.cpu, self.base) for r in self.regs.regs if not r.fields is None]
+    return '\n'.join(s)
+
 # -----------------------------------------------------------------------------
 
 class regset(object):
@@ -120,9 +125,5 @@ class regset(object):
     self.regs = regs
     # lookup the register by name
     self.name2reg = dict([(r.name, r) for r in regs])
-
-  def emit(self, cpu, base):
-    s = [reg.emit(cpu, base) for reg in self.regs if not reg.fields is None]
-    return '\n'.join(s)
 
 # -----------------------------------------------------------------------------

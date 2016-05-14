@@ -56,6 +56,7 @@ It has an interactive CLI.
 ## Current Targets
  * mb1035b (STM32F3 Discovery Board)
  * saml21 (Atmel SAM L21 Xplained Pro Board)
+ * frdm_k64f (NXP Kinetis K64 Board)
 
 ## Hooking up ST Development Boards
 
