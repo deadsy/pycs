@@ -5,8 +5,10 @@ pycs - Python Based ARM CoreSight Debug and Trace Tools
 """
 # -----------------------------------------------------------------------------
 
+import os
 import sys
 import getopt
+import importlib
 
 import conio
 import cli
@@ -17,12 +19,17 @@ _version_str = 'pycs: ARM CoreSight Tool 1.0\n'
 _usb_number = 0
 _target = ''
 
-_supported_targets = (
-  'mb1035b',
-  'mb997c',
-  'saml21',
-  'frdm_k64f',
-)
+# -----------------------------------------------------------------------------
+
+def supported_targets():
+  """return a list of supported targets"""
+  targets = []
+  for f in os.listdir('target'):
+    name = f.split('.')[0]
+    if name == '__init__':
+      continue
+    targets.append(name)
+  return sorted(targets)
 
 # -----------------------------------------------------------------------------
 
@@ -32,21 +39,20 @@ def Print_Usage(argv):
   print '%-15s%s' % ('-t <target>', 'target name')
   print '%-15s%s' % ('-u <number>', 'usb number of JLINK device to use')
 
-
 def error(msg, usage=False):
   print msg
   if usage:
     Print_Usage(sys.argv)
   sys.exit(1)
 
-
 def Process_Options(argv):
   """process command line options"""
+  list_targets = False
   global _usb_number
   global _target
 
   try:
-    (opts, args) = getopt.getopt(sys.argv[1:], "t:u:")
+    (opts, args) = getopt.getopt(sys.argv[1:], "t:u:l")
   except getopt.GetoptError, err:
     error(str(err), True)
   # process options
@@ -55,16 +61,23 @@ def Process_Options(argv):
       _usb_number = int(val)
     elif opt == '-t':
       _target = val
+    elif opt == '-l':
+      list_targets = True
 
   # validate arguments
+  targets = supported_targets()
+
+  if list_targets:
+    error('supported targets:\n%s' % '\n'.join(targets))
+
   if _target == '':
     error('must specify a target', True)
 
   if not _usb_number in range(16):
     error('usb number out of range')
 
-  if not _target in _supported_targets:
-    error('supported targets: %s' % ' '.join(_supported_targets))
+  if not _target in targets:
+    error('supported targets:\n%s' % '\n'.join(targets))
 
 # -----------------------------------------------------------------------------
 
@@ -76,7 +89,7 @@ class user_interface(object):
 
   def find_target(self, target):
     """find and select a target"""
-    module = __import__(target)
+    module = importlib.import_module('target.%s' % target)
     module.target(self, _usb_number)
 
   def exit(self):

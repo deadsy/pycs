@@ -61,7 +61,7 @@ It has an interactive CLI.
 
 ## Hooking up ST Development Boards
 
-![mb1035b_image](https://github.com/deadsy/pycs/blob/master/pics/mb1035b.jpg "mb1035b_image")
+![mb1035b_image](https://github.com/deadsy/pycs/blob/master/docs/pics/mb1035b.jpg "mb1035b_image")
 
 The ST boards have a 6 pin SWD debug connector.
 The JLINK has a 20 pin connector.
@@ -75,11 +75,3 @@ The JLINK has a 20 pin connector.
  * Board 3V Vdd - JLINK Pin 1 (VTref)
 
 Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to the Discovery CPU.
-
-
-
-
-
-
-
-
