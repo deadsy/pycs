@@ -19,6 +19,7 @@ _target = ''
 
 _supported_targets = (
   'mb1035b',
+  'mb997c',
   'saml21',
   'frdm_k64f',
 )

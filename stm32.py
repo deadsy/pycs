@@ -41,6 +41,16 @@ r.append(reg32('BRR', 0x28))
 gpio_regs = regset('gpio', r)
 
 #-----------------------------------------------------------------------------
+# Debug MCU
+
+r = []
+r.append(reg32('IDCODE', 0x00))
+r.append(reg32('CR', 0x04))
+r.append(reg32('APB1_FZ', 0x08))
+r.append(reg32('APB2_FZ', 0x08))
+dbgmcu_regs = regset('debug mcu', r)
+
+#-----------------------------------------------------------------------------
 # STM32F3 devices
 
 # Vector Tables
@@ -280,6 +290,187 @@ STM32F328x8_info = {
 }
 
 #-----------------------------------------------------------------------------
+# STM32F4 Devices
+
+# STM32F405xx/07xxand STM32F415xx/17xx
+stm32f4_vtable0 = {
+  0: 'WWDG',
+  1: 'PVD',
+  2: 'TAMP_STAMP',
+  3: 'RTC_WKUP',
+  4: 'FLASH',
+  5: 'RCC',
+  6: 'EXTI0',
+  7: 'EXTI1',
+  8: 'EXTI2',
+  9: 'EXTI3',
+  10: 'EXTI4',
+  11: 'DMA1_Stream0',
+  12: 'DMA1_Stream1',
+  13: 'DMA1_Stream2',
+  14: 'DMA1_Stream3',
+  15: 'DMA1_Stream4',
+  16: 'DMA1_Stream5',
+  17: 'DMA1_Stream6',
+  18: 'ADC',
+  19: 'CAN1_TX',
+  20: 'CAN1_RX0',
+  21: 'CAN1_RX1',
+  22: 'CAN1_SCE',
+  23: 'EXTI9_5',
+  24: 'TIM1_BRK_TIM9',
+  25: 'TIM1_UP_TIM10',
+  26: 'TIM1_TRG_COM_TIM11',
+  27: 'TIM1_CC',
+  28: 'TIM2',
+  29: 'TIM3',
+  30: 'TIM4',
+  31: 'I2C1_EV',
+  32: 'I2C1_ER',
+  33: 'I2C2_EV',
+  34: 'I2C2_ER',
+  35: 'SPI1',
+  36: 'SPI2',
+  37: 'USART1',
+  38: 'USART2',
+  39: 'USART3',
+  40: 'EXTI15_10',
+  41: 'RTC_Alarm',
+  42: 'OTG_FS_WKUP',
+  43: 'TIM8_BRK_TIM12',
+  44: 'TIM8_UP_TIM13',
+  45: 'TIM8_TRG_COM_TIM14',
+  46: 'TIM8_CC',
+  47: 'DMA1_Stream7',
+  48: 'FSMC',
+  49: 'SDIO',
+  50: 'TIM5',
+  51: 'SPI3',
+  52: 'UART4',
+  53: 'UART5',
+  54: 'TIM6_DAC',
+  55: 'TIM7',
+  56: 'DMA2_Stream0',
+  57: 'DMA2_Stream1',
+  58: 'DMA2_Stream2',
+  59: 'DMA2_Stream3',
+  60: 'DMA2_Stream4',
+  61: 'ETH',
+  62: 'ETH_WKUP',
+  63: 'CAN2_TX',
+  64: 'CAN2_RX0',
+  65: 'CAN2_RX1',
+  66: 'CAN2_SCE',
+  67: 'OTG_FS',
+  68: 'DMA2_Stream5',
+  69: 'DMA2_Stream6',
+  70: 'DMA2_Stream7',
+  71: 'USART6',
+  72: 'I2C3_EV',
+  73: 'I2C3_ER',
+  74: 'OTG_HS_EP1_OUT',
+  75: 'OTG_HS_EP1_IN',
+  76: 'OTG_HS_WKUP',
+  77: 'OTG_HS',
+  78: 'DCMI',
+  79: 'CRYP',
+  80: 'HASH_RNG',
+  81: 'FPU',
+}
+
+stm32f4_memmap0 = {
+
+  'gpioa': (0x40020000, 1 << 10, gpio_regs),
+  'gpiob': (0x40020400, 1 << 10, gpio_regs),
+  'gpioc': (0x40020800, 1 << 10, gpio_regs),
+  'gpiod': (0x40020c00, 1 << 10, gpio_regs),
+  'gpioe': (0x40021000, 1 << 10, gpio_regs),
+  'gpiof': (0x40021400, 1 << 10, gpio_regs),
+  'gpiog': (0x40021800, 1 << 10, gpio_regs),
+  'gpioh': (0x40021c00, 1 << 10, gpio_regs),
+  'gpioi': (0x40022000, 1 << 10, gpio_regs),
+  'gpioj': (0x40022400, 1 << 10, gpio_regs),
+  'gpiok': (0x40022800, 1 << 10, gpio_regs),
+
+  'flash': (0x40023c00, 1 << 10, flash_regs),
+
+  'tim1': (0x40010000, 1 << 10, 'advanced control timer'),
+  'tim2': (0x40000000, 1 << 10, 'general purpose timer'),
+  'tim3': (0x40000400, 1 << 10, 'general purpose timer'),
+  'tim4': (0x40000800, 1 << 10, 'general purpose timer'),
+  'tim5': (0x40000c00, 1 << 10, 'general purpose timer'),
+  'tim6': (0x40001000, 1 << 10, 'basic timer'),
+  'tim7': (0x40001400, 1 << 10, 'basic timer'),
+  'tim8': (0x40010400, 1 << 10, 'advanced control timer'),
+  'tim9': (0x40014000, 1 << 10, 'general purpose timer'),
+  'tim10': (0x40014400, 1 << 10, 'general purpose timer'),
+  'tim11': (0x40014800, 1 << 10, 'general purpose timer'),
+  'tim12': (0x40001800, 1 << 10, 'general purpose timer'),
+  'tim13': (0x40001c00, 1 << 10, 'general purpose timer'),
+  'tim14': (0x40002000, 1 << 10, 'general purpose timer'),
+
+  'usb_otg_fs': (0x50000000, 16 << 10, 'usb on-the-go full speed'),
+  'usb_otg_hs': (0x40044000, 16 << 10, 'usb on-the-go high speed'),
+
+  'usart1': (0x40011000, 1 << 10, 'usart'),
+  'usart2': (0x40004400, 1 << 10, 'usart'),
+  'usart3': (0x40004800, 1 << 10, 'usart'),
+  'uart4':  (0x40004c00, 1 << 10, 'uart'),
+  'uart5':  (0x40005000, 1 << 10, 'uart'),
+  'usart6': (0x40011400, 1 << 10, 'usart'),
+  'uart7': (0x40007800, 1 << 10, 'uart'),
+  'uart8': (0x40007c00, 1 << 10, 'uart'),
+
+  'dbgmcu': (0xe0042000, None, dbgmcu_regs),
+
+  #fsmc
+  #fmc
+  #RNG
+  #HASH
+  #CRYP
+  #DCMI
+  #DMA2D
+  #ETHERNET MAC
+  #DMA2
+  #DMA1
+  #BKPSRAM
+  #RCC
+  #CRC
+  #LCD-TFT
+  #SAI1
+  #SPI6
+  #SPI5
+  #EXTI
+  #SYSCFG
+  #SPI4
+  #SPI1
+  #SDIO
+  #ADC1 - ADC2 - ADC3
+  #DAC
+  #PWR
+  #CAN2
+  #CAN1
+  #I2C3
+  #I2C2
+  #I2C1
+  #I2S3ext
+  #SPI3 / I2S3
+  #SPI2 / I2S2
+  #I2S2ext
+  #IWDG
+  #WWDG
+  #RTC & BKP Registers
+}
+
+STM32F407xx_info = {
+  'name': 'STM32F407xx',
+  'cpu_type': 'cortex-m4',
+  'priority_bits': 4,
+  'vtable': stm32f4_vtable0,
+  'memmap': stm32f4_memmap0,
+}
+
+#-----------------------------------------------------------------------------
 
 soc_db = {}
 
@@ -300,6 +491,7 @@ db_insert(STM32F398xE_info)
 db_insert(STM32F303x6_info)
 db_insert(STM32F303x8_info)
 db_insert(STM32F328x8_info)
+db_insert(STM32F407xx_info)
 
 #-----------------------------------------------------------------------------
 
