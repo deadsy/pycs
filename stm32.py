@@ -9,9 +9,38 @@ SoC file for stm32 devices
 import cortexm
 from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
+
+#-----------------------------------------------------------------------------
+# System Configuration
+
+def MEM_MODE_format(x):
+  modes = {
+    0: 'flash_main@0',
+    1: 'flash_system@0',
+    2: 'fsmc_bank1@0',
+    3: 'sram@0',
+  }
+  return '(%d) %s' % (x, modes.get(x, '?'))
+
+f = []
+f.append(fld('MEM_MODE', 1, 0, MEM_MODE_format))
+MEMRMP_fields = fld_set('MEMRMP', f)
+
+# STM32F405xx/07xx and STM32F415xx/17xx
+r = []
+r.append(reg32('MEMRMP', 0x00, MEMRMP_fields))
+r.append(reg32('PMC', 0x04))
+r.append(reg32('EXTICR1', 0x08))
+r.append(reg32('EXTICR2', 0x0c))
+r.append(reg32('EXTICR3', 0x10))
+r.append(reg32('EXTICR4', 0x14))
+r.append(reg32('CMPCR', 0x20))
+syscfg_regs0 = regset('system configuration controller', r)
+
 #-----------------------------------------------------------------------------
 # Flash
 
+# STM32F303xB/C/D/E, STM32F303x6/8, STM32F328x8, STM32F358xC, STM32F398xE
 r = []
 r.append(reg32('ACR', 0x00))
 r.append(reg32('KEYR', 0x04))
@@ -21,7 +50,28 @@ r.append(reg32('CR', 0x10))
 r.append(reg32('AR',0x14))
 r.append(reg32('OBR', 0x1C))
 r.append(reg32('WRPR', 0x20))
-flash_regs = regset('flash interface', r)
+flash_regs0 = regset('flash interface', r)
+
+# STM32F405xx/07xx and STM32F415xx/17xx
+r = []
+r.append(reg32('ACR', 0x00))
+r.append(reg32('KEYR', 0x04))
+r.append(reg32('OPTKEYR', 0x08))
+r.append(reg32('SR', 0x0C))
+r.append(reg32('CR', 0x10))
+r.append(reg32('OPTCR',0x14))
+flash_regs1 = regset('flash interface', r)
+
+# STM32F42xxx and STM32F43xxx
+r = []
+r.append(reg32('ACR', 0x00))
+r.append(reg32('KEYR', 0x04))
+r.append(reg32('OPTKEYR', 0x08))
+r.append(reg32('SR', 0x0C))
+r.append(reg32('CR', 0x10))
+r.append(reg32('OPTCR',0x14))
+r.append(reg32('OPTCR1',0x18))
+flash_regs2 = regset('flash interface', r)
 
 #-----------------------------------------------------------------------------
 # GPIO
@@ -43,8 +93,32 @@ gpio_regs = regset('gpio', r)
 #-----------------------------------------------------------------------------
 # Debug MCU
 
+def REV_ID_format(x):
+  revs = {
+    0x1000: 'A',
+    0x1001: 'Z',
+    0x1003: 'Y',
+    0x1007: '1',
+  }
+  return '(0x%04x) Rev %s' % (x, revs.get(x, '?'))
+
+def DEV_ID_format(x):
+  devs = {
+    0x413: 'STM32F405xx/07xx, STM32F415xx/17xx',
+    0x419: 'STM32F42xxx, STM32F43xxx',
+    0x422: 'STM32F303xB/C, STM32F358',
+    0x438: 'STM32F303x6/8, STM32F328',
+    0x446: 'STM32F303xD/E, STM32F398xE',
+  }
+  return '(0x%03x) %s' % (x, devs.get(x, '?'))
+
+f = []
+f.append(fld('REV_ID', 31, 16, REV_ID_format))
+f.append(fld('DEV_ID', 11, 0, DEV_ID_format))
+IDCODE_fields = fld_set('IDCODE', f)
+
 r = []
-r.append(reg32('IDCODE', 0x00))
+r.append(reg32('IDCODE', 0x00, IDCODE_fields))
 r.append(reg32('CR', 0x04))
 r.append(reg32('APB1_FZ', 0x08))
 r.append(reg32('APB2_FZ', 0x08))
@@ -57,7 +131,7 @@ dbgmcu_regs = regset('debug mcu', r)
 # irq_number : name
 
 # STM32F303xB/C/D/E, STM32F358xC and STM32F398xE
-vtable0 = {
+stm32f3_vtable0 = {
   0: 'WWDG',
   1: 'PVD',
   2: 'TAMPER_STAMP',
@@ -135,7 +209,7 @@ vtable0 = {
 }
 
 # STM32F303x6/8and STM32F328x8
-vtable1 = {
+stm32f3_vtable1 = {
   0: 'WWDG',
   1: 'PVD',
   2: 'TAMPER_STAMP',
@@ -185,7 +259,7 @@ vtable1 = {
 # name: (address, size, register set)
 
 # STM32F303xB/C and STM32F358xC
-memmap0 = {
+stm32f3_memmap0 = {
   'gpioa': (0x48000000, 1 << 10, gpio_regs),
   'gpiob': (0x48000400, 1 << 10, gpio_regs),
   'gpioc': (0x48000800, 1 << 10, gpio_regs),
@@ -200,13 +274,13 @@ memmap0 = {
   'adc4' : (0x50000500, 0x200, 'adc'),
   'adc34' : (0x50000700, 0x100, 'adc common'),
 
-  'flash': (0x40022000, 1 << 10, flash_regs),
+  'flash': (0x40022000, 1 << 10, flash_regs0),
   'flash_option': (0x1ffff800, 2 << 10, 'flash option memory'),
   'flash_main': (0x08000000, 256 << 10, 'flash main memory'),
   'flash_system': (0x1fffd800, 8 << 10, 'flash system memory'),
 
   'sram': (0x20000000, 40 << 10, 'sram'),
-  'ccm_sram': (0x10000000, 8 << 10, 'ccm_sram'),
+  'ccm_sram': (0x10000000, 8 << 10, 'core coupled memory sram'),
 
   'tim1': (0x40012C00, 1 << 10, 'advanced control timer'),
   'tim2': (0x40000000, 1 << 10, 'general purpose timer'),
@@ -225,6 +299,8 @@ memmap0 = {
   'usart1': (0x40013800, 1 << 10, 'usart'),
   'usart2': (0x40004400, 1 << 10, 'usart'),
   'usart3': (0x40004800, 1 << 10, 'usart'),
+
+  'dbgmcu': (0xe0042000, None, dbgmcu_regs),
 
   #usb_sram
   #usb_fs
@@ -257,18 +333,18 @@ memmap0 = {
 
 STM32F303xB_info = {
   'name': 'STM32F303xB',
-  'memmap': memmap0,
+  'memmap': stm32f3_memmap0,
 }
 STM32F303xC_info = {
   'name': 'STM32F303xC',
   'cpu_type': 'cortex-m4',
   'priority_bits': 4,
-  'vtable': vtable0,
-  'memmap': memmap0,
+  'vtable': stm32f3_vtable0,
+  'memmap': stm32f3_memmap0,
 }
 STM32F358xC_info = {
   'name': 'STM32F358xC',
-  'memmap': memmap0,
+  'memmap': stm32f3_memmap0,
 }
 STM32F303xD_info = {
   'name': 'STM32F303xD',
@@ -380,6 +456,15 @@ stm32f4_vtable0 = {
 
 stm32f4_memmap0 = {
 
+  'sram': (0x20000000, 128 << 10, 'sram'),
+  #'ccm_sram': (0x10000000, 8 << 10, 'core coupled memory sram'),
+
+  'flash': (0x40023c00, 1 << 10, flash_regs1),
+  'flash_system': (0x1fff0000, 30 << 10, 'flash system memory'),
+  'flash_main': (0x08000000, 1 << 20, 'flash main memory'),
+  'flash_option': (0x1fffc000, 16, 'flash option memory'),
+  'flash_otp': (0x1fff7800, 528, 'flash otp memory'),
+
   'gpioa': (0x40020000, 1 << 10, gpio_regs),
   'gpiob': (0x40020400, 1 << 10, gpio_regs),
   'gpioc': (0x40020800, 1 << 10, gpio_regs),
@@ -391,8 +476,6 @@ stm32f4_memmap0 = {
   'gpioi': (0x40022000, 1 << 10, gpio_regs),
   'gpioj': (0x40022400, 1 << 10, gpio_regs),
   'gpiok': (0x40022800, 1 << 10, gpio_regs),
-
-  'flash': (0x40023c00, 1 << 10, flash_regs),
 
   'tim1': (0x40010000, 1 << 10, 'advanced control timer'),
   'tim2': (0x40000000, 1 << 10, 'general purpose timer'),
@@ -423,6 +506,8 @@ stm32f4_memmap0 = {
 
   'dbgmcu': (0xe0042000, None, dbgmcu_regs),
 
+  'syscfg': (0x40013800, 1 << 10, syscfg_regs0),
+
   #fsmc
   #fmc
   #RNG
@@ -441,7 +526,6 @@ stm32f4_memmap0 = {
   #SPI6
   #SPI5
   #EXTI
-  #SYSCFG
   #SPI4
   #SPI1
   #SDIO
