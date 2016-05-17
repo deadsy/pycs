@@ -13,9 +13,210 @@ x.py is the same information presented as *.py code useable by pycs.
 import os
 import sys
 
+import xml.etree.cElementTree as ET
+
 # -----------------------------------------------------------------------------
 
 svd_file = None
+
+# -----------------------------------------------------------------------------
+
+class svd_cpu(object):
+  """class for cpu attributes"""
+
+  def __init__(self):
+    pass
+
+  def attribute(self, x):
+    name, value = x
+    if not value is None:
+      object.__setattr__(self, name, value)
+
+  def __getattr__(self, name):
+    return None
+
+  def attribute_str(self, s, name):
+    if self.__dict__.has_key(name):
+      s.append('%s: %s' % (name, str(self.__dict__[name])))
+
+  def __str__(self):
+    s = []
+    for k, v in self.__dict__.items():
+      s.append('%s: %s' % (k, str(v)))
+    return '\n'.join(s)
+
+class svd_device(object):
+  """class for device attributes"""
+
+  def __init__(self):
+    pass
+
+  def attribute(self, x):
+    name, value = x
+    if not value is None:
+      object.__setattr__(self, name, value)
+
+  def __getattr__(self, name):
+    return None
+
+  def attribute_str(self, s, name):
+    if self.__dict__.has_key(name):
+      s.append('%s: %s' % (name, str(self.__dict__[name])))
+
+  def __str__(self):
+    s = []
+    for k, v in self.__dict__.items():
+      s.append('%s: %s' % (k, str(v)))
+    return '\n'.join(s)
+
+# -----------------------------------------------------------------------------
+
+def get_text(node, tag, default):
+  """Get the text for the provided tag from the provided node"""
+  try:
+    return node.find(tag).text
+  except AttributeError:
+    return default
+
+def get_integer(node, tag, default):
+  text_value = get_text(node, tag, default)
+  try:
+    if text_value != default:
+      text_value = text_value.strip().lower()
+      if text_value.startswith('0x'):
+        return int(text_value[2:], 16)  # hexadecimal
+      elif text_value.startswith('#'):
+        # TODO(posborne): Deal with strange #1xx case better
+        #
+        # Freescale will sometimes provide values that look like this:
+        #   #1xx
+        # In this case, there are a number of values which all mean the
+        # same thing as the field is a "don't care".  For now, we just
+        # replace those bits with zeros.
+        text_value = text_value.replace('x', '0')[1:]
+        is_bin = all(x in '01' for x in text_value)
+        return int(text_value, 2) if is_bin else int(text_value)  # binary
+      elif text_value.startswith('true'):
+        return 1
+      elif text_value.startswith('false'):
+        return 0
+      else:
+        return int(text_value)  # decimal
+  except ValueError:
+    return default
+  return default
+
+def get_boolean(node, tag, default):
+  n = get_integer(node, tag, default)
+  if n is None:
+    return default
+  return n != 0
+
+# -----------------------------------------------------------------------------
+
+def text_node(node, tag, default = None):
+  return (tag, get_text(node, tag, default))
+
+def boolean_node(node, tag, default = None):
+  return (tag, get_boolean(node, tag, default))
+
+def integer_node(node, tag, default = None):
+  return (tag, get_integer(node, tag, default))
+
+# -----------------------------------------------------------------------------
+
+class svd_parser(object):
+
+  @classmethod
+  def read_file(cls, path):
+    return cls(ET.parse(path))
+
+  def __init__(self, tree):
+    self.tree = tree
+    self.root = self.tree.getroot()
+
+
+  def get_device(self):
+    """return the device described by the svd file"""
+
+    node = self.root.find('./cpu')
+    cpu = svd_cpu()
+    cpu.attribute(text_node(node, 'name'))
+    cpu.attribute(text_node(node, 'revision'))
+    cpu.attribute(text_node(node, 'endian'))
+    cpu.attribute(boolean_node(node, 'mpuPresent'))
+    cpu.attribute(boolean_node(node, 'fpuPresent'))
+    cpu.attribute(boolean_node(node, 'fpuDP'))
+    cpu.attribute(boolean_node(node, 'icachePresent'))
+    cpu.attribute(boolean_node(node, 'dcachePresent'))
+    cpu.attribute(boolean_node(node, 'itcmPresent'))
+    cpu.attribute(boolean_node(node, 'dtcmPresent'))
+    cpu.attribute(boolean_node(node, 'vtorPresent'))
+    cpu.attribute(integer_node(node, 'nvicPrioBits'))
+    cpu.attribute(boolean_node(node, 'vendorSystickConfig'))
+    cpu.attribute(integer_node(node, 'deviceNumInterrupts'))
+    cpu.attribute(integer_node(node, 'sauNumRegions'))
+    cpu.attribute(text_node(node, 'sauRegionsConfig'))
+
+    node = self.root
+    device = svd_device()
+    device.cpu = cpu
+    device.attribute(text_node(node, 'vendor'))
+    device.attribute(text_node(node, 'vendorID'))
+    device.attribute(text_node(node, 'name'))
+    device.attribute(text_node(node, 'series'))
+    device.attribute(text_node(node, 'version'))
+    device.attribute(text_node(node, 'description'))
+    device.attribute(text_node(node, 'licenseText'))
+    device.attribute(text_node(node, 'cpu'))
+    device.attribute(text_node(node, 'headerSystemFilename'))
+    device.attribute(text_node(node, 'headerDefinitionsPrefix'))
+    device.attribute(integer_node(node, 'addressUnitBits'))
+    device.attribute(integer_node(node, 'width'))
+
+    return device
+
+
+# -----------------------------------------------------------------------------
+
+def emit_description(f, device):
+  s = []
+  s.append('"""')
+  s.append('command: %s' % ' '.join(sys.argv))
+  device.attribute_str(s, 'vendor')
+  device.attribute_str(s, 'name')
+  device.attribute_str(s, 'description')
+  device.attribute_str(s, 'series')
+  device.attribute_str(s, 'version')
+  s.append('"""')
+  f.write('%s\n' % '\n'.join(s))
+
+def emit_cpu(f, cpu):
+  s = []
+  cpu.attribute_str(s, 'name')
+  cpu.attribute_str(s, 'revision')
+  cpu.attribute_str(s, 'endian')
+  cpu.attribute_str(s, 'mpuPresent')
+  cpu.attribute_str(s, 'fpuPresent')
+  cpu.attribute_str(s, 'fpuDP')
+  cpu.attribute_str(s, 'icachePresent')
+  cpu.attribute_str(s, 'dcachePresent')
+  cpu.attribute_str(s, 'itcmPresent')
+  cpu.attribute_str(s, 'dtcmPresent')
+  cpu.attribute_str(s, 'vtorPresent')
+  cpu.attribute_str(s, 'nvicPrioBits')
+  cpu.attribute_str(s, 'vendorSystickConfig')
+  cpu.attribute_str(s, 'deviceNumInterrupts')
+  cpu.attribute_str(s, 'sauNumRegions')
+  cpu.attribute_str(s, 'sauRegionsConfig')
+  f.write('%s\n' % '\n'.join(s))
+
+def emit_code(fname, device):
+
+  f = open(fname, 'w')
+  emit_description(f, device)
+  emit_cpu(f, device.cpu)
+  f.close()
 
 # -----------------------------------------------------------------------------
 
@@ -44,7 +245,10 @@ def Process_Options(argv):
 
 def main():
   Process_Options(sys.argv)
-  print svd_file
+  parser = svd_parser.read_file(svd_file)
+  device = parser.get_device()
+  emit_code('output.py', device)
+  print device
 
 main()
 
