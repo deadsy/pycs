@@ -17,13 +17,21 @@ import xml.etree.cElementTree as ET
 
 # -----------------------------------------------------------------------------
 
+svd2py_version = 1
 svd_file = None
 
 # -----------------------------------------------------------------------------
 
-class svd_cpu(object):
-  """class for cpu attributes"""
+def string_cleanup(s):
+  """remove extra spaces and carriage returns from a string"""
+  if s is None:
+    return s
+  return ' '.join([x.strip() for x in s.split()])
 
+# -----------------------------------------------------------------------------
+
+class svd_interrupt(object):
+  """class for an interrupt"""
   def __init__(self):
     pass
 
@@ -35,15 +43,48 @@ class svd_cpu(object):
   def __getattr__(self, name):
     return None
 
-  def attribute_str(self, s, name):
-    if self.__dict__.has_key(name):
-      s.append('%s: %s' % (name, str(self.__dict__[name])))
 
-  def __str__(self):
-    s = []
-    for k, v in self.__dict__.items():
-      s.append('%s: %s' % (k, str(v)))
-    return '\n'.join(s)
+class svd_address_block(object):
+  """class for an address block"""
+  def __init__(self):
+    pass
+
+  def attribute(self, x):
+    name, value = x
+    if not value is None:
+      object.__setattr__(self, name, value)
+
+  def __getattr__(self, name):
+    return None
+
+
+class svd_peripheral(object):
+  """class for peripheral attributes"""
+  def __init__(self):
+    pass
+
+  def attribute(self, x):
+    name, value = x
+    if not value is None:
+      object.__setattr__(self, name, value)
+
+  def __getattr__(self, name):
+    return None
+
+
+class svd_cpu(object):
+  """class for cpu attributes"""
+  def __init__(self):
+    pass
+
+  def attribute(self, x):
+    name, value = x
+    if not value is None:
+      object.__setattr__(self, name, value)
+
+  def __getattr__(self, name):
+    return None
+
 
 class svd_device(object):
   """class for device attributes"""
@@ -51,6 +92,13 @@ class svd_device(object):
   def __init__(self):
     pass
 
+  def lookup_peripheral(self, name):
+    """lookup peripheral by name"""
+    for p in self.peripherals:
+      if p.name == name:
+        return p
+    return None
+
   def attribute(self, x):
     name, value = x
     if not value is None:
@@ -63,23 +111,30 @@ class svd_device(object):
     if self.__dict__.has_key(name):
       s.append('%s: %s' % (name, str(self.__dict__[name])))
 
-  def __str__(self):
-    s = []
-    for k, v in self.__dict__.items():
-      s.append('%s: %s' % (k, str(v)))
-    return '\n'.join(s)
-
 # -----------------------------------------------------------------------------
 
-def get_text(node, tag, default):
-  """Get the text for the provided tag from the provided node"""
+# identifierType = string
+# stringType = string
+# xs:Name = string
+# cpuNameType = string
+# revisionType = string
+# endianType = string
+# xs:boolean = boolean
+# scaledNonNegativeInteger = integer
+
+#interruptType
+#registersType
+
+
+def get_string(node, tag, default = None):
+  """Get the text string for the tag from the node"""
   try:
     return node.find(tag).text
   except AttributeError:
     return default
 
-def get_integer(node, tag, default):
-  text_value = get_text(node, tag, default)
+def get_integer(node, tag, default = None):
+  text_value = get_string(node, tag, default)
   try:
     if text_value != default:
       text_value = text_value.strip().lower()
@@ -106,7 +161,7 @@ def get_integer(node, tag, default):
     return default
   return default
 
-def get_boolean(node, tag, default):
+def get_boolean(node, tag, default = None):
   n = get_integer(node, tag, default)
   if n is None:
     return default
@@ -114,8 +169,8 @@ def get_boolean(node, tag, default):
 
 # -----------------------------------------------------------------------------
 
-def text_node(node, tag, default = None):
-  return (tag, get_text(node, tag, default))
+def string_node(node, tag, default = None):
+  return (tag, get_string(node, tag, default))
 
 def boolean_node(node, tag, default = None):
   return (tag, get_boolean(node, tag, default))
@@ -135,15 +190,49 @@ class svd_parser(object):
     self.tree = tree
     self.root = self.tree.getroot()
 
+  def get_address_block(self, node):
+    block = svd_address_block()
+    block.attribute(integer_node(node, 'offset'))
+    block.attribute(integer_node(node, 'size'))
+    block.attribute(string_node(node, 'usage'))
+    return block
+
+  def get_interrupt(self, node):
+    i = svd_interrupt()
+    i.attribute(string_node(node, 'name'))
+    i.attribute(string_node(node, 'description'))
+    i.description = string_cleanup(i.description)
+    i.attribute(integer_node(node, 'value'))
+    return i
+
+  def get_peripheral(self, node):
+
+    peripheral = svd_peripheral()
+    peripheral.attribute(string_node(node, 'name'))
+    peripheral.attribute(string_node(node, 'version'))
+    peripheral.attribute(string_node(node, 'description'))
+    peripheral.description = string_cleanup(peripheral.description)
+    peripheral.attribute(string_node(node, 'alternatePeripheral'))
+    peripheral.attribute(string_node(node, 'groupName'))
+    peripheral.attribute(string_node(node, 'prependToName'))
+    peripheral.attribute(string_node(node, 'appendToName'))
+    peripheral.attribute(string_node(node, 'headerStructName'))
+    peripheral.attribute(string_node(node, 'disableCondition'))
+    peripheral.attribute(integer_node(node, 'baseAddress'))
+    peripheral.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
+    peripheral.interrupts = [self.get_interrupt(x) for x in node.findall('./interrupt')]
+    #<xs:element name="registers" type="registersType" minOccurs="0" maxOccurs="1">
+    peripheral.derivedFrom = node.get('derivedFrom')
+    return peripheral
 
   def get_device(self):
     """return the device described by the svd file"""
-
+    # cpu
     node = self.root.find('./cpu')
     cpu = svd_cpu()
-    cpu.attribute(text_node(node, 'name'))
-    cpu.attribute(text_node(node, 'revision'))
-    cpu.attribute(text_node(node, 'endian'))
+    cpu.attribute(string_node(node, 'name'))
+    cpu.attribute(string_node(node, 'revision'))
+    cpu.attribute(string_node(node, 'endian'))
     cpu.attribute(boolean_node(node, 'mpuPresent'))
     cpu.attribute(boolean_node(node, 'fpuPresent'))
     cpu.attribute(boolean_node(node, 'fpuDP'))
@@ -156,32 +245,32 @@ class svd_parser(object):
     cpu.attribute(boolean_node(node, 'vendorSystickConfig'))
     cpu.attribute(integer_node(node, 'deviceNumInterrupts'))
     cpu.attribute(integer_node(node, 'sauNumRegions'))
-    cpu.attribute(text_node(node, 'sauRegionsConfig'))
+    #<xs:element name="sauRegionsConfig" minOccurs="0">
 
+    # device
     node = self.root
     device = svd_device()
+    device.attribute(string_node(node, 'vendor'))
+    device.attribute(string_node(node, 'vendorID'))
+    device.attribute(string_node(node, 'name'))
+    device.attribute(string_node(node, 'series'))
+    device.attribute(string_node(node, 'version'))
+    device.attribute(string_node(node, 'description'))
+    device.attribute(string_node(node, 'licenseText'))
     device.cpu = cpu
-    device.attribute(text_node(node, 'vendor'))
-    device.attribute(text_node(node, 'vendorID'))
-    device.attribute(text_node(node, 'name'))
-    device.attribute(text_node(node, 'series'))
-    device.attribute(text_node(node, 'version'))
-    device.attribute(text_node(node, 'description'))
-    device.attribute(text_node(node, 'licenseText'))
-    device.attribute(text_node(node, 'cpu'))
-    device.attribute(text_node(node, 'headerSystemFilename'))
-    device.attribute(text_node(node, 'headerDefinitionsPrefix'))
+    device.attribute(string_node(node, 'headerSystemFilename'))
+    device.attribute(string_node(node, 'headerDefinitionsPrefix'))
     device.attribute(integer_node(node, 'addressUnitBits'))
     device.attribute(integer_node(node, 'width'))
-
+    device.peripherals = [self.get_peripheral(x) for x in self.root.findall('.//peripheral')]
     return device
-
 
 # -----------------------------------------------------------------------------
 
-def emit_description(f, device):
+def emit_header(f, device):
   s = []
   s.append('"""')
+  s.append('generated by svd2py version %d' % svd2py_version)
   s.append('command: %s' % ' '.join(sys.argv))
   device.attribute_str(s, 'vendor')
   device.attribute_str(s, 'name')
@@ -191,31 +280,51 @@ def emit_description(f, device):
   s.append('"""')
   f.write('%s\n' % '\n'.join(s))
 
-def emit_cpu(f, cpu):
+def emit_memmap(f, device):
   s = []
-  cpu.attribute_str(s, 'name')
-  cpu.attribute_str(s, 'revision')
-  cpu.attribute_str(s, 'endian')
-  cpu.attribute_str(s, 'mpuPresent')
-  cpu.attribute_str(s, 'fpuPresent')
-  cpu.attribute_str(s, 'fpuDP')
-  cpu.attribute_str(s, 'icachePresent')
-  cpu.attribute_str(s, 'dcachePresent')
-  cpu.attribute_str(s, 'itcmPresent')
-  cpu.attribute_str(s, 'dtcmPresent')
-  cpu.attribute_str(s, 'vtorPresent')
-  cpu.attribute_str(s, 'nvicPrioBits')
-  cpu.attribute_str(s, 'vendorSystickConfig')
-  cpu.attribute_str(s, 'deviceNumInterrupts')
-  cpu.attribute_str(s, 'sauNumRegions')
-  cpu.attribute_str(s, 'sauRegionsConfig')
+  s.append('memmap = {')
+  for p in device.peripherals:
+
+    # handle derivedFrom peripherals
+    p_from = p
+    if p.derivedFrom is not None:
+      p_from = device.lookup_peripheral(p.derivedFrom)
+
+    comment = ('# %s' % p_from.description, '')[p_from.description is None]
+    assert len(p_from.addressBlock) >= 1
+    if len(p_from.addressBlock) == 1:
+      address = p.baseAddress + p_from.addressBlock[0].offset
+      size = p_from.addressBlock[0].size
+      s.append("  '%s': (0x%08x, 0x%x), %s" % (p.name, address, size, comment))
+    else:
+      print('TODO: peripheral %s has more than 1 address block' % p.name)
+  s.append('}')
+  f.write('%s\n' % '\n'.join(s))
+
+def emit_vtable(f, device):
+  # get the interrupts - there maybe duplicates so we add them to a dictionary
+  irqs = {}
+  for p in device.peripherals:
+    for i in p.interrupts:
+      if irqs.has_key(i.value):
+        # should be the same name
+        assert irqs[i.value][0] == i.name
+      else:
+        irqs[i.value] = (i.name, i.description)
+  # output them in sorted order
+  s = []
+  s.append('vtable = {')
+  for i in sorted(irqs.keys()):
+    (name, description) = irqs[i]
+    s.append("  %d: '%s', # %s" % (i, name, description))
+  s.append('}')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_code(fname, device):
-
   f = open(fname, 'w')
-  emit_description(f, device)
-  emit_cpu(f, device.cpu)
+  emit_header(f, device)
+  emit_vtable(f, device)
+  emit_memmap(f, device)
   f.close()
 
 # -----------------------------------------------------------------------------
@@ -248,7 +357,6 @@ def main():
   parser = svd_parser.read_file(svd_file)
   device = parser.get_device()
   emit_code('output.py', device)
-  print device
 
 main()
 
