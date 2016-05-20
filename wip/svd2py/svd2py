@@ -229,6 +229,28 @@ class svd_parser(object):
 
   def get_register(self, node):
     r = svd_register()
+    r.attribute(integer_node(node, 'dim'))
+    r.attribute(integer_node(node, 'dimIncrement'))
+    r.attribute(string_node(node, 'dimIndex'))
+    r.attribute(string_node(node, 'name'))
+    r.attribute(string_node(node, 'displayName'))
+    r.attribute(string_node(node, 'description'))
+    r.description = string_cleanup(r.description)
+    r.attribute(string_node(node, 'alternateGroup'))
+    r.attribute(string_node(node, 'alternateRegister'))
+    r.attribute(integer_node(node, 'addressOffset'))
+    r.attribute(integer_node(node, 'size'))
+    r.attribute(string_node(node, 'access'))
+    r.attribute(string_node(node, 'protection'))
+    r.attribute(integer_node(node, 'resetValue'))
+    r.attribute(integer_node(node, 'resetMask'))
+    r.attribute(string_node(node, 'dataType'))
+    r.attribute(integer_node(node, 'resetMask'))
+    r.attribute(string_node(node, 'modifiedWriteValues'))
+    #<xs:element name="writeConstraint" type="writeConstraintType" minOccurs="0"/>
+    r.attribute(string_node(node, 'readAction'))
+    #<xs:element name="fields" type="fieldsType" minOccurs="0" maxOccurs="1"/>
+    r.derivedFrom = node.get('derivedFrom')
     return r
 
   def get_address_block(self, node):
@@ -247,7 +269,6 @@ class svd_parser(object):
     return i
 
   def get_peripheral(self, node):
-
     peripheral = svd_peripheral()
     peripheral.attribute(string_node(node, 'name'))
     peripheral.attribute(string_node(node, 'version'))
@@ -262,12 +283,8 @@ class svd_parser(object):
     peripheral.attribute(integer_node(node, 'baseAddress'))
     peripheral.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
     peripheral.interrupts = [self.get_interrupt(x) for x in node.findall('./interrupt')]
-
     peripheral.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
-
-
-
-    #<xs:element name="registers" type="registersType" minOccurs="0" maxOccurs="1">
+    peripheral.registers = [self.get_register(x) for x in node.findall('.//register')]
     peripheral.derivedFrom = node.get('derivedFrom')
     return peripheral
 
@@ -326,6 +343,29 @@ def emit_header(f, device):
   device.attribute_header(s, 'series')
   device.attribute_header(s, 'version')
   s.append('"""')
+  s.append('from regs import fld, fld_set, reg32, reg16, reg8, regset, memio')
+  f.write('%s\n' % '\n'.join(s))
+
+def emit_registers(f, device):
+  s = []
+  for p in device.peripherals:
+    if p.derivedFrom and len(p.registers) == 0:
+      continue
+    if p.derivedFrom is None and len(p.registers) == 0:
+      print('Weird: peripheral %s is not derived and has no registers' % p.name)
+      continue
+    if p.derivedFrom and len(p.registers):
+      print('Weird: peripheral %s is derived and has registers' % p.name)
+      continue
+    s.append('r = []')
+    for r in p.registers:
+      if r.dim is not None:
+        print('TODO: peripheral %s, register %s handle dimElementGroup register names' % (p.name, r.name))
+        continue
+      comment = (' # %s' % r.description, '')[r is None]
+      s.append("r.append(reg%d('%s', 0x%x)%s" % (r.size, r.name, r.addressOffset, comment))
+    s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
+    s.append('')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_memmap(f, device):
@@ -333,21 +373,21 @@ def emit_memmap(f, device):
   s = []
   s.append('memmap = {')
   for p in device.peripherals:
-
     # handle derivedFrom peripherals
     p_from = p
     if p.derivedFrom is not None:
       p_from = device.lookup_peripheral(p.derivedFrom)
-
     comment = (' # %s' % p_from.description, '')[p_from.description is None]
     assert len(p_from.addressBlock) >= 1
     if len(p_from.addressBlock) == 1:
       address = p.baseAddress + p_from.addressBlock[0].offset
       size = p_from.addressBlock[0].size
-      s.append("  '%s': (0x%08x, 0x%x),%s" % (p.name, address, size, comment))
+      regs = ('%s_regs' % p_from.name, "'%s'" % p_from.description)[len(p_from.registers) == 0]
+      s.append("  '%s': (0x%08x, 0x%x, %s),%s" % (p.name, address, size, regs, comment))
     else:
       print('TODO: peripheral %s has more than 1 address block' % p.name)
   s.append('}')
+  s.append('')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_vtable(f, device):
@@ -369,6 +409,7 @@ def emit_vtable(f, device):
     comment = (' # %s' % description, '')[description is None]
     s.append("  %d: '%s',%s" % (i, name, comment))
   s.append('}')
+  s.append('')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_cpu(f, device):
@@ -391,6 +432,7 @@ def emit_cpu(f, device):
   cpu.attribute_boolean(s, 'vendorSystickConfig')
   cpu.attribute_integer(s, 'deviceNumInterrupts')
   s.append('}')
+  s.append('')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_device(f, device):
@@ -404,11 +446,13 @@ def emit_device(f, device):
   s.append("  'memmap': memmap,")
   s.append("  'cpu': cpu,")
   s.append('}')
+  s.append('')
   f.write('%s\n' % '\n'.join(s))
 
 def emit_code(fname, device):
   f = open(fname, 'w')
   emit_header(f, device)
+  emit_registers(f, device)
   emit_vtable(f, device)
   emit_memmap(f, device)
   emit_cpu(f, device)
