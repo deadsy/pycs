@@ -7,7 +7,7 @@ Memory Functions
 # -----------------------------------------------------------------------------
 
 import util
-import io
+import iobuf
 import regs
 
 # -----------------------------------------------------------------------------
@@ -223,7 +223,7 @@ class mem(object):
     adr = util.align_adr(adr, 32)
     n = util.nbytes_to_nwords(n, 32)
     # read memory, write to file object
-    mf = io.to_file(32, ui, name, n, le = True)
+    mf = iobuf.to_file(32, ui, name, n, le = True)
     self.cpu.rd_mem(adr, n, mf)
     mf.close()
 
@@ -247,7 +247,7 @@ class mem(object):
     n = (n + 15) & ~15
     n = util.nbytes_to_nwords(n, 32)
     # read memory, dump to display
-    md = io.to_display(32, ui, adr, le = True)
+    md = iobuf.to_display(32, ui, adr, le = True)
     self.cpu.rd_mem(adr, n, md)
 
   def cmd_display16(self, ui, args):

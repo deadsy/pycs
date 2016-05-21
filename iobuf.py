@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------
 """
-Input/Output Objects
+Input/Output Buffer Objects
 Stateful objects used to produce/consume data from JTAG devices
 """
 # ----------------------------------------------------------------------------

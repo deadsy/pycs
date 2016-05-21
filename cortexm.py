@@ -9,7 +9,7 @@ Cortex-M CPU Operations
 import time
 
 import util
-import io
+import iobuf
 import jlink
 from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
@@ -519,7 +519,7 @@ class cortexm(object):
     # align the address to 32 bits
     adr = util.align_adr(adr, 32)
     # disassemble
-    md = io.arm_disassemble(ui, adr)
+    md = iobuf.arm_disassemble(ui, adr)
     self.rd_mem(adr, n, md)
 
   def cmd_go(self, ui, args):
