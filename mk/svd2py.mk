@@ -9,4 +9,5 @@ PY_FILES = $(patsubst %, %.py, $(FILES))
 all: $(PY_FILES)
 
 clean:
+	-rm *.pyc
 	-rm $(PY_FILES)
