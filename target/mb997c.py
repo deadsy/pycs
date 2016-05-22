@@ -12,7 +12,7 @@ import conio
 import cli
 import jlink
 import cortexm
-import stm32
+import soc.stm32 as soc
 import mem
 
 # -----------------------------------------------------------------------------
@@ -27,10 +27,10 @@ class target(object):
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    info = stm32.lookup(soc_name)
-    self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
-    self.soc = stm32.soc(self.cpu, info)
+    info = soc.lookup(soc_name)
+    self.jlink = jlink.JLink(usb_number, info['cpu']['name'], jlink._JLINKARM_TIF_SWD)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu'])
+    self.soc = soc.soc(self.cpu, info)
     self.mem = mem.mem(self.cpu, self.soc)
 
     self.menu_root = (

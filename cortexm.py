@@ -351,23 +351,24 @@ m0_plus_memmap = {
 }
 
 memmaps = {
-  'cortex-m4': m4_memmap,
-  'cortex-m0+': m0_plus_memmap,
+  'CM4': m4_memmap,
+  'CM0+': m0_plus_memmap,
+  'CM0PLUS': m0_plus_memmap,
 }
 
 # -----------------------------------------------------------------------------
 
 class cortexm(object):
 
-  def __init__(self, target, ui, jlink, cpu_type, priority_bits):
+  def __init__(self, target, ui, jlink, cpu_info):
     self.target = target
     self.ui = ui
     self.jlink = jlink
-    self.cpu_type = cpu_type
-    self.priority_bits = priority_bits
+    self.cpu_type = cpu_info['name']
+    self.priority_bits = cpu_info['nvicPrioBits']
     self.saved_regs = []
     self.width = 32
-    self.memmap = memmaps[cpu_type]
+    self.memmap = memmaps[self.cpu_type]
 
     # setup the memory mapped registers for this cpu
     self.scb = self.get_memio('scb')

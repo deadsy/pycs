@@ -98,6 +98,30 @@ REG_MVFR0 = 72
 REG_MVFR1 = 73
 
 # ----------------------------------------------------------------------------
+# map from SVD cpu names to JLink cpu names
+
+cpu_names = {
+  'CM0': 'cortex-m4',
+  'CM0PLUS': 'cortex-m0+',
+  'CM0+': 'cortex-m0+',
+  'CM1': 'cortex-m1',
+  'SC000': '',
+  'CM3': 'cortex-m3',
+  'SC300': '',
+  'CM4': 'cortex-m4',
+  'CM7': 'cortex-m7',
+  'CA5': 'cortex-a5',
+  'CA7': 'cortex-a7',
+  'CA8': 'cortex-a8',
+  'CA9': 'cortex-a9',
+  'CA15': 'cortex-a15',
+  'CA17': 'cortex-a17',
+  'CA53': 'cortex-a53',
+  'CA57': 'cortex-a57',
+  'CA72': 'cortex-a72',
+}
+
+# ----------------------------------------------------------------------------
 
 class JLinkException(Exception):
   pass
@@ -167,7 +191,7 @@ class JLink(object):
       try:
         self._init(usb_number, device, itf)
         if retried:
-          print "success"
+          print 'success'
         return
       except JLinkException, x:
         if x.args[0] == -258:
@@ -200,7 +224,7 @@ class JLink(object):
     state = self.get_hw_status()
     assert state['vref'] > 1500, 'Vref is too low. Check target power.'
     assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
-    self.exec_command('device=%s' % device)
+    self.exec_command('device=%s' % cpu_names[device])
     self.set_speed(4000)
     self.tif_select(itf)
     self.jlink_connect()

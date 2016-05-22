@@ -12,7 +12,7 @@ import conio
 import cli
 import jlink
 import cortexm
-import kinetis
+import soc.kinetis as soc
 import mem
 
 # -----------------------------------------------------------------------------
@@ -27,10 +27,10 @@ class target(object):
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    info = kinetis.lookup(soc_name)
+    info = soc.lookup(soc_name)
     self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
     self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
-    self.soc = kinetis.soc(self.cpu, info)
+    self.soc = soc.soc(self.cpu, info)
     self.mem = mem.mem(self.cpu, self.soc)
 
     self.menu_root = (
