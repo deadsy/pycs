@@ -11,43 +11,10 @@ import cortexm
 
 #-----------------------------------------------------------------------------
 
-def svd_device(name):
+def svd_info(name):
+  """return the svd device information"""
   module = importlib.import_module('soc.st.%s' % name)
   return module.device
-
-#-----------------------------------------------------------------------------
-
-STM32F303xB_info = {
-  'name': 'STM32F303xB',
-}
-STM32F303xC_info = {
-  'name': 'STM32F303xC',
-}
-STM32F358xC_info = {
-  'name': 'STM32F358xC',
-}
-STM32F303xD_info = {
-  'name': 'STM32F303xD',
-}
-STM32F303xE_info = {
-  'name': 'STM32F303xE',
-}
-STM32F398xE_info = {
-  'name': 'STM32F398xE',
-}
-STM32F303x6_info = {
-  'name': 'STM32F303x6',
-}
-STM32F303x8_info = {
-  'name': 'STM32F303x8',
-}
-STM32F328x8_info = {
-  'name': 'STM32F328x8',
-}
-STM32F407xx_info = {
-  'name': 'STM32F407xx',
-  'svd': 'STM32F40x',
-}
 
 #-----------------------------------------------------------------------------
 
@@ -60,22 +27,64 @@ def lookup(name):
   if soc_db.has_key(name):
     info = soc_db[name]
     # read in the device from the svd file
-    device = svd_device(info['svd'])
-    info['cpu'] = device['cpu']
-    info['memmap'] = device['memmap']
-    info['vtable'] = device['vtable']
+    svd = svd_info(info['svd'])
+    info['cpu'] = svd['cpu']
+    info['memmap'] = svd['memmap']
+    info['vtable'] = svd['vtable']
     return info
   assert False, 'unknown SoC device %s' % device
 
+#-----------------------------------------------------------------------------
+
+STM32F303xB_info = {
+  'name': 'STM32F303xB',
+}
 db_insert(STM32F303xB_info)
+
+STM32F303xC_info = {
+  'name': 'STM32F303xC',
+}
 db_insert(STM32F303xC_info)
+
+STM32F358xC_info = {
+  'name': 'STM32F358xC',
+}
 db_insert(STM32F358xC_info)
+
+STM32F303xD_info = {
+  'name': 'STM32F303xD',
+}
 db_insert(STM32F303xD_info)
+
+STM32F303xE_info = {
+  'name': 'STM32F303xE',
+}
 db_insert(STM32F303xE_info)
+
+STM32F398xE_info = {
+  'name': 'STM32F398xE',
+}
 db_insert(STM32F398xE_info)
+
+STM32F303x6_info = {
+  'name': 'STM32F303x6',
+}
 db_insert(STM32F303x6_info)
+
+STM32F303x8_info = {
+  'name': 'STM32F303x8',
+}
 db_insert(STM32F303x8_info)
+
+STM32F328x8_info = {
+  'name': 'STM32F328x8',
+}
 db_insert(STM32F328x8_info)
+
+STM32F407xx_info = {
+  'name': 'STM32F407xx',
+  'svd': 'STM32F40x',
+}
 db_insert(STM32F407xx_info)
 
 #-----------------------------------------------------------------------------
