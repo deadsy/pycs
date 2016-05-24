@@ -226,6 +226,7 @@ def integer_node(node, tag, default = None):
   return (tag, get_integer(node, tag, default))
 
 # -----------------------------------------------------------------------------
+# handle the dimElementGroup
 
 def x_dash_y_string(s, n):
   """parse a string of the form %d-%d"""
@@ -241,6 +242,29 @@ def x_dash_y_string(s, n):
     # wrong length
     return None
   return (a, b)
+
+def build_indices(dim, dimIndex):
+  """return a list of strings for the register name indices"""
+  if dim is None:
+    return None
+
+  if dimIndex is None:
+    # Assume a simple 0..n index
+    return ['%d' % i for i in range(dim)]
+
+  # handle a comma delimited list
+  x = dimIndex.split(',')
+  # make sure we have enough indices
+  if len(x) == dim:
+    return x
+
+  # look for strings of the form "%d-%d"
+  x = x_dash_y_string(dimIndex, dim)
+  if x is not None:
+    return ['%d' % i for i in range(x[0], x[1] + 1)]
+
+  # something else....
+  assert False, 'unhandled dim %d dimIndex %s' % (dim, dimIndex)
 
 # -----------------------------------------------------------------------------
 
@@ -279,19 +303,8 @@ class svd_parser(object):
     #<xs:element name="fields" type="fieldsType" minOccurs="0" maxOccurs="1"/>
     r.derivedFrom = node.get('derivedFrom')
 
-    # fixup- turn dimIndex into a dim length list of strings
-    if r.dim is not None:
-      if r.dimIndex:
-        # look for strings of the form "%d-%d"
-        x = x_dash_y_string(r.dimIndex, r.dim)
-        if x is not None:
-          r.dimIndex = ['%d' % i for i in range(x[0], x[1] + 1)]
-        else:
-          assert False, 'unhandled dimIndex string %s' % r.dimIndex
-      else:
-        # Assume a simple 0..n index
-        r.dimIndex = ['%d' % i for i in range(r.dim)]
-
+    # post- turn dimIndex into a dim length list of strings
+    r.indices = build_indices(r.dim, r.dimIndex)
     return r
 
   def get_address_block(self, node):
@@ -327,7 +340,7 @@ class svd_parser(object):
     peripheral.registers = [self.get_register(x) for x in node.findall('.//register')]
     peripheral.derivedFrom = node.get('derivedFrom')
 
-    # fixup: if a register is "derivedFrom" another register, add a derived_from reference
+    # post: if a register is "derivedFrom" another register, add a derived_from reference
     for r in peripheral.registers:
       if r.derivedFrom:
         for f in peripheral.registers:
@@ -375,7 +388,7 @@ class svd_parser(object):
     device.attribute(integer_node(node, 'width'))
     device.peripherals = [self.get_peripheral(x) for x in self.root.findall('.//peripheral')]
 
-    # fixup: if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
+    # post: if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
     for p in device.peripherals:
       if p.derivedFrom:
         for f in device.peripherals:
@@ -429,8 +442,9 @@ class py_output(object):
           s.append("r.append(reg%d('%s', 0x%x))%s" % (r_from.size, r.name, ofs, comment))
         else:
           for i in range(r.dim):
-            # atmel has indexed register name with a %s string - what about other vendors?
-            name = r.name % r.dimIndex[i]
+            # standard practice puts a "%s" in the name string. Is this always true?
+            assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
+            name = r.name % r.indices[i]
             s.append("r.append(reg%d('%s', 0x%x))%s" % (r_from.size, name, ofs + (i * r.dimIncrement), comment))
       s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
       s.append('')

@@ -1,8 +1,10 @@
 all:
-	make -C st $@
 	make -C atmel $@
+	make -C nxp $@
+	make -C st $@
 
 clean:
 	-rm *.pyc
-	make -C st $@
 	make -C atmel $@
+	make -C nxp $@
+	make -C st $@

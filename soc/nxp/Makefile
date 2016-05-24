@@ -1,5 +1,6 @@
 TOP = ../..
 
-FILES = AT91SAM9G25 \
+FILES = MK10D5 \
+        MK64F12 \
 
 include $(TOP)/mk/svd2py.mk

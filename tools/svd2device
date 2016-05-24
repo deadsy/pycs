@@ -1,0 +1,47 @@
+#!/usr/bin/python
+# -----------------------------------------------------------------------------
+"""
+
+svd to device mapping
+
+ARM provides a handly content file that maps from an svd file onto the device
+that are supported by the svd. This tool takes that file and re-expresses it in
+python code.
+
+"""
+# -----------------------------------------------------------------------------
+
+import sys
+
+# -----------------------------------------------------------------------------
+
+def main():
+  f = open(sys.argv[1], 'r')
+  x = f.readlines()
+  f.close()
+
+  svd2device = {}
+
+  for l in x:
+    names = l.strip().split(',')
+    svd = names[-1].split('.')[0]
+    devices = names[0:-1]
+    devices = [d.strip(' ') for d in devices if len(d)]
+    if svd2device.has_key(svd):
+      svd2device[svd].extend(devices)
+    else:
+      svd2device[svd] = devices
+
+  # change to tuples
+  for k,v in svd2device.items():
+    svd2device[k] = tuple(v)
+
+  print 'svd2device = {'
+  for k,v in svd2device.items():
+    print "  '%s': %s," % (k, v)
+  print '}'
+
+
+main()
+
+# -----------------------------------------------------------------------------
