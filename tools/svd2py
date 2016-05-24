@@ -320,6 +320,11 @@ class svd_parser(object):
     i.attribute(string_node(node, 'description'))
     i.description = string_cleanup(i.description)
     i.attribute(integer_node(node, 'value'))
+
+    # post: ST puts an annoying "_IRQ" on many of their interrupt names - remove it.
+    if i.name.endswith('_IRQ'):
+      i.name = i.name[:-len('_IRQ')]
+
     return i
 
   def get_peripheral(self, node):
