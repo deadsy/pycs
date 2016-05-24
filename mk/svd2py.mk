@@ -6,7 +6,7 @@ PY_FILES = $(patsubst %, %.py, $(FILES))
 
 %.py: ./svd/%.svd.gz
 	$(SVD2PY) $< $@
-	$(PATCH) -i $*.patch -b --suffix .original
+	if [ -e $*.patch ]; then $(PATCH) -i $*.patch -b --suffix .original; fi;
 
 all: $(PY_FILES)
 
