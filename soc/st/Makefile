@@ -1,7 +1,52 @@
 TOP = ../..
 
-FILES = STM32F401xE \
+FILES = STM32F0x0 \
+        STM32F0x1 \
+        STM32F0x2 \
+        STM32F0x8 \
+        STM32F100xx \
+        STM32F101xx \
+        STM32F102xx \
+        STM32F103xx \
+        STM32F105xx \
+        STM32F107xx \
+        STM32F20x \
+        STM32F21x \
+        STM32F301x \
+        STM32F302x \
+        STM32F303xE \
+        STM32F303x \
+        STM32F30x \
+        STM32F334x \
+        STM32F37x \
+        STM32F401xE \
         STM32F401x \
         STM32F40x \
+        STM32F411xx \
+        STM32F41x \
+        STM32F427x \
+        STM32F429x \
+        STM32F437x \
+        STM32F439x \
+        STM32F446x \
+        STM32F46_79x \
+        STM32F7x5 \
+        STM32F7x6 \
+        STM32F7x7 \
+        STM32F7x9 \
+        STM32L0x1 \
+        STM32L0x2 \
+        STM32L0x3 \
+        STM32L100 \
+        STM32L15xC \
+        STM32L15xxE \
+        STM32L15xxxA \
+        STM32L1xx \
+        STM32L4x1 \
+        STM32L4x2 \
+        STM32L4x3 \
+        STM32L4x5 \
+        STM32L4x6 \
+        STM32W108 \
 
 include $(TOP)/mk/svd2py.mk
