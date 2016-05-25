@@ -30,6 +30,26 @@ def string_cleanup(s):
   return ' '.join([x.strip() for x in s.split()])
 
 # -----------------------------------------------------------------------------
+# work out the longest common prefix/suffix for a set of strings
+
+def lc_prefix(prefix, s):
+  """return the longest common prefix of prefix and s"""
+  if prefix is None:
+    return s
+  n = 0
+  for i, j in zip(prefix, s):
+    if i != j:
+      break
+    n += 1
+  return prefix[:n]
+
+def lc_suffix(suffix, s):
+  """return the longest common suffix of suffix and s"""
+  if suffix is None:
+    return s
+  return common_prefix(suffix[::-1], s[::-1])[::-1]
+
+# -----------------------------------------------------------------------------
 
 class svd_object(object):
 
@@ -38,7 +58,7 @@ class svd_object(object):
 
   def attribute(self, x):
     name, value = x
-    if not value is None:
+    if value is not None:
       object.__setattr__(self, name, value)
 
   def __getattr__(self, name):
