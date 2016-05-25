@@ -1,5 +1,65 @@
 TOP = ../..
 
-FILES = AT91SAM9G25 \
+FILES = AT91SAM9CN11 \
+        AT91SAM9CN12 \
+        AT91SAM9G10 \
+        AT91SAM9G15 \
+        AT91SAM9G20 \
+        AT91SAM9G25 \
+        AT91SAM9G35 \
+        AT91SAM9M10 \
+        AT91SAM9M11 \
+        AT91SAM9N12 \
+        AT91SAM9X25 \
+        AT91SAM9X35 \
+        ATSAM3A4C \
+        ATSAM3A8C \
+        ATSAM3N00A \
+        ATSAM3N00B \
+        ATSAM3N0A \
+        ATSAM3N0B \
+        ATSAM3N0C \
+        ATSAM3N1A \
+        ATSAM3N1B \
+        ATSAM3N1C \
+        ATSAM3N2A \
+        ATSAM3N2B \
+        ATSAM3N2C \
+        ATSAM3N4A \
+        ATSAM3N4B \
+        ATSAM3N4C \
+        ATSAM3S1A \
+        ATSAM3S1B \
+        ATSAM3S1C \
+        ATSAM3S2A \
+        ATSAM3S2B \
+        ATSAM3S2C \
+        ATSAM3S4A \
+        ATSAM3S4B \
+        ATSAM3S4C \
+        ATSAM3S8B \
+        ATSAM3S8C \
+        ATSAM3SD8B \
+        ATSAM3SD8C \
+        ATSAM3U1C \
+        ATSAM3U1E \
+        ATSAM3U2C \
+        ATSAM3U2E \
+        ATSAM3U4C \
+        ATSAM3U4E \
+        ATSAM3X4C \
+        ATSAM3X4E \
+        ATSAM3X8C \
+        ATSAM3X8E \
+        ATSAM4S16B \
+        ATSAM4S16C \
+        ATSAM4S8B \
+        ATSAM4S8C \
+        ATSAM4SD32B \
+        ATSAM4SD32C \
+        ATSAMA5D31 \
+        ATSAMA5D33 \
+        ATSAMA5D34 \
+        ATSAMA5D35 \
 
 include $(TOP)/mk/svd2py.mk

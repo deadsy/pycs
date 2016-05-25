@@ -431,10 +431,10 @@ class py_output(object):
       if p.derivedFrom and len(p.registers) == 0:
         continue
       if p.derivedFrom is None and len(p.registers) == 0:
-        print('%s: (strange) peripheral %s is not derived and has no registers' % (self.device.name, p.name))
+        print('%s (info): peripheral %s is not derived and has no registers' % (self.device.name, p.name))
         continue
       if p.derivedFrom and len(p.registers):
-        print('%s: (strange) peripheral %s is derived and has registers' % (self.device.name, p.name))
+        print('%s (info): peripheral %s is derived and has registers' % (self.device.name, p.name))
         continue
       s.append('r = []')
       for r in p.registers:
@@ -469,14 +469,14 @@ class py_output(object):
       adr_blk = p_from.lookup_address_block('registers')
       if adr_blk is not None:
         if len(p_from.addressBlock) > 1:
-          print("%s: (info) peripheral %s ignoring non 'registers' address block" % (self.device.name, p.name))
+          print("%s (info): peripheral %s ignoring non 'registers' address block" % (self.device.name, p.name))
         address = p.baseAddress + adr_blk.offset
         size = adr_blk.size
         comment = (' # %s' % p_from.description, '')[p_from.description is None]
         regs = ('%s_regs' % p_from.name, "'%s'" % p_from.description)[len(p_from.registers) == 0]
         s.append("  '%s': (0x%08x, 0x%x, %s),%s" % (p.name, address, size, regs, comment))
       else:
-        print("%s: (error) peripheral %s has no 'registers' address block" % (self.device.name, p.name))
+        print("%s (error): peripheral %s has no 'registers' address block" % (self.device.name, p.name))
 
     s.append('}')
     s.append('')
