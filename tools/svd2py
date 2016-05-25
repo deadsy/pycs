@@ -31,8 +31,8 @@ def string_cleanup(s):
 
 # -----------------------------------------------------------------------------
 
-class svd_register(object):
-  """class for an register"""
+class svd_object(object):
+
   def __init__(self):
     pass
 
@@ -43,39 +43,6 @@ class svd_register(object):
 
   def __getattr__(self, name):
     return None
-
-class svd_interrupt(object):
-  """class for an interrupt"""
-  def __init__(self):
-    pass
-
-  def attribute(self, x):
-    name, value = x
-    if not value is None:
-      object.__setattr__(self, name, value)
-
-  def __getattr__(self, name):
-    return None
-
-
-class svd_address_block(object):
-  """class for an address block"""
-  def __init__(self):
-    pass
-
-  def attribute(self, x):
-    name, value = x
-    if not value is None:
-      object.__setattr__(self, name, value)
-
-  def __getattr__(self, name):
-    return None
-
-
-class svd_peripheral(object):
-  """class for peripheral attributes"""
-  def __init__(self):
-    pass
 
   def lookup_register(self, name):
     """lookup register by name"""
@@ -91,25 +58,11 @@ class svd_peripheral(object):
         return a
     return None
 
-  def attribute(self, x):
-    name, value = x
-    if not value is None:
-      object.__setattr__(self, name, value)
-
-  def __getattr__(self, name):
-    return None
-
-class svd_cpu(object):
-  """class for cpu attributes"""
-  def __init__(self):
-    pass
-
-  def attribute(self, x):
-    name, value = x
-    if not value is None:
-      object.__setattr__(self, name, value)
-
-  def __getattr__(self, name):
+  def lookup_peripheral(self, name):
+    """lookup peripheral by name"""
+    for p in self.peripherals:
+      if p.name == name:
+        return p
     return None
 
   def attribute_string(self, s, name):
@@ -129,34 +82,6 @@ class svd_cpu(object):
       s.append("  '%s': %d," % (name, self.__dict__[name]))
     else:
       s.append("  # '%s': integer," % (name))
-
-
-class svd_device(object):
-  """class for device attributes"""
-
-  def __init__(self):
-    pass
-
-  def lookup_peripheral(self, name):
-    """lookup peripheral by name"""
-    for p in self.peripherals:
-      if p.name == name:
-        return p
-    return None
-
-  def attribute(self, x):
-    name, value = x
-    if not value is None:
-      object.__setattr__(self, name, value)
-
-  def __getattr__(self, name):
-    return None
-
-  def attribute_string(self, s, name):
-    if self.__dict__.has_key(name):
-      s.append("  '%s': '%s'," % (name, self.__dict__[name]))
-    else:
-      s.append("  # '%s': 'string'," % (name))
 
   def attribute_header(self, s, name):
     if self.__dict__.has_key(name):
@@ -279,7 +204,7 @@ class svd_parser(object):
     self.root = self.tree.getroot()
 
   def get_register(self, node):
-    r = svd_register()
+    r = svd_object()
     r.attribute(integer_node(node, 'dim'))
     r.attribute(integer_node(node, 'dimIncrement'))
     r.attribute(string_node(node, 'dimIndex'))
@@ -308,14 +233,14 @@ class svd_parser(object):
     return r
 
   def get_address_block(self, node):
-    block = svd_address_block()
+    block = svd_object()
     block.attribute(integer_node(node, 'offset'))
     block.attribute(integer_node(node, 'size'))
     block.attribute(string_node(node, 'usage'))
     return block
 
   def get_interrupt(self, node):
-    i = svd_interrupt()
+    i = svd_object()
     i.attribute(string_node(node, 'name'))
     i.attribute(string_node(node, 'description'))
     i.description = string_cleanup(i.description)
@@ -328,7 +253,7 @@ class svd_parser(object):
     return i
 
   def get_peripheral(self, node):
-    peripheral = svd_peripheral()
+    peripheral = svd_object()
     peripheral.attribute(string_node(node, 'name'))
     peripheral.attribute(string_node(node, 'version'))
     peripheral.attribute(string_node(node, 'description'))
@@ -358,7 +283,7 @@ class svd_parser(object):
     """return the device described by the svd file"""
     # cpu
     node = self.root.find('./cpu')
-    cpu = svd_cpu()
+    cpu = svd_object()
     cpu.attribute(string_node(node, 'name'))
     cpu.attribute(string_node(node, 'revision'))
     cpu.attribute(string_node(node, 'endian'))
@@ -378,7 +303,7 @@ class svd_parser(object):
 
     # device
     node = self.root
-    device = svd_device()
+    device = svd_object()
     device.attribute(string_node(node, 'vendor'))
     device.attribute(string_node(node, 'vendorID'))
     device.attribute(string_node(node, 'name'))
@@ -436,21 +361,28 @@ class py_output(object):
       if p.derivedFrom and len(p.registers):
         print('%s (info): peripheral %s is derived and has registers' % (self.device.name, p.name))
         continue
-      s.append('r = []')
+      # build the register set
+      regset = []
       for r in p.registers:
         r_from = r
         if r.derivedFrom is not None:
           r_from = p.lookup_register(r.derivedFrom)
-        comment = (' # %s' % r.description, '')[r is None]
-        ofs = r.addressOffset
         if r.dim is None:
-          s.append("r.append(reg%d('%s', 0x%x))%s" % (r_from.size, r.name, ofs, comment))
+          regset.append((r_from.size, r.name, r.addressOffset, r.description))
         else:
           for i in range(r.dim):
             # standard practice puts a "%s" in the name string. Is this always true?
             assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
+            ofs = r.addressOffset + (i * r.dimIncrement)
             name = r.name % r.indices[i]
-            s.append("r.append(reg%d('%s', 0x%x))%s" % (r_from.size, name, ofs + (i * r.dimIncrement), comment))
+            regset.append((r_from.size, name, ofs, r.description))
+      # sort by offset
+      regset.sort(key = lambda x: x[2])
+      # output
+      s.append('r = []')
+      for (size, name, ofs, description) in regset:
+        comment = (' # %s' % description, '')[description is None]
+        s.append("r.append(reg%d('%s', 0x%x))%s" % (size, name, ofs, comment))
       s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
       s.append('')
     f.write('%s\n' % '\n'.join(s))
