@@ -22,15 +22,13 @@ infile = ''
 outfile = ''
 
 # -----------------------------------------------------------------------------
+# utility functions
 
 def string_cleanup(s):
-  """remove extra spaces and carriage returns from a string"""
+  """remove extra spaces and carriage returns from a description string"""
   if s is None:
     return s
   return ' '.join([x.strip() for x in s.split()])
-
-# -----------------------------------------------------------------------------
-# work out the longest common prefix/suffix for a set of strings
 
 def lc_prefix(prefix, s):
   """return the longest common prefix of prefix and s"""
@@ -47,7 +45,7 @@ def lc_suffix(suffix, s):
   """return the longest common suffix of suffix and s"""
   if suffix is None:
     return s
-  return common_prefix(suffix[::-1], s[::-1])[::-1]
+  return lc_prefix(suffix[::-1], s[::-1])[::-1]
 
 # -----------------------------------------------------------------------------
 
@@ -266,10 +264,6 @@ class svd_parser(object):
     i.description = string_cleanup(i.description)
     i.attribute(integer_node(node, 'value'))
 
-    # post: ST puts an annoying "_IRQ" on many of their interrupt names - remove it.
-    if i.name.endswith('_IRQ'):
-      i.name = i.name[:-len('_IRQ')]
-
     return i
 
   def get_peripheral(self, node):
@@ -436,15 +430,31 @@ class py_output(object):
 
   def emit_vtable(self, f):
     """emit the vector table"""
-    # get the interrupts - there maybe duplicates so we add them to a dictionary
+    # get the interrupts - there may be duplicates so we add them to a dictionary
+    prefix = None
+    suffix = None
     irqs = {}
     for p in self.device.peripherals:
       for i in p.interrupts:
+        prefix = lc_prefix(prefix, i.name)
+        suffix = lc_suffix(suffix, i.name)
         if irqs.has_key(i.value):
           # should be the same name
           assert irqs[i.value][0] == i.name
         else:
-          irqs[i.value] = (i.name, i.description)
+          irqs[i.value] = [i.name, i.description]
+    # remove any common prefix
+    if prefix:
+      print prefix
+      n = len(prefix)
+      for k,v in irqs.items():
+        irqs[k][0] = v[0][n:]
+    # remove any common suffix
+    if suffix:
+      print suffix
+      n = len(suffix)
+      for k,v in irqs.items():
+        irqs[k][0] = v[0][:-n]
     # output them in sorted order
     s = []
     s.append('vtable = {')
