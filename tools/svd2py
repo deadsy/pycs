@@ -30,22 +30,43 @@ def string_cleanup(s):
     return s
   return ' '.join([x.strip() for x in s.split()])
 
-def lc_prefix(prefix, s):
-  """return the longest common prefix of prefix and s"""
-  if prefix is None:
-    return s
+def rm_prefix(names, prefix_set):
+  if prefix_set is None:
+    return
+  # find the longest matching prefix for all names
   n = 0
-  for i, j in zip(prefix, s):
-    if i != j:
-      break
-    n += 1
-  return prefix[:n]
+  for p in prefix_set:
+    match = True
+    for x in names:
+      if not x[0].startswith(p):
+        match = False
+        break
+    if match and len(p) > n:
+      n = len(p)
+  # remove the prefix
+  if n:
+    #print('removing prefix %s' % names[0][0][:n])
+    for i in xrange(len(names)):
+      names[i][0] = names[i][0][n:]
 
-def lc_suffix(suffix, s):
-  """return the longest common suffix of suffix and s"""
-  if suffix is None:
-    return s
-  return lc_prefix(suffix[::-1], s[::-1])[::-1]
+def rm_suffix(names, suffix_set):
+  if suffix_set is None:
+    return
+  # find the longest matching suffix for all names
+  n = 0
+  for s in suffix_set:
+    match = True
+    for x in names:
+      if not x[0].endswith(s):
+        match = False
+        break
+    if match and len(s) > n:
+      n = len(s)
+  # remove the suffix
+  if n:
+    #print('removing suffix %s' % names[0][0][-n:])
+    for i in xrange(len(names)):
+      names[i][0] = names[i][0][:-n]
 
 # -----------------------------------------------------------------------------
 
@@ -376,48 +397,32 @@ class py_output(object):
         print('%s (info): peripheral %s is derived and has registers' % (self.device.name, p.name))
         continue
 
-      # build the register set
+      # build a list of registers [name, size, offset, description]
       regset = []
-      prefix = None
-      suffix = None
       for r in p.registers:
         r_from = r
         if r.derivedFrom is not None:
           r_from = p.lookup_register(r.derivedFrom)
         if r.dim is None:
-          prefix = lc_prefix(prefix, r.name)
-          suffix = lc_suffix(suffix, r.name)
-          regset.append([r_from.size, r.name, r.addressOffset, r.description])
+          regset.append([r.name, r_from.size, r.addressOffset, r.description])
         else:
           for i in range(r.dim):
             # standard practice puts a "%s" in the name string. Is this always true?
             assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
             ofs = r.addressOffset + (i * r.dimIncrement)
             name = r.name % r.indices[i]
-            prefix = lc_prefix(prefix, name)
-            suffix = lc_suffix(suffix, name)
-            regset.append([r_from.size, name, ofs, r.description])
+            regset.append([name, r_from.size, ofs, r.description])
 
-      # remove any common prefix
-      if prefix:
-        print("%s (info): removing common prefix '%s' from register names of peripheral %s" % (self.device.name, prefix, p.name))
-        #n = len(prefix)
-        #for i in xrange(len(regset)):
-          #regset[i][1] = regset[i][1][n:]
-
-      # remove any common suffix
-      if suffix:
-        print("%s (info): removing common suffix '%s' from register names of peripheral %s" % (self.device.name, suffix, p.name))
-        #n = len(suffix)
-        #for i in xrange(len(regset)):
-          #regset[i][1] = regset[i][1][:-n]
+      # remove prefix/suffix
+      rm_prefix(regset, ('NVIC_',))
+      rm_suffix(regset, None)
 
       # sort by offset
       regset.sort(key = lambda x: x[2])
 
       # output
       s.append('r = []')
-      for (size, name, ofs, description) in regset:
+      for (name, size, ofs, description) in regset:
         comment = (' # %s' % description, '')[description is None]
         s.append("r.append(reg%d('%s', 0x%x))%s" % (size, name, ofs, comment))
       s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
@@ -453,39 +458,27 @@ class py_output(object):
 
   def emit_vtable(self, f):
     """emit the vector table"""
-    # get the interrupts - there may be duplicates so we add them to a dictionary
-    prefix = None
-    suffix = None
+    # get the interrupts - there may be duplicates so we de-dup them in a dictionary
     irqs = {}
     for p in self.device.peripherals:
       for i in p.interrupts:
-        prefix = lc_prefix(prefix, i.name)
-        suffix = lc_suffix(suffix, i.name)
         if irqs.has_key(i.value):
           # should be the same name
           assert irqs[i.value][0] == i.name
         else:
           irqs[i.value] = [i.name, i.description]
 
-    # remove any common prefix
-    if prefix:
-      print("%s (info): removing common prefix '%s' from interrupt names" % (self.device.name, prefix))
-      n = len(prefix)
-      for k,v in irqs.items():
-        irqs[k][0] = v[0][n:]
+    # convert to a sorted list of [name, interrupt, description]
+    irqset = [[irqs[i][0], i, irqs[i][1]] for i in sorted(irqs.keys())]
 
-    # remove any common suffix
-    if suffix:
-      print("%s (info): removing common suffix '%s' from interrupt names" % (self.device.name, suffix))
-      n = len(suffix)
-      for k,v in irqs.items():
-        irqs[k][0] = v[0][:-n]
+    # remove prefix/suffix
+    rm_prefix(irqset, ('INT_',))
+    rm_suffix(irqset, ('_IRQ',))
 
-    # output them in sorted order
+    # output
     s = []
     s.append('vtable = {')
-    for i in sorted(irqs.keys()):
-      (name, description) = irqs[i]
+    for (name, i, description) in irqset:
       comment = (' # %s' % description, '')[description is None]
       s.append("  %d: '%s',%s" % (i, name, comment))
     s.append('}')
