@@ -375,23 +375,46 @@ class py_output(object):
       if p.derivedFrom and len(p.registers):
         print('%s (info): peripheral %s is derived and has registers' % (self.device.name, p.name))
         continue
+
       # build the register set
       regset = []
+      prefix = None
+      suffix = None
       for r in p.registers:
         r_from = r
         if r.derivedFrom is not None:
           r_from = p.lookup_register(r.derivedFrom)
         if r.dim is None:
-          regset.append((r_from.size, r.name, r.addressOffset, r.description))
+          prefix = lc_prefix(prefix, r.name)
+          suffix = lc_suffix(suffix, r.name)
+          regset.append([r_from.size, r.name, r.addressOffset, r.description])
         else:
           for i in range(r.dim):
             # standard practice puts a "%s" in the name string. Is this always true?
             assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
             ofs = r.addressOffset + (i * r.dimIncrement)
             name = r.name % r.indices[i]
-            regset.append((r_from.size, name, ofs, r.description))
+            prefix = lc_prefix(prefix, name)
+            suffix = lc_suffix(suffix, name)
+            regset.append([r_from.size, name, ofs, r.description])
+
+      # remove any common prefix
+      if prefix:
+        print("%s (info): removing common prefix '%s' from register names of peripheral %s" % (self.device.name, prefix, p.name))
+        #n = len(prefix)
+        #for i in xrange(len(regset)):
+          #regset[i][1] = regset[i][1][n:]
+
+      # remove any common suffix
+      if suffix:
+        print("%s (info): removing common suffix '%s' from register names of peripheral %s" % (self.device.name, suffix, p.name))
+        #n = len(suffix)
+        #for i in xrange(len(regset)):
+          #regset[i][1] = regset[i][1][:-n]
+
       # sort by offset
       regset.sort(key = lambda x: x[2])
+
       # output
       s.append('r = []')
       for (size, name, ofs, description) in regset:
@@ -443,18 +466,21 @@ class py_output(object):
           assert irqs[i.value][0] == i.name
         else:
           irqs[i.value] = [i.name, i.description]
+
     # remove any common prefix
     if prefix:
-      print prefix
+      print("%s (info): removing common prefix '%s' from interrupt names" % (self.device.name, prefix))
       n = len(prefix)
       for k,v in irqs.items():
         irqs[k][0] = v[0][n:]
+
     # remove any common suffix
     if suffix:
-      print suffix
+      print("%s (info): removing common suffix '%s' from interrupt names" % (self.device.name, suffix))
       n = len(suffix)
       for k,v in irqs.items():
         irqs[k][0] = v[0][:-n]
+
     # output them in sorted order
     s = []
     s.append('vtable = {')
