@@ -24,11 +24,15 @@ outfile = ''
 # -----------------------------------------------------------------------------
 # utility functions
 
-def string_cleanup(s):
-  """remove extra spaces and carriage returns from a description string"""
+def description_cleanup(s):
+  """cleanup a description string"""
   if s is None:
-    return s
-  return ' '.join([x.strip() for x in s.split()])
+    return None
+  # remove un-needed white space
+  s = ' '.join([x.strip() for x in s.split()])
+  # strip trailing period
+  s = s.strip('.')
+  return s
 
 def rm_prefix(names, prefix_set):
   if prefix_set is None:
@@ -70,6 +74,17 @@ def rm_suffix(names, suffix_set):
 
 # -----------------------------------------------------------------------------
 
+def set_derived_from(x, thing):
+  """setup derived_from links between svd objects"""
+  for e in x:
+    if e.derivedFrom:
+      # look for the derivedFrom object by name
+      for df in x:
+        if e.derivedFrom == df.name:
+          #print('%s %s is derived from %s' % (thing, e.name, df.name))
+          e.derived_from = df
+          break
+
 class svd_object(object):
 
   def __init__(self):
@@ -83,25 +98,11 @@ class svd_object(object):
   def __getattr__(self, name):
     return None
 
-  def lookup_register(self, name):
-    """lookup register by name"""
-    for r in self.registers:
-      if r.name == name:
-        return r
-    return None
-
   def lookup_address_block(self, usage):
     """lookup an address block by usage"""
     for a in self.addressBlock:
       if a.usage == usage:
         return a
-    return None
-
-  def lookup_peripheral(self, name):
-    """lookup peripheral by name"""
-    for p in self.peripherals:
-      if p.name == name:
-        return p
     return None
 
   def attribute_string(self, s, name):
@@ -246,10 +247,12 @@ class svd_parser(object):
     f = svd_object()
     f.attribute(string_node(node, 'name'))
     f.attribute(string_node(node, 'description'))
-    f.description = string_cleanup(f.description)
+    f.description = description_cleanup(f.description)
     f.attribute(string_node(node, 'access'))
     f.attribute(integer_node(node, 'bitOffset'))
     f.attribute(integer_node(node, 'bitWidth'))
+    f.attribute(integer_node(node, 'lsb'))
+    f.attribute(integer_node(node, 'msb'))
     f.derivedFrom = node.get('derivedFrom')
     return f
 
@@ -261,7 +264,7 @@ class svd_parser(object):
     r.attribute(string_node(node, 'name'))
     r.attribute(string_node(node, 'displayName'))
     r.attribute(string_node(node, 'description'))
-    r.description = string_cleanup(r.description)
+    r.description = description_cleanup(r.description)
     r.attribute(string_node(node, 'alternateGroup'))
     r.attribute(string_node(node, 'alternateRegister'))
     r.attribute(integer_node(node, 'addressOffset'))
@@ -278,60 +281,47 @@ class svd_parser(object):
     r.fields = [self.get_field(x) for x in node.findall('.//field')]
     r.derivedFrom = node.get('derivedFrom')
 
-    # post- turn dimIndex into a dim length list of strings
-    r.indices = build_indices(r.dim, r.dimIndex)
-
-    # post: if a field is "derivedFrom" another field, add a derived_from reference
-    for f in r.fields:
-      if f.derivedFrom:
-        for i in r.fields:
-          if i.name == f.derivedFrom:
-            f.derived_from = i
-
+    # if a field is "derivedFrom" another field, add a derived_from reference
+    set_derived_from(r.fields, 'field')
     return r
 
   def get_address_block(self, node):
-    block = svd_object()
-    block.attribute(integer_node(node, 'offset'))
-    block.attribute(integer_node(node, 'size'))
-    block.attribute(string_node(node, 'usage'))
-    return block
+    b = svd_object()
+    b.attribute(integer_node(node, 'offset'))
+    b.attribute(integer_node(node, 'size'))
+    b.attribute(string_node(node, 'usage'))
+    return b
 
   def get_interrupt(self, node):
     i = svd_object()
     i.attribute(string_node(node, 'name'))
     i.attribute(string_node(node, 'description'))
-    i.description = string_cleanup(i.description)
+    i.description = description_cleanup(i.description)
     i.attribute(integer_node(node, 'value'))
-
     return i
 
   def get_peripheral(self, node):
-    peripheral = svd_object()
-    peripheral.attribute(string_node(node, 'name'))
-    peripheral.attribute(string_node(node, 'version'))
-    peripheral.attribute(string_node(node, 'description'))
-    peripheral.description = string_cleanup(peripheral.description)
-    peripheral.attribute(string_node(node, 'alternatePeripheral'))
-    peripheral.attribute(string_node(node, 'groupName'))
-    peripheral.attribute(string_node(node, 'prependToName'))
-    peripheral.attribute(string_node(node, 'appendToName'))
-    peripheral.attribute(string_node(node, 'headerStructName'))
-    peripheral.attribute(string_node(node, 'disableCondition'))
-    peripheral.attribute(integer_node(node, 'baseAddress'))
-    peripheral.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
-    peripheral.interrupts = [self.get_interrupt(x) for x in node.findall('./interrupt')]
-    peripheral.registers = [self.get_register(x) for x in node.findall('.//register')]
-    peripheral.derivedFrom = node.get('derivedFrom')
+    p = svd_object()
+    p.attribute(string_node(node, 'name'))
+    p.attribute(string_node(node, 'version'))
+    p.attribute(string_node(node, 'description'))
+    p.description = description_cleanup(p.description)
+    p.attribute(string_node(node, 'alternatePeripheral'))
+    p.attribute(string_node(node, 'groupName'))
+    p.attribute(string_node(node, 'prependToName'))
+    p.attribute(string_node(node, 'appendToName'))
+    p.attribute(string_node(node, 'headerStructName'))
+    p.attribute(string_node(node, 'disableCondition'))
+    p.attribute(integer_node(node, 'baseAddress'))
+    p.attribute(integer_node(node, 'size')) # default register size
+    p.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
+    p.interrupts = [self.get_interrupt(x) for x in node.findall('./interrupt')]
+    p.registers = [self.get_register(x) for x in node.findall('.//register')]
+    p.derivedFrom = node.get('derivedFrom')
 
-    # post: if a register is "derivedFrom" another register, add a derived_from reference
-    for r in peripheral.registers:
-      if r.derivedFrom:
-        for f in peripheral.registers:
-          if f.name == r.derivedFrom:
-            r.derived_from = f
-
-    return peripheral
+    # if a register is "derivedFrom" another register, add a derived_from reference
+    set_derived_from(p.registers, 'register')
+    return p
 
   def get_device(self):
     """return the device described by the svd file"""
@@ -372,14 +362,10 @@ class svd_parser(object):
     device.attribute(integer_node(node, 'width'))
     device.peripherals = [self.get_peripheral(x) for x in self.root.findall('.//peripheral')]
 
-    # post: if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
-    for p in device.peripherals:
-      if p.derivedFrom:
-        for f in device.peripherals:
-          if f.name == p.derivedFrom:
-            p.derived_from = f
-
+    # if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
+    set_derived_from(device.peripherals, 'peripheral')
     return device
+
 
 # -----------------------------------------------------------------------------
 
@@ -394,7 +380,6 @@ class py_output(object):
     s = []
     s.append('"""')
     s.append('generated by svd2py version %d' % svd2py_version)
-    s.append('')
     self.device.attribute_header(s, 'vendor')
     self.device.attribute_header(s, 'name')
     self.device.attribute_header(s, 'description')
@@ -420,9 +405,12 @@ class py_output(object):
         # build a list of fields [name, msb, lsb]
         fldset = []
         for field in r.fields:
-          if field.bitWidth != 0:
+          if field.bitWidth is not None:
             lsb = field.bitOffset
             msb = lsb + field.bitWidth - 1
+          elif field.msb is not None:
+            lsb = field.lsb
+            msb = field.msb
           else:
             assert False, 'need to work out bit field for %s' % field.name
           fldset.append([field.name, msb, lsb])
@@ -451,23 +439,25 @@ class py_output(object):
       # build a list of registers [name, size, offset, fields, description]
       regset = []
       for r in p.registers:
-        r_from = r
-        if r.derivedFrom is not None:
-          r_from = p.lookup_register(r.derivedFrom)
+        r_from = (r.derived_from, r)[r.derived_from is None]
 
         # work out the fields name
         # TODO take care of dimensioned register names
         fields = ('%s_%s_fields' % (p.name, r.name), 'None')[r_from.fields is None]
 
+        # get the deault size from the peripheral if the register has no size
+        size = (r_from.size, p.size)[r_from.size is None]
+
         if r.dim is None:
-          regset.append([r.name, r_from.size, r.addressOffset, fields, r.description])
+          regset.append([r.name, size, r.addressOffset, fields, r.description])
         else:
+          indices = build_indices(r.dim, r.dimIndex)
           for i in range(r.dim):
             # standard practice puts a "%s" in the name string. Is this always true?
             assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
             ofs = r.addressOffset + (i * r.dimIncrement)
-            name = r.name % r.indices[i]
-            regset.append([name, r_from.size, ofs, fields, r.description])
+            name = r.name % indices[i]
+            regset.append([name, size, ofs, fields, r.description])
 
       # remove prefix/suffix
       rm_prefix(regset, ('NVIC_',))
@@ -490,14 +480,12 @@ class py_output(object):
     s = []
     s.append('memmap = {')
     for p in self.device.peripherals:
-
-      # handle derivedFrom peripherals
-      p_from = p
-      if p.derivedFrom is not None:
-        p_from = self.device.lookup_peripheral(p.derivedFrom)
+      p_from = (p.derived_from, p)[p.derived_from is None]
 
       adr_blk = p_from.lookup_address_block('registers')
-      if adr_blk is not None:
+      if adr_blk is None:
+        print("%s (error): peripheral %s has no 'registers' address block" % (self.device.name, p.name))
+      else:
         if len(p_from.addressBlock) > 1:
           print("%s (info): peripheral %s ignoring non 'registers' address block" % (self.device.name, p.name))
         address = p.baseAddress + adr_blk.offset
@@ -505,8 +493,6 @@ class py_output(object):
         comment = (' # %s' % p_from.description, '')[p_from.description is None]
         regs = ('%s_regs' % p_from.name, "'%s'" % p_from.description)[len(p_from.registers) == 0]
         s.append("  '%s': (0x%08x, 0x%x, %s),%s" % (p.name, address, size, regs, comment))
-      else:
-        print("%s (error): peripheral %s has no 'registers' address block" % (self.device.name, p.name))
 
     s.append('}')
     s.append('')
