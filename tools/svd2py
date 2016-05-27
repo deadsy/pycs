@@ -242,6 +242,17 @@ class svd_parser(object):
     self.tree = tree
     self.root = self.tree.getroot()
 
+  def get_field(self, node):
+    f = svd_object()
+    f.attribute(string_node(node, 'name'))
+    f.attribute(string_node(node, 'description'))
+    f.description = string_cleanup(f.description)
+    f.attribute(string_node(node, 'access'))
+    f.attribute(integer_node(node, 'bitOffset'))
+    f.attribute(integer_node(node, 'bitWidth'))
+    f.derivedFrom = node.get('derivedFrom')
+    return f
+
   def get_register(self, node):
     r = svd_object()
     r.attribute(integer_node(node, 'dim'))
@@ -264,11 +275,19 @@ class svd_parser(object):
     r.attribute(string_node(node, 'modifiedWriteValues'))
     #<xs:element name="writeConstraint" type="writeConstraintType" minOccurs="0"/>
     r.attribute(string_node(node, 'readAction'))
-    #<xs:element name="fields" type="fieldsType" minOccurs="0" maxOccurs="1"/>
+    r.fields = [self.get_field(x) for x in node.findall('.//field')]
     r.derivedFrom = node.get('derivedFrom')
 
     # post- turn dimIndex into a dim length list of strings
     r.indices = build_indices(r.dim, r.dimIndex)
+
+    # post: if a field is "derivedFrom" another field, add a derived_from reference
+    for f in r.fields:
+      if f.derivedFrom:
+        for i in r.fields:
+          if i.name == f.derivedFrom:
+            f.derived_from = i
+
     return r
 
   def get_address_block(self, node):
@@ -385,6 +404,38 @@ class py_output(object):
     s.append('from regs import fld, fld_set, reg32, reg16, reg8, regset, memio')
     f.write('%s\n' % '\n'.join(s))
 
+  def emit_fields(self, f):
+    """emit the field sets"""
+    s = []
+
+    for p in self.device.peripherals:
+      if not p.registers:
+        # no registers therefore no fields
+        continue
+
+      for r in p.registers:
+        if not r.fields:
+          continue
+
+        # build a list of fields [name, msb, lsb]
+        fldset = []
+        for field in r.fields:
+          if field.bitWidth != 0:
+            lsb = field.bitOffset
+            msb = lsb + field.bitWidth - 1
+          else:
+            assert False, 'need to work out bit field for %s' % field.name
+          fldset.append([field.name, msb, lsb])
+
+        # output
+        s.append('f = []')
+        for (name, msb, lsb) in fldset:
+          s.append("f.append(fld('%s', %s, %d))" % (name, msb, lsb))
+        s.append("%s_%s_fields = fldset('%s', f)" % (p.name, r.name, r.description))
+        s.append('')
+
+    f.write('%s\n' % '\n'.join(s))
+
   def emit_registers(self, f):
     s = []
     for p in self.device.peripherals:
@@ -397,21 +448,26 @@ class py_output(object):
         print('%s (info): peripheral %s is derived and has registers' % (self.device.name, p.name))
         continue
 
-      # build a list of registers [name, size, offset, description]
+      # build a list of registers [name, size, offset, fields, description]
       regset = []
       for r in p.registers:
         r_from = r
         if r.derivedFrom is not None:
           r_from = p.lookup_register(r.derivedFrom)
+
+        # work out the fields name
+        # TODO take care of dimensioned register names
+        fields = ('%s_%s_fields' % (p.name, r.name), 'None')[r_from.fields is None]
+
         if r.dim is None:
-          regset.append([r.name, r_from.size, r.addressOffset, r.description])
+          regset.append([r.name, r_from.size, r.addressOffset, fields, r.description])
         else:
           for i in range(r.dim):
             # standard practice puts a "%s" in the name string. Is this always true?
             assert r.name.__contains__('%s'), 'indexed register name %s has no %%s' % r.name
             ofs = r.addressOffset + (i * r.dimIncrement)
             name = r.name % r.indices[i]
-            regset.append([name, r_from.size, ofs, r.description])
+            regset.append([name, r_from.size, ofs, fields, r.description])
 
       # remove prefix/suffix
       rm_prefix(regset, ('NVIC_',))
@@ -422,9 +478,9 @@ class py_output(object):
 
       # output
       s.append('r = []')
-      for (name, size, ofs, description) in regset:
+      for (name, size, ofs, fields, description) in regset:
         comment = (' # %s' % description, '')[description is None]
-        s.append("r.append(reg%d('%s', 0x%x))%s" % (size, name, ofs, comment))
+        s.append("r.append(reg%d('%s', 0x%x, %s))%s" % (size, name, ofs, fields, comment))
       s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
       s.append('')
     f.write('%s\n' % '\n'.join(s))
@@ -526,6 +582,7 @@ class py_output(object):
   def emit(self):
     f = open(self.fname, 'w')
     self.emit_header(f)
+    self.emit_fields(f)
     self.emit_registers(f)
     self.emit_vtable(f)
     self.emit_memmap(f)
