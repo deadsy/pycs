@@ -74,16 +74,34 @@ def rm_suffix(names, suffix_set):
 
 # -----------------------------------------------------------------------------
 
+def lookup_derived_from(e, df_set):
+  """return the end of the derivedFrom chain"""
+  if e.derivedFrom is None:
+    # this is the end of the chain
+    return e
+  for df in df_set:
+    if e.derivedFrom == df.name:
+      # recurse for multi-level deriveFrom
+      return lookup_derived_from(df, df_set)
+
 def set_derived_from(x, thing):
   """setup derived_from links between svd objects"""
   for e in x:
     if e.derivedFrom:
-      # look for the derivedFrom object by name
-      for df in x:
-        if e.derivedFrom == df.name:
-          #print('%s %s is derived from %s' % (thing, e.name, df.name))
-          e.derived_from = df
-          break
+      e.derived_from = lookup_derived_from(e, x)
+      #print('%s %s is derived from %s' % (thing, e.name, e.derived_from.name))
+
+def consolidate_address_blocks(blocks, usage):
+  """return the consolidated size (offset == 0) for a list of address blocks"""
+  end = 0
+  for b in blocks:
+    if b.usage != usage:
+      continue
+    e = b.offset + b.size
+    if e > end:
+      end = e
+  # return the size
+  return end
 
 class svd_object(object):
 
@@ -96,13 +114,6 @@ class svd_object(object):
       object.__setattr__(self, name, value)
 
   def __getattr__(self, name):
-    return None
-
-  def lookup_address_block(self, usage):
-    """lookup an address block by usage"""
-    for a in self.addressBlock:
-      if a.usage == usage:
-        return a
     return None
 
   def attribute_string(self, s, name):
@@ -482,17 +493,16 @@ class py_output(object):
     for p in self.device.peripherals:
       p_from = (p.derived_from, p)[p.derived_from is None]
 
-      adr_blk = p_from.lookup_address_block('registers')
-      if adr_blk is None:
+      # check that the peripheral has an address block
+      blocks = p_from.addressBlock
+      if blocks is None:
         print("%s (error): peripheral %s has no 'registers' address block" % (self.device.name, p.name))
-      else:
-        if len(p_from.addressBlock) > 1:
-          print("%s (info): peripheral %s ignoring non 'registers' address block" % (self.device.name, p.name))
-        address = p.baseAddress + adr_blk.offset
-        size = adr_blk.size
-        comment = (' # %s' % p_from.description, '')[p_from.description is None]
-        regs = ('%s_regs' % p_from.name, "'%s'" % p_from.description)[len(p_from.registers) == 0]
-        s.append("  '%s': (0x%08x, 0x%x, %s),%s" % (p.name, address, size, regs, comment))
+        continue
+
+      size = consolidate_address_blocks(blocks, 'registers')
+      comment = (' # %s' % p_from.description, '')[p_from.description is None]
+      regs = ('%s_regs' % p_from.name, "'%s'" % p_from.description)[len(p_from.registers) == 0]
+      s.append("  '%s': (0x%08x, 0x%x, %s),%s" % (p.name, p.baseAddress, size, regs, comment))
 
     s.append('}')
     s.append('')
