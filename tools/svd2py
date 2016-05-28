@@ -244,6 +244,20 @@ def build_indices(dim, dimIndex):
 
 # -----------------------------------------------------------------------------
 
+def bitrange_string(s):
+  """parse a string of the form [%d:%d]"""
+  s = s.lstrip('[')
+  s = s.rstrip(']')
+  x = s.split(':')
+  try:
+    msb = int(x[0], 10)
+    lsb = int(x[1], 10)
+  except:
+    return None
+  return (msb, lsb)
+
+# -----------------------------------------------------------------------------
+
 class svd_parser(object):
 
   @classmethod
@@ -264,6 +278,7 @@ class svd_parser(object):
     f.attribute(integer_node(node, 'bitWidth'))
     f.attribute(integer_node(node, 'lsb'))
     f.attribute(integer_node(node, 'msb'))
+    f.attribute(string_node(node, 'bitRange'))
     f.derivedFrom = node.get('derivedFrom')
     return f
 
@@ -422,6 +437,8 @@ class py_output(object):
           elif field.msb is not None:
             lsb = field.lsb
             msb = field.msb
+          elif field.bitRange:
+            (msb, lsb) = bitrange_string(field.bitRange)
           else:
             assert False, 'need to work out bit field for %s' % field.name
           fldset.append([field.name, msb, lsb])
