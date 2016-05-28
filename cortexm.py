@@ -11,7 +11,7 @@ import time
 import util
 import iobuf
 import jlink
-from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
+from regs import fld, fldset, reg32, reg16, reg8, regset, memio
 
 # -----------------------------------------------------------------------------
 
@@ -53,7 +53,7 @@ f.append(fld('COUNTFLAG', 16, 16))
 f.append(fld('CLKSOURCE', 2, 2, CLKSOURCE_format))
 f.append(fld('TICKINT', 1, 1))
 f.append(fld('ENABLE', 0, 0))
-SysTick_CTRL_fields = fld_set('SysTick_CTRL', f)
+SysTick_CTRL_fields = fldset('SysTick_CTRL', f)
 
 def TENMS_format(x):
   return ('0', '(0x%06x) %.2f MHz' % (x, float(x)/1e+4))[x != 0]
@@ -62,7 +62,7 @@ f = []
 f.append(fld('NOREF', 31, 31))
 f.append(fld('SKEW', 30, 30))
 f.append(fld('TENMS', 23, 0, TENMS_format))
-SysTick_CALIB_fields = fld_set('SysTick_CALIB', f)
+SysTick_CALIB_fields = fldset('SysTick_CALIB', f)
 
 r = []
 r.append(reg32('CTRL', 0x00, SysTick_CTRL_fields)) # (R/W) SysTick Control and Status Register
@@ -100,7 +100,7 @@ f.append(fld('Variant', 23, 20))
 f.append(fld('Architecture', 19, 16))
 f.append(fld('Part Number', 15, 4, Part_Number_format))
 f.append(fld('Revision', 3, 0))
-CPUID_fields = fld_set('CPUID', f)
+CPUID_fields = fldset('CPUID', f)
 
 r = []
 r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register

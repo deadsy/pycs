@@ -12,7 +12,7 @@ import conio
 import cli
 import jlink
 import cortexm
-import soc.stm32 as soc
+import soc.st.st as soc
 import mem
 
 # -----------------------------------------------------------------------------

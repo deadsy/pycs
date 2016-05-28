@@ -416,7 +416,7 @@ class py_output(object):
     self.device.attribute_header(s, 'series')
     self.device.attribute_header(s, 'version')
     s.append('"""')
-    s.append('from regs import fld, fld_set, reg32, reg16, reg8, regset, memio')
+    s.append('from regs import fld, fldset, reg32, reg16, reg8, regset, memio')
     f.write('%s\n' % '\n'.join(s))
 
   def emit_fields(self, f):

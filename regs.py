@@ -34,7 +34,7 @@ class fld(object):
         val_str = '0x%x' % val
     return '%s%-29s: %s' % (pad, name, val_str)
 
-class fld_set(object):
+class fldset(object):
 
   def __init__(self, name, flds):
     self.name = name
