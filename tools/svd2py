@@ -347,6 +347,11 @@ class svd_parser(object):
 
     # if a register is "derivedFrom" another register, add a derived_from reference
     set_derived_from(p.registers, 'register')
+
+    # convert a 'None' description into a python None
+    if p.description == 'None':
+      p.description = None
+
     return p
 
   def get_device(self):
@@ -391,7 +396,6 @@ class svd_parser(object):
     # if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
     set_derived_from(device.peripherals, 'peripheral')
     return device
-
 
 # -----------------------------------------------------------------------------
 
@@ -443,6 +447,9 @@ class py_output(object):
             assert False, 'need to work out bit field for %s' % field.name
           fldset.append([field.name, msb, lsb])
 
+        # sort by msb (hi to lo)
+        fldset.sort(key = lambda x: x[1], reverse = True)
+
         # output
         s.append('f = []')
         for (name, msb, lsb) in fldset:
@@ -473,8 +480,11 @@ class py_output(object):
         # TODO take care of dimensioned register names
         fields = ('%s_%s_fields' % (p.name, r.name), 'None')[r_from.fields is None]
 
-        # get the deault size from the peripheral if the register has no size
+        # get the default size from the peripheral if the register has no size
         size = (r_from.size, p.size)[r_from.size is None]
+        if size is None:
+          # still no size: default to 32 bits
+          size = 32
 
         if r.dim is None:
           regset.append([r.name, size, r.addressOffset, fields, r.description])
@@ -499,7 +509,8 @@ class py_output(object):
       for (name, size, ofs, fields, description) in regset:
         comment = (' # %s' % description, '')[description is None]
         s.append("r.append(reg%d('%s', 0x%x, %s))%s" % (size, name, ofs, fields, comment))
-      s.append("%s_regs = regset('%s', r)" % (p.name, p.description))
+      descr = (p.description, '')[p.description is None]
+      s.append("%s_regs = regset('%s', r)" % (p.name, descr))
       s.append('')
     f.write('%s\n' % '\n'.join(s))
 

@@ -6,6 +6,7 @@ all:
 	make -C nordic $@
 	make -C nxp $@
 	make -C st $@
+	make -C toshiba $@
 
 clean:
 	-rm *.pyc
@@ -16,3 +17,4 @@ clean:
 	make -C nordic $@
 	make -C nxp $@
 	make -C st $@
+	make -C toshiba $@
