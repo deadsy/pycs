@@ -33,19 +33,45 @@ class arm_disassemble:
   def __init__(self, ui, adr):
     self.ui = ui
     self.pc = adr
-    self.format = '%08x %08x: %s\n'
+    self.state = 'thumb'
 
-  def emit(self, opcode):
-    da = darm.disasm_armv7(opcode)
-    da_str = '?'
+  def emit_thumb(self, opcode):
+    """16 bit thumb instructions"""
+    da = darm.disasm_thumb(opcode)
+    s = '?'
     if da:
-      da_str = str(da)
-    self.ui.put(self.format % (self.pc, opcode, da_str))
+      s = str(da)
+    self.ui.put('%08x: %04x       %s\n' % (self.pc, opcode, s))
+    self.pc += 2
+
+  def emit_thumb2(self, opcode):
+    """32 bit thumb instructions"""
+    da = darm.disasm_thumb2(opcode)
+    s = '?'
+    if da:
+      s = str(da)
+    self.ui.put('%08x: %04x %04x  %s\n' % (self.pc, opcode >> 16, opcode & 0xffff, s))
     self.pc += 4
 
+  def emit16(self, x):
+    if self.state == 'thumb':
+      if ((x & 0xe000) == 0xe000) and (x & 0x1800):
+        # this is a thumb2 opcode we need 32 bits
+        self.save_x = x
+        self.state = 'thumb2'
+      else:
+        # this is a thumb opcode
+        self.emit_thumb(x)
+    elif self.state == 'thumb2':
+      self.emit_thumb2((self.save_x << 16) | x)
+      # back to 16 bit mode
+      self.state = 'thumb'
+    else:
+      assert False
+
   def write(self, data):
-    """output the disassembled instructions to the console"""
-    self.emit(data)
+    self.emit16(data & 0xffff)
+    self.emit16(data >> 16)
 
 # ----------------------------------------------------------------------------
 
