@@ -1,9 +1,11 @@
 all:
 	make -C darm
-	make -C soc
+
+svdtest:
+	make -C vendor $@
 
 clean:
 	-rm *.pyc
 	-rm target/*.pyc
 	make -C darm $@
-	make -C soc $@
+	make -C vendor $@

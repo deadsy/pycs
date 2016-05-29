@@ -1,15 +1,13 @@
 
-SVD2PY = $(TOP)/tools/svd2py
-PATCH = patch
+SVD2PY = $(TOP)/svd2py2
 
 PY_FILES = $(patsubst %, %.py, $(FILES)) 
 
 %.py: ./svd/%.svd.gz
-	@echo "[svd2py]" $*
+	@echo "[svd2py2]" $*
 	@$(SVD2PY) $< $@
-	@if [ -e $*.patch ]; then $(PATCH) -i $*.patch -b --suffix .original; fi;
 
-all: $(PY_FILES)
+svdtest: $(PY_FILES)
 
 clean:
 	-rm *.pyc

@@ -1,0 +1,59 @@
+#!/usr/bin/python
+# -----------------------------------------------------------------------------
+"""
+
+Convert x.svd to x.py.
+
+x.svd is a CMSIS System View Description file describing a device.
+x.py is the same information presented as *.py code useable by pycs.
+
+"""
+# -----------------------------------------------------------------------------
+
+import os
+import sys
+
+import soc
+
+# -----------------------------------------------------------------------------
+
+def pr_err(*args):
+  sys.stderr.write(' '.join(map(str,args)) + '\n')
+  sys.stderr.flush()
+
+def pr_usage(argv):
+  pr_err('Usage: %s <input_file> <output_file>' % argv[0])
+
+def error(msg, usage = False):
+  pr_err(msg)
+  if usage:
+    pr_usage(sys.argv)
+  sys.exit(1)
+
+def Process_Options(argv):
+  """process command line options"""
+  global infile, outfile
+
+  # get the input file
+  if len(sys.argv) < 2:
+    error('must specify input file', True)
+  infile = sys.argv[1]
+  if not os.path.exists(infile):
+    error('%s: input file does not exist' % infile, True)
+
+  # get the output file
+  if len(sys.argv) < 3:
+    error('must specify output file', True)
+  outfile = sys.argv[2]
+
+def main():
+  Process_Options(sys.argv)
+  d = soc.device()
+  d.read_svd(infile)
+  f = open(outfile, 'w')
+  f.write('%s\n' % d)
+  f.close()
+
+main()
+
+# -----------------------------------------------------------------------------

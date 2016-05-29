@@ -1,4 +1,4 @@
-all:
+svdtest:
 	make -C arm $@
 	make -C atmel $@
 	make -C fujitsu $@
