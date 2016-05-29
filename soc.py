@@ -24,28 +24,52 @@ def attribute_string(s):
     return 'None'
   return "'%s'" % s
 
+def attribute_hex32(x):
+  if x is None:
+    return 'None'
+  return "'0x%08x'" % x
+
+# -----------------------------------------------------------------------------
+
+class peripheral(object):
+
+  def __init__(self, svd_peripheral):
+    if svd_peripheral is None:
+      return
+    self.name = svd_peripheral.name
+    self.description = svd_peripheral.description
+    self.baseAddress = svd_peripheral.baseAddress
+
+  def __str__(self):
+    s = []
+    s.append('p = soc.peripheral(None)')
+    s.append('p.name = %s' % attribute_string(self.name))
+    s.append('p.description = %s' % attribute_string(self.description))
+    s.append('p.baseAddress = %s' % attribute_hex32(self.baseAddress))
+    return '\n'.join(s)
+
 # -----------------------------------------------------------------------------
 
 class cpu(object):
 
-  def __init__(self, cpu):
+  def __init__(self, svd_cpu):
     # this is more or less a straight copy of the cpu info from the svd file
-    if cpu is None:
+    if svd_cpu is None:
       return
-    self.name = cpu.name
-    self.revision = cpu.revision
-    self.endian = cpu.endian
-    self.mpuPresent = cpu.mpuPresent
-    self.fpuPresent = cpu.fpuPresent
-    self.fpuDP = cpu.fpuDP
-    self.icachePresent = cpu.icachePresent
-    self.dcachePresent = cpu.dcachePresent
-    self.itcmPresent = cpu.itcmPresent
-    self.dtcmPresent = cpu.dtcmPresent
-    self.vtorPresent = cpu.vtorPresent
-    self.nvicPrioBits = cpu.nvicPrioBits
-    self.vendorSystickConfig = cpu.vendorSystickConfig
-    self.deviceNumInterrupts = cpu.deviceNumInterrupts
+    self.name = svd_cpu.name
+    self.revision = svd_cpu.revision
+    self.endian = svd_cpu.endian
+    self.mpuPresent = svd_cpu.mpuPresent
+    self.fpuPresent = svd_cpu.fpuPresent
+    self.fpuDP = svd_cpu.fpuDP
+    self.icachePresent = svd_cpu.icachePresent
+    self.dcachePresent = svd_cpu.dcachePresent
+    self.itcmPresent = svd_cpu.itcmPresent
+    self.dtcmPresent = svd_cpu.dtcmPresent
+    self.vtorPresent = svd_cpu.vtorPresent
+    self.nvicPrioBits = svd_cpu.nvicPrioBits
+    self.vendorSystickConfig = svd_cpu.vendorSystickConfig
+    self.deviceNumInterrupts = svd_cpu.deviceNumInterrupts
 
   def __str__(self):
     s = []
