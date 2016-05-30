@@ -21,7 +21,7 @@ def description_cleanup(s):
   s = s.strip('.')
   return s
 
-def consolidate_address_blocks(blocks, usage):
+def sizeof_address_blocks(blocks, usage):
   """return the consolidated size (offset == 0) for a list of address blocks"""
   end = 0
   for b in blocks:

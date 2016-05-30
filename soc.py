@@ -27,35 +27,71 @@ def attribute_string(s):
 def attribute_hex32(x):
   if x is None:
     return 'None'
-  return "'0x%08x'" % x
+  return '0x%08x' % x
+
+def attribute_hex(x):
+  if x is None:
+    return 'None'
+  return '0x%x' % x
+
+# -----------------------------------------------------------------------------
+
+def name_lookup(l, name):
+  """ lookup an item in a list by name"""
+  for x in l:
+    if x.name == name:
+      return x
+  return None
 
 # -----------------------------------------------------------------------------
 
 class peripheral(object):
 
-  def __init__(self, svd_peripheral):
-    if svd_peripheral is None:
+  def __init__(self, svd_device = None, p = None):
+    if svd_device is None:
       return
-    self.name = svd_peripheral.name
-    self.description = svd_peripheral.description
-    self.baseAddress = svd_peripheral.baseAddress
+
+    if p.derived_from is None:
+      p_from = p
+      self.df_name = None
+    else:
+      p_from = p.derived_from
+      self.df_name = p_from.name
+
+    self.name = p.name
+    self.description = p_from.description
+    self.baseAddress = p.baseAddress
+    self.size = svd.sizeof_address_blocks(p_from.addressBlock, 'registers')
+    self.registers = []
 
   def __str__(self):
     s = []
-    s.append('p = soc.peripheral(None)')
+    if self.df_name is not None:
+      s.append("registers = soc.name_lookup(peripherals, '%s').registers" % self.df_name)
+    else:
+      s.append('registers = []')
+      for r in self.registers:
+        s.append('%s' % r)
+        s.append('registers.append(r)\n')
+
+    s.append('p = soc.peripheral()')
     s.append('p.name = %s' % attribute_string(self.name))
+    s.append('p.df_name = %s' % attribute_string(self.df_name))
     s.append('p.description = %s' % attribute_string(self.description))
     s.append('p.baseAddress = %s' % attribute_hex32(self.baseAddress))
+    s.append('p.size = %s' % attribute_hex(self.size))
+    s.append('p.registers = registers')
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
 
 class cpu(object):
 
-  def __init__(self, svd_cpu):
+  def __init__(self, svd_device = None):
     # this is more or less a straight copy of the cpu info from the svd file
-    if svd_cpu is None:
+    if svd_device is None:
       return
+    svd_cpu = svd_device.cpu
     self.name = svd_cpu.name
     self.revision = svd_cpu.revision
     self.endian = svd_cpu.endian
@@ -73,7 +109,7 @@ class cpu(object):
 
   def __str__(self):
     s = []
-    s.append('cpu = soc.cpu(None)')
+    s.append('cpu = soc.cpu()')
     s.append('cpu.name = %s' % attribute_string(self.name))
     s.append('cpu.revision = %s' % attribute_string(self.revision))
     s.append('cpu.endian = %s' % attribute_string(self.endian))
@@ -97,6 +133,18 @@ class device(object):
   def __init__(self):
     pass
 
+  def build_peripherals(self, svd_device):
+    """build the peripherals list"""
+    self.peripherals = []
+    # non-derived peripherals
+    for p in svd_device.peripherals:
+      if p.derived_from is None:
+        self.peripherals.append(peripheral(svd_device, p))
+    # derived peripherals
+    for p in svd_device.peripherals:
+      if p.derived_from:
+        self.peripherals.append(peripheral(svd_device, p))
+
   def read_svd(self, svdpath):
     self.svdpath = svdpath
     svd_device = svd.parser(self.svdpath).parse()
@@ -107,12 +155,20 @@ class device(object):
     self.series = svd_device.series
     self.version = svd_device.version
     # cpu information
-    self.cpu = cpu(svd_device.cpu)
+    self.cpu = cpu(svd_device)
+    # peripherals
+    self.build_peripherals(svd_device)
 
   def __str__(self):
     s = []
-    s.append('import soc')
+    s.append('import soc\n')
     s.append('%s\n' % self.cpu)
+
+    s.append('peripherals = []')
+    for p in self.peripherals:
+      s.append('%s' % p)
+      s.append('peripherals.append(p)\n')
+
     s.append('device = soc.device()')
     s.append('device.svdpath = %s' % attribute_string(self.svdpath))
     s.append('device.vendor = %s' % attribute_string(self.vendor))
@@ -121,6 +177,7 @@ class device(object):
     s.append('device.series = %s' % attribute_string(self.series))
     s.append('device.version = %s' % attribute_string(self.version))
     s.append('device.cpu = cpu')
+    s.append('device.peripherals = peripherals')
     # inception!
     s.append("print('%s') % device")
     return '\n'.join(s)

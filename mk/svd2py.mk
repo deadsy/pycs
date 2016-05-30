@@ -1,10 +1,10 @@
 
-SVD2PY = $(TOP)/svd2py2
+SVD2PY = $(TOP)/svd2py
 
 PY_FILES = $(patsubst %, %.py, $(FILES)) 
 
 %.py: ./svd/%.svd.gz
-	@echo "[svd2py2]" $*
+	@echo "[svd2py]" $*
 	@$(SVD2PY) $< $@
 
 svdtest: $(PY_FILES)
