@@ -36,7 +36,7 @@ def attribute_hex(x):
 
 # -----------------------------------------------------------------------------
 
-def name_lookup(l, name):
+def lookup(l, name):
   """ lookup an item in a list by name"""
   for x in l:
     if x.name == name:
@@ -45,42 +45,95 @@ def name_lookup(l, name):
 
 # -----------------------------------------------------------------------------
 
-class peripheral(object):
+class register(object):
 
-  def __init__(self, svd_device = None, p = None):
-    if svd_device is None:
+  def __init__(self, r = None, df_r = None, size = None):
+    """initialise a derived or non-derived register"""
+    if r is None:
       return
-
-    if p.derived_from is None:
-      p_from = p
+    self.name = r.name
+    if df_r is None:
+      # non-derived register
       self.df_name = None
+      # get the default size from the peripheral if the register has no size
+      self.size = (r.size, size)[r.size is None]
+      if self.size is None:
+        # still no size: default to 32 bits
+        self.size = 32
     else:
-      p_from = p.derived_from
-      self.df_name = p_from.name
-
-    self.name = p.name
-    self.description = p_from.description
-    self.baseAddress = p.baseAddress
-    self.size = svd.sizeof_address_blocks(p_from.addressBlock, 'registers')
-    self.registers = []
+      # derived register
+      self.df_name = df_r.name
+      self.size = df_r.size
 
   def __str__(self):
     s = []
-    if self.df_name is not None:
-      s.append("registers = soc.name_lookup(peripherals, '%s').registers" % self.df_name)
+    # register
+    s.append('r = soc.register()')
+    s.append('r.name = %s' % attribute_string(self.name))
+    s.append('r.df_name = %s' % attribute_string(self.df_name))
+    if self.df_name is None:
+      s.append('r.size = %d' % self.size)
     else:
+      s.append('r.size = soc.lookup(registers, r.df_name).size')
+    return '\n'.join(s)
+
+# -----------------------------------------------------------------------------
+
+class peripheral(object):
+
+  def __init__(self, p = None, df_p = None):
+    """initialise a derived or non-derived peripheral"""
+    if p is None:
+      return
+    self.name = p.name
+    self.baseAddress = p.baseAddress
+    if df_p is None:
+      # non-derived peripheral
+      self.df_name = None
+      self.description = p.description
+      self.size = svd.sizeof_address_blocks(p.addressBlock, 'registers')
+      self.build_registers(p)
+    else:
+      # derived peripheral
+      self.df_name = df_p.name
+      self.description = df_p.description
+      self.size = df_p.size
+      self.registers = df_p.registers
+
+  def build_registers(self, p):
+    """build the registers list"""
+    self.registers = []
+
+    # non-derived registers
+    for r in p.registers:
+      if r.derived_from is None:
+        self.registers.append(register(r, size = p.size))
+    # derived registers
+    for r in p.registers:
+      if r.derived_from:
+        df_r = lookup(self.registers, r.derived_from.name)
+        self.registers.append(register(r, df_r))
+
+  def __str__(self):
+    s = []
+    # registers
+    if self.df_name is None:
       s.append('registers = []')
       for r in self.registers:
         s.append('%s' % r)
-        s.append('registers.append(r)\n')
-
+        s.append('registers.append(r)')
+    # peripheral
     s.append('p = soc.peripheral()')
     s.append('p.name = %s' % attribute_string(self.name))
     s.append('p.df_name = %s' % attribute_string(self.df_name))
-    s.append('p.description = %s' % attribute_string(self.description))
     s.append('p.baseAddress = %s' % attribute_hex32(self.baseAddress))
     s.append('p.size = %s' % attribute_hex(self.size))
-    s.append('p.registers = registers')
+    if self.df_name is None:
+      s.append('p.description = %s' % attribute_string(self.description))
+      s.append('p.registers = registers')
+    else:
+      s.append('p.description = soc.lookup(peripherals, p.df_name).description')
+      s.append('p.registers = soc.lookup(peripherals, p.df_name).registers')
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
@@ -139,11 +192,12 @@ class device(object):
     # non-derived peripherals
     for p in svd_device.peripherals:
       if p.derived_from is None:
-        self.peripherals.append(peripheral(svd_device, p))
+        self.peripherals.append(peripheral(p))
     # derived peripherals
     for p in svd_device.peripherals:
       if p.derived_from:
-        self.peripherals.append(peripheral(svd_device, p))
+        df_p = lookup(self.peripherals, p.derived_from.name)
+        self.peripherals.append(peripheral(p, df_p))
 
   def read_svd(self, svdpath):
     self.svdpath = svdpath
@@ -179,6 +233,7 @@ class device(object):
     s.append('device.cpu = cpu')
     s.append('device.peripherals = peripherals')
     # inception!
+    s.append('')
     s.append("print('%s') % device")
     return '\n'.join(s)
 
