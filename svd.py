@@ -35,22 +35,16 @@ def sizeof_address_blocks(blocks, usage):
 
 # -----------------------------------------------------------------------------
 
-def lookup_derived_from(e, df_set):
-  """return the end of the derivedFrom chain"""
-  if e.derivedFrom is None:
-    # this is the end of the chain
-    return e
-  for df in df_set:
-    if e.derivedFrom == df.name:
-      # recurse for multi-level deriveFrom
-      return lookup_derived_from(df, df_set)
-
 def set_derived_from(x, thing):
   """setup derived_from links between svd objects"""
   for e in x:
     if e.derivedFrom:
-      e.derived_from = lookup_derived_from(e, x)
-      #print('%s %s is derived from %s' % (thing, e.name, e.derived_from.name))
+      for df in x:
+        if e.derivedFrom == df.name:
+          e.derived_from = df
+          print('%s %s is derived from %s' % (thing, e.name, e.derived_from.name))
+    else:
+      e.derived_from = None
 
 class svd_object(object):
 
@@ -63,7 +57,17 @@ class svd_object(object):
       object.__setattr__(self, name, value)
 
   def __getattr__(self, name):
-    return None
+
+    print('__getattr__(%s)' % name)
+
+    if name == 'derived_from':
+      # no defined derived_from attribute
+      return None
+    if self.derived_from is None:
+      # the derived_from goes nowhere
+      return None
+    # try to find the attribute in the next "derived from" link
+    return getattr(self.derived_from, name)
 
   def attribute_string(self, s, name):
     if self.__dict__.has_key(name):
@@ -162,7 +166,6 @@ class parser(object):
     f = svd_object()
     f.attribute(string_node(node, 'name'))
     f.attribute(string_node(node, 'description'))
-    f.description = description_cleanup(f.description)
     f.attribute(string_node(node, 'access'))
     f.attribute(integer_node(node, 'bitOffset'))
     f.attribute(integer_node(node, 'bitWidth'))
@@ -180,7 +183,6 @@ class parser(object):
     r.attribute(string_node(node, 'name'))
     r.attribute(string_node(node, 'displayName'))
     r.attribute(string_node(node, 'description'))
-    r.description = description_cleanup(r.description)
     r.attribute(string_node(node, 'alternateGroup'))
     r.attribute(string_node(node, 'alternateRegister'))
     r.attribute(integer_node(node, 'addressOffset'))
@@ -211,7 +213,6 @@ class parser(object):
     i = svd_object()
     i.attribute(string_node(node, 'name'))
     i.attribute(string_node(node, 'description'))
-    i.description = description_cleanup(i.description)
     i.attribute(integer_node(node, 'value'))
     return i
 
@@ -220,7 +221,6 @@ class parser(object):
     p.attribute(string_node(node, 'name'))
     p.attribute(string_node(node, 'version'))
     p.attribute(string_node(node, 'description'))
-    p.description = description_cleanup(p.description)
     p.attribute(string_node(node, 'alternatePeripheral'))
     p.attribute(string_node(node, 'groupName'))
     p.attribute(string_node(node, 'prependToName'))
@@ -235,9 +235,6 @@ class parser(object):
     p.derivedFrom = node.get('derivedFrom')
     # if a register is "derivedFrom" another register, add a derived_from reference
     set_derived_from(p.registers, 'register')
-    # convert a 'None' description into a python None
-    if p.description == 'None':
-      p.description = None
     return p
 
   def get_cpu(self, node):

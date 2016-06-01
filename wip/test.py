@@ -5,9 +5,6 @@ class register(object):
   def __init__(self, name):
     self.name = name
     
-  def rd(self, idx = 0):  
-
-
 
 class peripheral(object):
 
@@ -41,3 +38,6 @@ d = device('d0')
 
 print d.P0.R0.name
 print d.P1.R1.name
+
+print getattr(d, 'name')
+print getattr(getattr(d, 'P0'), 'R0').name

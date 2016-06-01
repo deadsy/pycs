@@ -48,8 +48,7 @@ def Process_Options(argv):
 
 def main():
   Process_Options(sys.argv)
-  d = soc.device()
-  d.read_svd(infile)
+  d = soc.build_device(infile)
   f = open(outfile, 'w')
   f.write('%s\n' % d)
   f.close()
