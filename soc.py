@@ -17,6 +17,8 @@ import svd
 # -----------------------------------------------------------------------------
 # utility functions
 
+# See STM32L4x1 USERTRIM for unicode issues
+
 def description_cleanup(s):
   """cleanup a description string"""
   if s is None:
@@ -25,6 +27,13 @@ def description_cleanup(s):
   s = s.strip('."')
   # remove un-needed white space
   s = ' '.join([x.strip() for x in s.split()])
+  return s.encode('utf-8')
+
+def name_cleanup(s):
+  """cleanup a register name"""
+  if s is None:
+    return None
+  s = s.replace('[%s]', '%s')
   return s
 
 def sizeof_address_blocks(blocks, usage):
@@ -38,6 +47,47 @@ def sizeof_address_blocks(blocks, usage):
       end = e
   # return the size
   return end
+
+# -----------------------------------------------------------------------------
+# handle the dimElementGroup
+
+def x_dash_y_string(s, n):
+  """parse a string of the form %d-%d"""
+  x = s.split('-')
+  if len(x) != 2:
+    return None
+  try:
+    a = int(x[0], 10)
+    b = int(x[1], 10)
+  except:
+    return None
+  if (b - a + 1) != n:
+    # wrong length
+    return None
+  return (a, b)
+
+def build_indices(dim, dimIndex):
+  """return a list of strings for the register name indices"""
+  if dim is None:
+    return None
+
+  if dimIndex is None:
+    # Assume a simple 0..n index
+    return ['%d' % i for i in range(dim)]
+
+  # handle a comma delimited list
+  x = dimIndex.split(',')
+  # make sure we have enough indices
+  if len(x) == dim:
+    return x
+
+  # look for strings of the form "%d-%d"
+  x = x_dash_y_string(dimIndex, dim)
+  if x is not None:
+    return ['%d' % i for i in range(x[0], x[1] + 1)]
+
+  # something else....
+  assert False, 'unhandled dim %d dimIndex %s' % (dim, dimIndex)
 
 # -----------------------------------------------------------------------------
 
@@ -63,6 +113,14 @@ class field(object):
   def __init__(self):
     pass
 
+  def __str__(self):
+    s = []
+    s.append('f = soc.field()')
+    s.append('f.name = %s' % attribute_string(self.name))
+    s.append('f.description = %s' % attribute_string(self.description))
+    s.append('fields[%s] = f\n' % attribute_string(self.name))
+    return '\n'.join(s)
+
 # -----------------------------------------------------------------------------
 
 class register(object):
@@ -72,11 +130,18 @@ class register(object):
 
   def __str__(self):
     s = []
+    if self.fields is not None:
+      # dump the fields in most significant bit order
+      s.append('fields = {}')
+      f_list = self.fields.values()
+      for f in f_list:
+        s.append('%s' % f)
     s.append('r = soc.register()')
     s.append('r.name = %s' % attribute_string(self.name))
     s.append('r.description = %s' % attribute_string(self.description))
     s.append('r.size = %d' % self.size)
     s.append('r.offset = 0x%x' % self.offset)
+    s.append('r.fields = %s' % ('fields', 'None')[self.fields is None])
     s.append('registers[%s] = r\n' % attribute_string(self.name))
     return '\n'.join(s)
 
@@ -89,25 +154,24 @@ class peripheral(object):
 
   def __str__(self):
     s = []
-    s.append('registers = {}')
-
-    # dump the registers in address offset order
-    # tie break with the name to give a well-defined sort order
-    r_list = self.registers.values()
-    r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
-    for r in r_list:
-      s.append('%s' % r)
-
+    if self.registers is not None:
+      s.append('registers = {}')
+      # dump the registers in address offset order
+      # tie break with the name to give a well-defined sort order
+      r_list = self.registers.values()
+      r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
+      for r in r_list:
+        s.append('%s' % r)
     s.append('p = soc.peripheral()')
     s.append('p.name = %s' % attribute_string(self.name))
     s.append('p.description = %s' % attribute_string(self.description))
     s.append('p.address = %s' % attribute_hex32(self.address))
     s.append('p.size = %s' % attribute_hex(self.size))
-    s.append('p.default_register_size = %s' % attribute_hex(self.default_register_size))
+    s.append('p.default_register_size = %s' % self.default_register_size)
     s.append('p.registers = registers')
+    s.append('p.registers = %s' % ('registers', 'None')[self.registers is None])
     s.append('peripherals[%s] = p\n' % attribute_string(self.name))
     return '\n'.join(s)
-
 
 # -----------------------------------------------------------------------------
 
@@ -170,28 +234,62 @@ class device(object):
 
 # -----------------------------------------------------------------------------
 
-def build_registers(p, svd_p):
-  """build the peripherals"""
-  p.registers = {}
-  for svd_r in svd_p.registers:
+def build_fields(r, svd_r):
+  """build the fields for a register"""
+  if svd_r.fields is None:
+    r.fields = None
+  else:
+    r.fields = {}
+    for svd_f in svd_r.fields:
+      f = field()
+      f.name = svd_f.name
+      f.description = description_cleanup(svd_f.description)
+      # add it to the register
+      f.parent = r
+      r.fields[f.name] = f
 
-    if svd_r.dim is None:
-      r = register()
-      r.name = svd_r.name
-      r.description = description_cleanup(svd_r.description)
-      r.size = (svd_r.size, p.size)[svd_r.size is None]
-      if r.size is None:
-        # still no size: default to 32 bits
-        r.size = 32
-      r.offset = svd_r.addressOffset
-      # add it to the device
-      r.parent = p
-      p.registers[r.name] = r
-    else:
-      print 'here'
+def build_registers(p, svd_p):
+  """build the registers for a peripheral"""
+  if svd_p.registers is None:
+    p.registers = None
+  else:
+    p.registers = {}
+    for svd_r in svd_p.registers:
+      if svd_r.dim is None:
+        r = register()
+        r.name = svd_r.name
+        r.description = description_cleanup(svd_r.description)
+        r.size = (svd_r.size, p.size)[svd_r.size is None]
+        if r.size is None:
+          # still no size: default to 32 bits
+          r.size = 32
+        r.offset = svd_r.addressOffset
+        build_fields(r, svd_r)
+        # add it to the device
+        r.parent = p
+        p.registers[r.name] = r
+      else:
+        indices = build_indices(svd_r.dim, svd_r.dimIndex)
+        # standard practice puts a "%s" in the name string. Is this always true?
+        assert svd_r.name.__contains__('%s'), 'indexed register name %s has no %%s' % svd_r.name
+        # remove the [] from the name - we want to use the name as a python variable name
+        svd_name = name_cleanup(svd_r.name)
+        for i in range(svd_r.dim):
+          r = register()
+          r.name =  svd_name % indices[i]
+          r.description = description_cleanup(svd_r.description)
+          r.size = (svd_r.size, p.size)[svd_r.size is None]
+          if r.size is None:
+            # still no size: default to 32 bits
+            r.size = 32
+          r.offset = svd_r.addressOffset + (i * svd_r.dimIncrement)
+          build_fields(r, svd_r)
+          # add it to the device
+          r.parent = p
+          p.registers[r.name] = r
 
 def build_peripherals(d, svd_device):
-  """build the peripherals"""
+  """build the peripherals for a device"""
   d.peripherals = {}
   for svd_p in svd_device.peripherals:
     p = peripheral()
