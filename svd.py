@@ -9,40 +9,17 @@ Convert an *.svd file to a python objects representing the device.
 import lxml.etree as ET
 
 # -----------------------------------------------------------------------------
-# utility functions
-
-def description_cleanup(s):
-  """cleanup a description string"""
-  if s is None:
-    return None
-  # remove un-needed white space
-  s = ' '.join([x.strip() for x in s.split()])
-  # strip trailing period
-  s = s.strip('.')
-  return s
-
-def sizeof_address_blocks(blocks, usage):
-  """return the consolidated size (offset == 0) for a list of address blocks"""
-  end = 0
-  for b in blocks:
-    if b.usage != usage:
-      continue
-    e = b.offset + b.size
-    if e > end:
-      end = e
-  # return the size
-  return end
-
-# -----------------------------------------------------------------------------
 
 def set_derived_from(x, thing):
   """setup derived_from links between svd objects"""
+  if x is None:
+    return
   for e in x:
     if e.derivedFrom:
       for df in x:
         if e.derivedFrom == df.name:
           e.derived_from = df
-          print('%s %s is derived from %s' % (thing, e.name, e.derived_from.name))
+          #print('%s %s is derived from %s' % (thing, e.name, e.derived_from.name))
     else:
       e.derived_from = None
 
@@ -54,12 +31,13 @@ class svd_object(object):
   def attribute(self, x):
     name, value = x
     if value is not None:
-      object.__setattr__(self, name, value)
+      self.__setattr__(name, value)
+
+  def list_attribute(self, l, name):
+    if l:
+      self.__setattr__(name, l)
 
   def __getattr__(self, name):
-
-    print('__getattr__(%s)' % name)
-
     if name == 'derived_from':
       # no defined derived_from attribute
       return None
@@ -196,7 +174,7 @@ class parser(object):
     r.attribute(string_node(node, 'modifiedWriteValues'))
     #<xs:element name="writeConstraint" type="writeConstraintType" minOccurs="0"/>
     r.attribute(string_node(node, 'readAction'))
-    r.fields = [self.get_field(x) for x in node.findall('.//field')]
+    r.list_attribute([self.get_field(x) for x in node.findall('.//field')], 'fields')
     r.derivedFrom = node.get('derivedFrom')
     # if a field is "derivedFrom" another field, add a derived_from reference
     set_derived_from(r.fields, 'field')
@@ -229,9 +207,9 @@ class parser(object):
     p.attribute(string_node(node, 'disableCondition'))
     p.attribute(integer_node(node, 'baseAddress'))
     p.attribute(integer_node(node, 'size')) # default register size
-    p.addressBlock = [self.get_address_block(x) for x in node.findall('./addressBlock')]
-    p.interrupts = [self.get_interrupt(x) for x in node.findall('./interrupt')]
-    p.registers = [self.get_register(x) for x in node.findall('.//register')]
+    p.list_attribute([self.get_address_block(x) for x in node.findall('./addressBlock')], 'addressBlock')
+    p.list_attribute([self.get_interrupt(x) for x in node.findall('./interrupt')], 'interrupts')
+    p.list_attribute([self.get_register(x) for x in node.findall('.//register')], 'registers')
     p.derivedFrom = node.get('derivedFrom')
     # if a register is "derivedFrom" another register, add a derived_from reference
     set_derived_from(p.registers, 'register')
@@ -272,7 +250,7 @@ class parser(object):
     d.attribute(string_node(node, 'headerDefinitionsPrefix'))
     d.attribute(integer_node(node, 'addressUnitBits'))
     d.attribute(integer_node(node, 'width'))
-    d.peripherals = [self.get_peripheral(x) for x in self.root.findall('.//peripheral')]
+    d.list_attribute([self.get_peripheral(x) for x in self.root.findall('.//peripheral')], 'peripherals')
     # if a peripheral is "derivedFrom" another peripheral, add a derived_from reference
     set_derived_from(d.peripherals, 'peripheral')
     return d

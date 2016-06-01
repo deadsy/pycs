@@ -15,11 +15,36 @@ code.
 import svd
 
 # -----------------------------------------------------------------------------
+# utility functions
+
+def description_cleanup(s):
+  """cleanup a description string"""
+  if s is None:
+    return None
+  s = s.strip()
+  s = s.strip('."')
+  # remove un-needed white space
+  s = ' '.join([x.strip() for x in s.split()])
+  return s
+
+def sizeof_address_blocks(blocks, usage):
+  """return the consolidated size (offset == 0) for a list of address blocks"""
+  end = 0
+  for b in blocks:
+    if b.usage != usage:
+      continue
+    e = b.offset + b.size
+    if e > end:
+      end = e
+  # return the size
+  return end
+
+# -----------------------------------------------------------------------------
 
 def attribute_string(s):
   if s is None:
     return 'None'
-  return "'%s'" % s
+  return '"%s"' % s
 
 def attribute_hex32(x):
   if x is None:
@@ -45,6 +70,16 @@ class register(object):
   def __init__(self):
     pass
 
+  def __str__(self):
+    s = []
+    s.append('r = soc.register()')
+    s.append('r.name = %s' % attribute_string(self.name))
+    s.append('r.description = %s' % attribute_string(self.description))
+    s.append('r.size = %d' % self.size)
+    s.append('r.offset = 0x%x' % self.offset)
+    s.append('registers[%s] = r\n' % attribute_string(self.name))
+    return '\n'.join(s)
+
 # -----------------------------------------------------------------------------
 
 class peripheral(object):
@@ -54,18 +89,23 @@ class peripheral(object):
 
   def __str__(self):
     s = []
-#    # registers
-#    if self.df_name is None:
-#      s.append('registers = []')
-#      for r in self.registers:
-#        s.append('%s' % r)
-#        s.append('registers.append(r)')
+    s.append('registers = {}')
+
+    # dump the registers in address offset order
+    # tie break with the name to give a well-defined sort order
+    r_list = self.registers.values()
+    r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
+    for r in r_list:
+      s.append('%s' % r)
 
     s.append('p = soc.peripheral()')
     s.append('p.name = %s' % attribute_string(self.name))
-    s.append('p.baseAddress = %s' % attribute_hex32(self.baseAddress))
-    s.append('p.size = %s' % attribute_hex(self.size))
     s.append('p.description = %s' % attribute_string(self.description))
+    s.append('p.address = %s' % attribute_hex32(self.address))
+    s.append('p.size = %s' % attribute_hex(self.size))
+    s.append('p.default_register_size = %s' % attribute_hex(self.default_register_size))
+    s.append('p.registers = registers')
+    s.append('peripherals[%s] = p\n' % attribute_string(self.name))
     return '\n'.join(s)
 
 
@@ -108,9 +148,11 @@ class device(object):
     s.append('%s\n' % self.cpu)
 
     s.append('peripherals = {}')
-    for (name, p) in self.peripherals.items():
+    # dump the peripheral in base address order
+    p_list = self.peripherals.values()
+    p_list.sort(key = lambda x : x.address)
+    for p in p_list:
       s.append('%s' % p)
-      s.append('peripherals[%s] = p\n' % attribute_string(name))
 
     s.append('device = soc.device()')
     s.append('device.svdpath = %s' % attribute_string(self.svdpath))
@@ -128,19 +170,37 @@ class device(object):
 
 # -----------------------------------------------------------------------------
 
+def build_registers(p, svd_p):
+  """build the peripherals"""
+  p.registers = {}
+  for svd_r in svd_p.registers:
+
+    if svd_r.dim is None:
+      r = register()
+      r.name = svd_r.name
+      r.description = description_cleanup(svd_r.description)
+      r.size = (svd_r.size, p.size)[svd_r.size is None]
+      if r.size is None:
+        # still no size: default to 32 bits
+        r.size = 32
+      r.offset = svd_r.addressOffset
+      # add it to the device
+      r.parent = p
+      p.registers[r.name] = r
+    else:
+      print 'here'
+
 def build_peripherals(d, svd_device):
   """build the peripherals"""
   d.peripherals = {}
   for svd_p in svd_device.peripherals:
     p = peripheral()
     p.name = svd_p.name
-    p.baseAddress = svd_p.baseAddress
-    p.size = svd_p.size
-
-    print('looking for description of %s' % p.name)
-    p.description = svd_p.description
-    print('done')
-
+    p.description = description_cleanup(svd_p.description)
+    p.address = svd_p.baseAddress
+    p.size = sizeof_address_blocks(svd_p.addressBlock, 'registers')
+    p.default_register_size = svd_p.size
+    build_registers(p, svd_p)
     # add it to the device
     p.parent = d
     d.peripherals[p.name] = p
@@ -176,7 +236,7 @@ def build_device(svdpath):
   d.svdpath = svdpath
   d.vendor = svd_device.vendor
   d.name = svd_device.name
-  d.description = svd_device.description
+  d.description = description_cleanup(svd_device.description)
   d.series = svd_device.series
   d.version = svd_device.version
   # device sub components
