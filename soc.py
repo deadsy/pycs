@@ -17,17 +17,15 @@ import svd
 # -----------------------------------------------------------------------------
 # utility functions
 
-# See STM32L4x1 USERTRIM for unicode issues
-
 def description_cleanup(s):
   """cleanup a description string"""
   if s is None:
     return None
-  s = s.strip()
+  # remove non-ascii characters
+  s = s.encode('ascii', errors = 'ignore')
   s = s.strip('."')
   # remove un-needed white space
-  s = ' '.join([x.strip() for x in s.split()])
-  return s.encode('utf-8')
+  return ' '.join([x.strip() for x in s.split()])
 
 def name_cleanup(s):
   """cleanup a register name"""
@@ -47,6 +45,18 @@ def sizeof_address_blocks(blocks, usage):
       end = e
   # return the size
   return end
+
+def bitrange_string(s):
+  """parse a string of the form [%d:%d]"""
+  s = s.lstrip('[')
+  s = s.rstrip(']')
+  x = s.split(':')
+  try:
+    msb = int(x[0], 10)
+    lsb = int(x[1], 10)
+  except:
+    return None
+  return (msb, lsb)
 
 # -----------------------------------------------------------------------------
 # handle the dimElementGroup
@@ -94,7 +104,9 @@ def build_indices(dim, dimIndex):
 def attribute_string(s):
   if s is None:
     return 'None'
-  return '"%s"' % s
+  # escape any ' characters
+  s = s.replace("'", "\\'")
+  return "'%s'" % s
 
 def attribute_hex32(x):
   if x is None:
@@ -108,6 +120,22 @@ def attribute_hex(x):
 
 # -----------------------------------------------------------------------------
 
+class interrupt(object):
+
+  def __init__(self):
+    pass
+
+  def __str__(self):
+    s = []
+    s.append('i = soc.interrupt()')
+    s.append('i.name = %s' % attribute_string(self.name))
+    s.append('i.description = %s' % attribute_string(self.description))
+    s.append('i.irq = %d' % self.irq)
+    s.append('interrupts[%s] = i\n' % attribute_string(self.name))
+    return '\n'.join(s)
+
+# -----------------------------------------------------------------------------
+
 class field(object):
 
   def __init__(self):
@@ -118,6 +146,8 @@ class field(object):
     s.append('f = soc.field()')
     s.append('f.name = %s' % attribute_string(self.name))
     s.append('f.description = %s' % attribute_string(self.description))
+    s.append('f.msb = %d' % self.msb)
+    s.append('f.lsb = %d' % self.lsb)
     s.append('fields[%s] = f\n' % attribute_string(self.name))
     return '\n'.join(s)
 
@@ -134,6 +164,7 @@ class register(object):
       # dump the fields in most significant bit order
       s.append('fields = {}')
       f_list = self.fields.values()
+      f_list.sort(key = lambda x : x.msb, reverse = True)
       for f in f_list:
         s.append('%s' % f)
     s.append('r = soc.register()')
@@ -211,12 +242,19 @@ class device(object):
     s.append('import soc\n')
     s.append('%s\n' % self.cpu)
 
-    s.append('peripherals = {}')
     # dump the peripheral in base address order
+    s.append('peripherals = {}')
     p_list = self.peripherals.values()
     p_list.sort(key = lambda x : x.address)
     for p in p_list:
       s.append('%s' % p)
+
+    # dump the peripheral in interrupt address order
+    s.append('interrupts = {}')
+    i_list = self.interrupts.values()
+    i_list.sort(key = lambda x : x.irq)
+    for i in i_list:
+      s.append('%s' % i)
 
     s.append('device = soc.device()')
     s.append('device.svdpath = %s' % attribute_string(self.svdpath))
@@ -227,6 +265,7 @@ class device(object):
     s.append('device.version = %s' % attribute_string(self.version))
     s.append('device.cpu = cpu')
     s.append('device.peripherals = peripherals')
+    s.append('device.interrupts = interrupts')
     # inception!
     s.append('')
     s.append("print('%s') % device")
@@ -244,6 +283,19 @@ def build_fields(r, svd_r):
       f = field()
       f.name = svd_f.name
       f.description = description_cleanup(svd_f.description)
+      # work out the bit range
+      if svd_f.bitWidth is not None:
+        lsb = svd_f.bitOffset
+        msb = lsb + svd_f.bitWidth - 1
+      elif svd_f.msb is not None:
+        lsb = svd_f.lsb
+        msb = svd_f.msb
+      elif svd_f.bitRange:
+        (msb, lsb) = bitrange_string(svd_f.bitRange)
+      else:
+        assert False, 'need to work out bit field for %s' % f.name
+      f.msb = msb
+      f.lsb = lsb
       # add it to the register
       f.parent = r
       r.fields[f.name] = f
@@ -303,6 +355,27 @@ def build_peripherals(d, svd_device):
     p.parent = d
     d.peripherals[p.name] = p
 
+def build_interrupts(d, svd_device):
+  """build the interrupt table for the device"""
+  d.interrupts = {}
+  for svd_p in svd_device.peripherals:
+    if svd_p.interrupts is None:
+      continue
+    for svd_i in svd_p.interrupts:
+      if not d.interrupts.has_key(svd_i.name):
+        # add the interrupt
+        i = interrupt()
+        i.name = svd_i.name
+        i.description = description_cleanup(svd_i.description)
+        i.irq = svd_i.value
+        # add it to the device
+        i.parent = d
+        d.interrupts[i.name] = i
+      else:
+        # already have this interrupt name
+        # should be the same irq number
+        assert d.interrupts[svd_i.name].irq == svd_i.value
+
 def build_cpu(d, svd_device):
   """build the cpu"""
   svd_cpu = svd_device.cpu
@@ -340,6 +413,7 @@ def build_device(svdpath):
   # device sub components
   build_cpu(d, svd_device)
   build_peripherals(d, svd_device)
+  build_interrupts(d, svd_device)
   return d
 
 # -----------------------------------------------------------------------------
