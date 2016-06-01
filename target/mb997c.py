@@ -12,8 +12,8 @@ import conio
 import cli
 import jlink
 import cortexm
-import soc.st.st as soc
 import mem
+import vendor.st.st as soc
 
 # -----------------------------------------------------------------------------
 
@@ -27,11 +27,13 @@ class target(object):
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    info = soc.lookup(soc_name)
-    self.jlink = jlink.JLink(usb_number, info['cpu']['name'], jlink._JLINKARM_TIF_SWD)
+    self.device = soc.get_device(self.ui, soc_name)
+    self.jlink = jlink.JLink(usb_number, self.device.cpu.name, jlink._JLINKARM_TIF_SWD)
+
+
     self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu'])
-    self.soc = soc.soc(self.cpu, info)
-    self.mem = mem.mem(self.cpu, self.soc)
+    #self.soc = soc.soc(self.cpu, info)
+    #self.mem = mem.mem(self.cpu, self.soc)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
