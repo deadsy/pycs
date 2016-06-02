@@ -189,14 +189,71 @@ cm3_scb = _build_scb_peripheral(_cm3_scb_info)
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
 
+_cm3_mpu_info = (
+  ('TYPE', 0x00, '(R/ ) MPU Type Register'),
+  ('CTRL', 0x04, '(R/W) MPU Control Register'),
+  ('RNR', 0x08, '(R/W) MPU Region RNRber Register'),
+  ('RBAR', 0x0C, '(R/W) MPU Region Base Address Register'),
+  ('RASR', 0x10, '(R/W) MPU Region Attribute and Size Register'),
+  ('RBAR_A1', 0x14, '(R/W) MPU Alias 1 Region Base Address Register'),
+  ('RASR_A1', 0x18, '(R/W) MPU Alias 1 Region Attribute and Size Register'),
+  ('RBAR_A2', 0x1C, '(R/W) MPU Alias 2 Region Base Address Register'),
+  ('RASR_A2', 0x20, '(R/W) MPU Alias 2 Region Attribute and Size Register'),
+  ('RBAR_A3', 0x24, '(R/W) MPU Alias 3 Region Base Address Register'),
+  ('RASR_A3', 0x28, '(R/W) MPU Alias 3 Region Attribute and Size Register'),
+)
 
+_cm0_mpu_info = (
+  ('TYPE', 0x00, '(R/ ) MPU Type Register'),
+  ('CTRL', 0x04, '(R/W) MPU Control Register'),
+  ('RNR', 0x08, '(R/W) MPU Region RNRber Register'),
+  ('RBAR', 0x0C, '(R/W) MPU Region Base Address Register'),
+  ('RASR', 0x10, '(R/W) MPU Region Attribute and Size Register'),
+)
 
+def _build_mpu_peripheral(info):
+  p = soc.peripheral()
+  p.name = 'MPU'
+  p.description = 'Memory Protection Unit'
+  p.address = MPU_BASE
+  p.size = None
+  p.default_register_size = 32
+  p.registers = _build_registers(info)
+  return p
 
+cm0_mpu = _build_mpu_peripheral(_cm0_mpu_info)
+cm3_mpu = _build_mpu_peripheral(_cm3_mpu_info)
 
 # -----------------------------------------------------------------------------
 # Floating Point Unit
 
+_cm4_fpu_info = (
+  ('FPCCR', 0x04, '(R/W) Floating-Point Context Control Register'),
+  ('FPCAR', 0x08, '(R/W) Floating-Point Context Address Register'),
+  ('FPDSCR', 0x0C, '(R/W) Floating-Point Default Status Control Register'),
+  ('MVFR0', 0x10, '(R/ ) Media and FP Feature Register 0'),
+  ('MVFR1', 0x14, '(R/ ) Media and FP Feature Register 1'),
+)
 
+_p = soc.peripheral()
+_p.name = 'FPU'
+_p.description = 'Floating Point Unit'
+_p.address = FPU_BASE
+_p.size = None
+_p.default_register_size = 32
+_p.registers = _build_registers(_cm4_fpu_info)
+cm4_fpu = _p
 
+# -----------------------------------------------------------------------------
+# Instrumentation Trace Macrocell Unit
+
+# -----------------------------------------------------------------------------
+# Flash Patch and Breakpoint Unit
+
+# -----------------------------------------------------------------------------
+# Data Watchpoint and Trace Unit
+
+# -----------------------------------------------------------------------------
+# Trace Port Interface Unit
 
 # -----------------------------------------------------------------------------
