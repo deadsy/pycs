@@ -61,5 +61,33 @@ FILES = AT91SAM9CN11 \
         ATSAMA5D33 \
         ATSAMA5D34 \
         ATSAMA5D35 \
+        ATSAML21E15A \
+        ATSAML21E15B \
+        ATSAML21E16A \
+        ATSAML21E16B \
+        ATSAML21E17A \
+        ATSAML21E17B \
+        ATSAML21E18B \
+        ATSAML21G16A \
+        ATSAML21G16B \
+        ATSAML21G17A \
+        ATSAML21G17B \
+        ATSAML21G18A \
+        ATSAML21G18B \
+        ATSAML21J16A \
+        ATSAML21J16B \
+        ATSAML21J17A \
+        ATSAML21J17B \
+        ATSAML21J18A \
+        ATSAML21J18B \
+        ATSAML22G16A \
+        ATSAML22G17A \
+        ATSAML22G18A \
+        ATSAML22J16A \
+        ATSAML22J17A \
+        ATSAML22J18A \
+        ATSAML22N16A \
+        ATSAML22N17A \
+        ATSAML22N18A \
 
 include $(TOP)/mk/svd2py.mk
