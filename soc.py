@@ -13,6 +13,14 @@ code.
 # -----------------------------------------------------------------------------
 
 import svd
+import util
+
+# -----------------------------------------------------------------------------
+
+help_regs = (
+  ('<cr>', 'display cpu registers'),
+  ('[name]', 'display registers for peripheral')
+)
 
 # -----------------------------------------------------------------------------
 # utility functions
@@ -158,6 +166,35 @@ class register(object):
   def __init__(self):
     pass
 
+  def set_cpu(self, cpu):
+    """set the cpu"""
+    self.cpu = cpu
+
+  def adr(self, idx, size):
+    return self.parent.address + self.offset + (idx * (size / 8))
+
+  def rd(self, idx = 0):
+    return self.cpu.rd(self.adr(idx, self.size), self.size)
+
+  def display(self):
+    """return a display string for this register"""
+    adr = self.adr(0, self.size)
+    val = self.rd()
+    s = []
+    s.append('%-32s : ' % self.name)
+    s.append('%08x' % adr)
+    pad = ('', ' ')[self.size == 8]
+    s.append('[%d:0] %s= ' % (self.size - 1, pad))
+    if val == 0:
+      s.append('0')
+    else:
+      fmt = '0x%%0%dx' % (self.size / 4)
+      s.append(fmt % val)
+    s = ''.join(s)
+    #if self.fields:
+    #  return '%s\n%s' % (s, self.fields.emit(val))
+    return s
+
   def __str__(self):
     s = []
     if self.fields is not None:
@@ -183,15 +220,32 @@ class peripheral(object):
   def __init__(self):
     pass
 
+  def set_cpu(self, cpu):
+    """set the cpu"""
+    self.cpu = cpu
+    for r in self.registers.values():
+      r.set_cpu(cpu)
+
+  def register_list(self):
+    """return an ordered register list"""
+    # build a list of registers in address offset order
+    # tie break with the name to give a well-defined sort order
+    r_list = self.registers.values()
+    r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
+    return r_list
+
+  def display(self):
+    """return a display string for this peripheral"""
+    s = []
+    for r in self.register_list():
+      s.append(r.display())
+    return '\n'.join(s)
+
   def __str__(self):
     s = []
     if self.registers is not None:
       s.append('registers = {}')
-      # dump the registers in address offset order
-      # tie break with the name to give a well-defined sort order
-      r_list = self.registers.values()
-      r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
-      for r in r_list:
+      for r in self.register_list():
         s.append('%s' % r)
     s.append('p = soc.peripheral()')
     s.append('p.name = %s' % attribute_string(self.name))
@@ -206,14 +260,14 @@ class peripheral(object):
 
 # -----------------------------------------------------------------------------
 
-class cpu(object):
+class cpu_info(object):
 
   def __init__(self):
     pass
 
   def __str__(self):
     s = []
-    s.append('cpu = soc.cpu()')
+    s.append('cpu = soc.cpu_info()')
     s.append('cpu.name = %s' % attribute_string(self.name))
     s.append('cpu.revision = %s' % attribute_string(self.revision))
     s.append('cpu.endian = %s' % attribute_string(self.endian))
@@ -237,10 +291,38 @@ class device(object):
   def __init__(self):
     pass
 
+  def set_cpu(self, cpu):
+    """set the cpu"""
+    self.cpu = cpu
+    for p in self.peripherals.values():
+      p.set_cpu(cpu)
+
+  def cmd_map(self, ui, args):
+    """display the memory map"""
+    p_list = self.peripherals.values()
+    p_list.sort(key = lambda x : x.address)
+    next_start = None
+    for p in p_list:
+      start = p.address
+      size = p.size
+      # print a marker for gaps in the map
+      if (not next_start is None) and (start != next_start):
+        # reserved gap or overlap
+        ui.put('%s\n' % ('...', '!!!')[start < next_start])
+      next_start = start + size
+      ui.put('%-16s: %08x %08x %-6s %s\n' % (p.name, start, next_start - 1, util.memsize(size), p.description))
+
+  def cmd_regs(self, ui, args):
+    """display peripheral registers"""
+    if self.peripherals.has_key(args[0]):
+      ui.put('%s\n' % self.peripherals[args[0]].display())
+    else:
+      ui.put("no peripheral named '%s' (run 'map' command for the names)\n" % args[0])
+
   def __str__(self):
     s = []
     s.append('import soc\n')
-    s.append('%s\n' % self.cpu)
+    s.append('%s\n' % self.cpu_info)
 
     # dump the peripheral in base address order
     s.append('peripherals = {}')
@@ -263,7 +345,7 @@ class device(object):
     s.append('device.description = %s' % attribute_string(self.description))
     s.append('device.series = %s' % attribute_string(self.series))
     s.append('device.version = %s' % attribute_string(self.version))
-    s.append('device.cpu = cpu')
+    s.append('device.cpu_info = cpu')
     s.append('device.peripherals = peripherals')
     s.append('device.interrupts = interrupts')
     # inception!
@@ -376,10 +458,10 @@ def build_interrupts(d, svd_device):
         # should be the same irq number
         assert d.interrupts[svd_i.name].irq == svd_i.value
 
-def build_cpu(d, svd_device):
-  """build the cpu"""
+def build_cpu_info(d, svd_device):
+  """build the cpu info"""
   svd_cpu = svd_device.cpu
-  c = cpu()
+  c = cpu_info()
   c.name = svd_cpu.name
   c.revision = svd_cpu.revision
   c.endian = svd_cpu.endian
@@ -396,7 +478,7 @@ def build_cpu(d, svd_device):
   c.deviceNumInterrupts = svd_cpu.deviceNumInterrupts
   # add it to the device
   c.parent = d
-  d.cpu = c
+  d.cpu_info = c
 
 def build_device(svdpath):
   """build the device structure from the svd file"""
@@ -411,7 +493,7 @@ def build_device(svdpath):
   d.series = svd_device.series
   d.version = svd_device.version
   # device sub components
-  build_cpu(d, svd_device)
+  build_cpu_info(d, svd_device)
   build_peripherals(d, svd_device)
   build_interrupts(d, svd_device)
   return d

@@ -16,8 +16,8 @@ import soc
 # These functions are used to provide the required data.
 
 def cm4_fixup(d):
-  d.cpu.name = 'CM4'
-  d.cpu.nvicPrioBits = 4
+  d.cpu_info.name = 'CM4'
+  d.cpu_info.nvicPrioBits = 4
 
 #-----------------------------------------------------------------------------
 # build a database of SoC devices

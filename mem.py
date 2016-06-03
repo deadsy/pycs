@@ -78,11 +78,8 @@ def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
 
 class mem(object):
 
-  def __init__(self, cpu, soc):
-    self.soc = soc
+  def __init__(self, cpu):
     self.cpu = cpu
-    self.memmap = self.build_memmap()
-    self.memio = self.build_memio()
 
     self.menu = (
       ('compare', self.cmd_compare, help_file2mem),
@@ -91,8 +88,6 @@ class mem(object):
       ('d32', self.cmd_display32, help_memdisplay),
       ('>file', self.cmd_mem2file, help_mem2file),
       ('<file', self.cmd_file2mem, help_file2mem),
-      ('map', self.cmd_map),
-      ('regs', self.cmd_regs, help_regs),
       ('rd8', self.cmd_rd8, help_memrd),
       ('rd16', self.cmd_rd16, help_memrd),
       ('rd32', self.cmd_rd32, help_memrd),
@@ -101,64 +96,64 @@ class mem(object):
       ('wr32', self.cmd_wr32, help_memwr),
     )
 
-  def build_memmap(self):
-    """build the combined soc/cpu memory map"""
-    mm = {}
-    mm.update(self.cpu.memmap)
-    mm.update(self.soc.memmap)
-    return mm
+  #def build_memmap(self):
+    #"""build the combined soc/cpu memory map"""
+    #mm = {}
+    #mm.update(self.cpu.memmap)
+    #mm.update(self.soc.memmap)
+    #return mm
 
-  def build_memio(self):
-    """build memory accessors for each decodable memory region"""
-    d = {}
-    for (name, info) in self.memmap.items():
-      (base, size, r) = info
-      if isinstance(r, regs.regset):
-        d[name] = regs.memio(self.cpu, base, r)
-    return d
+  #def build_memio(self):
+    #"""build memory accessors for each decodable memory region"""
+    #d = {}
+    #for (name, info) in self.memmap.items():
+      #(base, size, r) = info
+      #if isinstance(r, regs.regset):
+        #d[name] = regs.memio(self.cpu, base, r)
+    #return d
 
-  def cmd_map(self, ui, args):
-    """display memory map"""
-    mm = self.memmap.items()
-    # sort by address
-    mm.sort(key = lambda x: x[1][0])
-    next_start = None
-    for (name, info) in mm:
-      start = info[0]
-      size = info[1]
-      common_name = info[2]
-      if not type(info[2]) is str:
-        common_name = info[2].name
-      # print a marker for gaps in the map
-      if (not next_start is None) and (start != next_start):
-        # reserved gap or overlap
-        ui.put('%s\n' % ('...', '!!!')[start < next_start])
-      # display the info for this regiion
-      if size is None:
-        next_start = None
-        ui.put('%-16s: %08x%17s%s\n' % (name, start, '', common_name))
-      else:
-        next_start = start + size
-        ui.put('%-16s: %08x %08x %-6s %s\n' % (name, start, next_start - 1, util.memsize(size), common_name))
+  #def cmd_map(self, ui, args):
+    #"""display memory map"""
+    #mm = self.memmap.items()
+    ## sort by address
+    #mm.sort(key = lambda x: x[1][0])
+    #next_start = None
+    #for (name, info) in mm:
+      #start = info[0]
+      #size = info[1]
+      #common_name = info[2]
+      #if not type(info[2]) is str:
+        #common_name = info[2].name
+      ## print a marker for gaps in the map
+      #if (not next_start is None) and (start != next_start):
+        ## reserved gap or overlap
+        #ui.put('%s\n' % ('...', '!!!')[start < next_start])
+      ## display the info for this regiion
+      #if size is None:
+        #next_start = None
+        #ui.put('%-16s: %08x%17s%s\n' % (name, start, '', common_name))
+      #else:
+        #next_start = start + size
+        #ui.put('%-16s: %08x %08x %-6s %s\n' % (name, start, next_start - 1, util.memsize(size), common_name))
 
-  def cmd_regs(self, ui, args):
-    """display memory mapped registers"""
-    if len(args) == 0:
-      ui.put('specify a memory region name:\n')
-      ui.put('%s\n' % ' '.join(sorted(self.memio.keys())))
-      return
-    if util.wrong_argc(ui, args, (1,)):
-      return
-    # check for a valid name
-    if not args[0] in self.memmap.keys():
-      ui.put('no memory region with this name\n')
-      return
-    # check for a decodable name
-    if not args[0] in self.memio.keys():
-      ui.put('no decode for this memory region\n')
-      return
-    # display the registers
-    ui.put('%s\n' % self.memio[args[0]].emit())
+  #def cmd_regs(self, ui, args):
+    #"""display memory mapped registers"""
+    #if len(args) == 0:
+      #ui.put('specify a memory region name:\n')
+      #ui.put('%s\n' % ' '.join(sorted(self.memio.keys())))
+      #return
+    #if util.wrong_argc(ui, args, (1,)):
+      #return
+    ## check for a valid name
+    #if not args[0] in self.memmap.keys():
+      #ui.put('no memory region with this name\n')
+      #return
+    ## check for a decodable name
+    #if not args[0] in self.memio.keys():
+      #ui.put('no decode for this memory region\n')
+      #return
+    ## display the registers
+    #ui.put('%s\n' % self.memio[args[0]].emit())
 
   def cmd_rd(self, ui, args, n):
     """memory read command for n bits"""

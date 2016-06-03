@@ -364,11 +364,10 @@ class cortexm(object):
     self.target = target
     self.ui = ui
     self.jlink = jlink
-    self.cpu_type = cpu_info['name']
-    self.priority_bits = cpu_info['nvicPrioBits']
+    self.cpu_info = cpu_info
     self.saved_regs = []
     self.width = 32
-    self.memmap = memmaps[self.cpu_type]
+    self.memmap = memmaps[self.cpu_info.name]
 
     # setup the memory mapped registers for this cpu
     self.scb = self.get_memio('scb')
