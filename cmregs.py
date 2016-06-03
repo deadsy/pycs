@@ -3,7 +3,7 @@
 
 Cortex-M Registers
 
-The SVD files typically don't contain the core system periperhals defined for
+The SVD files typically don't contain the core system peripherals defined for
 the Cortex-M CPUs. Some vendors will define system peripherals with SoC
 variablility (E.g. NVIC), but in general a device structure derived from an
 SVD file will need to be appended with the system peripherals.
@@ -43,7 +43,7 @@ FPU_BASE = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 
 # -----------------------------------------------------------------------------
 
-def _build_registers(reg_info):
+def _build_registers(p, reg_info):
   registers = {}
   for (name, offset, descr) in reg_info:
     r = soc.register()
@@ -52,6 +52,7 @@ def _build_registers(reg_info):
     r.size = 32
     r.offset = offset
     r.fields = None
+    r.parent = p
     registers[r.name] = r
   return registers
 
@@ -77,7 +78,7 @@ _cm3_nvic_info = (
   ('IPR', 0x300, 60, '(R/W) Interrupt Priority Register'),
 )
 
-def _build_nvic_registers(nvic_info):
+def _build_nvic_registers(p, nvic_info):
   registers = {}
   for (name, offset, n, descr) in nvic_info:
     for i in range(n):
@@ -87,6 +88,7 @@ def _build_nvic_registers(nvic_info):
       r.size = 32
       r.offset = offset + (i * 4)
       r.fields = None
+      r.parent = p
       registers[r.name] = r
   return registers
 
@@ -97,7 +99,7 @@ def _build_nvic_peripheral(nvic_info):
   p.address = NVIC_BASE
   p.size = None
   p.default_register_size = 32
-  p.registers = _build_nvic_registers(nvic_info)
+  p.registers = _build_nvic_registers(p, nvic_info)
   return p
 
 cm0_nvic = _build_nvic_peripheral(_cm0_nvic_info)
@@ -105,6 +107,27 @@ cm3_nvic = _build_nvic_peripheral(_cm3_nvic_info)
 
 # -----------------------------------------------------------------------------
 # SysTick
+
+"""
+def CLKSOURCE_format(x):
+  return '(%d) %s' % (x, ('cpuclk', 'extclk')[x == 0])
+
+f = []
+f.append(fld('COUNTFLAG', 16, 16))
+f.append(fld('CLKSOURCE', 2, 2, CLKSOURCE_format))
+f.append(fld('TICKINT', 1, 1))
+f.append(fld('ENABLE', 0, 0))
+SysTick_CTRL_fields = fldset('SysTick_CTRL', f)
+
+def TENMS_format(x):
+  return ('0', '(0x%06x) %.2f MHz' % (x, float(x)/1e+4))[x != 0]
+
+f = []
+f.append(fld('NOREF', 31, 31))
+f.append(fld('SKEW', 30, 30))
+f.append(fld('TENMS', 23, 0, TENMS_format))
+SysTick_CALIB_fields = fldset('SysTick_CALIB', f)
+"""
 
 # name, offset, description
 _systick_info = (
@@ -120,11 +143,38 @@ _p.description = 'SysTick'
 _p.address = SysTick_BASE
 _p.size = None
 _p.default_register_size = 32
-_p.registers = _build_registers(_systick_info)
+_p.registers = _build_registers(_p, _systick_info)
 systick = _p
 
 # -----------------------------------------------------------------------------
 # System Control Block
+
+"""
+def Implementor_format(x):
+  names = {
+    0x41: 'ARM',
+  }
+  return '(0x%02x) %s' % (x, names.get(x, '?'))
+
+def Part_Number_format(x):
+  names = {
+    0xc60: 'cortex-m0+',
+    0xc20: 'cortex-m0',
+    0xc21: 'cortex-m1',
+    0xc23: 'cortex-m3',
+    0xc24: 'cortex-m4',
+    0xc27: 'cortex-m7',
+  }
+  return '(0x%03x) %s' % (x, names.get(x, '?'))
+
+f = []
+f.append(fld('Implementor', 31, 24, Implementor_format))
+f.append(fld('Variant', 23, 20))
+f.append(fld('Architecture', 19, 16))
+f.append(fld('Part Number', 15, 4, Part_Number_format))
+f.append(fld('Revision', 3, 0))
+CPUID_fields = fldset('CPUID', f)
+"""
 
 # name, offset, description
 _cm0_scb_info = (
@@ -180,7 +230,7 @@ def _build_scb_peripheral(info):
   p.address = SCB_BASE
   p.size = None
   p.default_register_size = 32
-  p.registers = _build_registers(info)
+  p.registers = _build_registers(p, info)
   return p
 
 cm0_scb = _build_scb_peripheral(_cm0_scb_info)
@@ -218,7 +268,7 @@ def _build_mpu_peripheral(info):
   p.address = MPU_BASE
   p.size = None
   p.default_register_size = 32
-  p.registers = _build_registers(info)
+  p.registers = _build_registers(p, info)
   return p
 
 cm0_mpu = _build_mpu_peripheral(_cm0_mpu_info)
@@ -241,7 +291,7 @@ _p.description = 'Floating Point Unit'
 _p.address = FPU_BASE
 _p.size = None
 _p.default_register_size = 32
-_p.registers = _build_registers(_cm4_fpu_info)
+_p.registers = _build_registers(_p, _cm4_fpu_info)
 cm4_fpu = _p
 
 # -----------------------------------------------------------------------------

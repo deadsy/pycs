@@ -30,11 +30,9 @@ class target(object):
     self.ui = ui
     self.device = st.get_device(self.ui, soc_name)
     self.jlink = jlink.JLink(usb_number, self.device.cpu_info.name, jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device.cpu_info)
-    self.device.set_cpu(self.cpu)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
+    self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-
-    #self.soc = soc.soc(self.cpu, info)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),

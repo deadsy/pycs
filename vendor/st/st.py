@@ -10,6 +10,7 @@ Run fixup functions to correct any SVD inadequecies.
 #-----------------------------------------------------------------------------
 
 import soc
+import cmregs
 
 #-----------------------------------------------------------------------------
 # ST typically doesn't provide cpu information in the SVD files
@@ -18,6 +19,19 @@ import soc
 def cm4_fixup(d):
   d.cpu_info.name = 'CM4'
   d.cpu_info.nvicPrioBits = 4
+  d.insert(cmregs.systick)
+  d.insert(cmregs.cm3_scb)
+  d.insert(cmregs.cm3_mpu)
+  d.insert(cmregs.cm4_fpu)
+
+#-----------------------------------------------------------------------------
+
+def STM32F407xx_fixup(d):
+  # some of the peripherals have weird sizes.
+  # set them to None so the memory map looks nicer
+  d.OTG_HS_GLOBAL.size = None
+  d.OTG_HS_PWRCLK.size = None
+  d.NVIC.size = None
 
 #-----------------------------------------------------------------------------
 # build a database of SoC devices
@@ -31,7 +45,7 @@ soc_db = {}
 s = soc_info()
 s.name = 'STM32F407xx'
 s.svd = 'STM32F40x'
-s.cpu_fixup = cm4_fixup
+s.fixups = (cm4_fixup, STM32F407xx_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
@@ -45,31 +59,8 @@ def get_device(ui, name):
   svd_file = './vendor/st/svd/%s.svd.gz' % info.svd
   ui.put('%s: building %s\n' % (name, svd_file))
   device = soc.build_device(svd_file)
-  info.cpu_fixup(device)
+  for f in info.fixups:
+    f(device)
   return device
-
-#-----------------------------------------------------------------------------
-
-#class soc(object):
-  #"""stm32 SoC"""
-
-  #def __init__(self, cpu, info):
-    #self.cpu = cpu
-    #self.info = info
-    #self.exceptions = cortexm.build_exceptions(info['vtable'])
-    #self.memmap = self.build_memmap()
-
-    #self.menu = (
-      #('exceptions', self.cmd_exceptions),
-    #)
-
-  #def build_memmap(self):
-    #"""build the soc memory map"""
-    ## TODO - build the tweaked map
-    #return self.info['memmap']
-
-  #def cmd_exceptions(self, ui, args):
-    #"""display exceptions table"""
-    #ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
 
 #-----------------------------------------------------------------------------

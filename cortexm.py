@@ -11,7 +11,6 @@ import time
 import util
 import iobuf
 import jlink
-from regs import fld, fldset, reg32, reg16, reg8, regset, memio
 
 # -----------------------------------------------------------------------------
 
@@ -42,347 +41,30 @@ _reg_names = (
   ('cpsr', jlink.REG_CPSR),
 )
 
-# -----------------------------------------------------------------------------
-# SysTick
-
-def CLKSOURCE_format(x):
-  return '(%d) %s' % (x, ('cpuclk', 'extclk')[x == 0])
-
-f = []
-f.append(fld('COUNTFLAG', 16, 16))
-f.append(fld('CLKSOURCE', 2, 2, CLKSOURCE_format))
-f.append(fld('TICKINT', 1, 1))
-f.append(fld('ENABLE', 0, 0))
-SysTick_CTRL_fields = fldset('SysTick_CTRL', f)
-
-def TENMS_format(x):
-  return ('0', '(0x%06x) %.2f MHz' % (x, float(x)/1e+4))[x != 0]
-
-f = []
-f.append(fld('NOREF', 31, 31))
-f.append(fld('SKEW', 30, 30))
-f.append(fld('TENMS', 23, 0, TENMS_format))
-SysTick_CALIB_fields = fldset('SysTick_CALIB', f)
-
-r = []
-r.append(reg32('CTRL', 0x00, SysTick_CTRL_fields)) # (R/W) SysTick Control and Status Register
-r.append(reg32('LOAD', 0x04)) # (R/W) SysTick Reload Value Register
-r.append(reg32('VAL', 0x08)) # (R/W) SysTick Current Value Register
-r.append(reg32('CALIB', 0x0c, SysTick_CALIB_fields)) # (R/ ) SysTick Calibration Register
-systick_regs = regset('system tick', r)
-
 # systick is a 24-bit down counter
 SysTick_MAXCOUNT = (1 << 24) - 1
-
-# -----------------------------------------------------------------------------
-# System Control Block
-
-def Implementor_format(x):
-  names = {
-    0x41: 'ARM',
-  }
-  return '(0x%02x) %s' % (x, names.get(x, '?'))
-
-def Part_Number_format(x):
-  names = {
-    0xc60: 'cortex-m0+',
-    0xc20: 'cortex-m0',
-    0xc21: 'cortex-m1',
-    0xc23: 'cortex-m3',
-    0xc24: 'cortex-m4',
-    0xc27: 'cortex-m7',
-  }
-  return '(0x%03x) %s' % (x, names.get(x, '?'))
-
-f = []
-f.append(fld('Implementor', 31, 24, Implementor_format))
-f.append(fld('Variant', 23, 20))
-f.append(fld('Architecture', 19, 16))
-f.append(fld('Part Number', 15, 4, Part_Number_format))
-f.append(fld('Revision', 3, 0))
-CPUID_fields = fldset('CPUID', f)
-
-r = []
-r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
-r.append(reg32('ICSR', 0x004)) # (R/W) Interrupt Control and State Register
-r.append(reg32('VTOR', 0x008)) # (R/W) Vector Table Offset Register
-r.append(reg32('AIRCR', 0x00C)) # (R/W) Application Interrupt and Reset Control Register
-r.append(reg32('SCR', 0x010)) # (R/W) System Control Register
-r.append(reg32('CCR', 0x014)) # (R/W) Configuration Control Register
-r.append(reg8('SHPR', 0x018, None)) # base register for access
-r.append(reg32('SHPR1', 0x018)) # (R/W) System Handlers Priority Registers
-r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
-r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
-r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
-r.append(reg32('CFSR', 0x028)) # (R/W) Configurable Fault Status Register
-r.append(reg8('MMSR', 0x028)) # (R/W) MemManage Fault Status Register
-r.append(reg8('BFSR', 0x029)) # (R/W) BusFault Status Register
-r.append(reg16('UFSR', 0x02a)) # (R/W) UsageFault Status Register
-r.append(reg32('HFSR', 0x02C)) # (R/W) HardFault Status Register
-r.append(reg32('DFSR', 0x030)) # (R/W) Debug Fault Status Register
-r.append(reg32('MMFAR', 0x034)) # (R/W) MemManage Fault Address Register
-r.append(reg32('BFAR', 0x038)) # (R/W) BusFault Address Register
-r.append(reg32('AFSR', 0x03C)) # (R/W) Auxiliary Fault Status Register
-r.append(reg32('ID_PFR0', 0x040)) # (R/ ) Processor Feature Register
-r.append(reg32('ID_PFR1', 0x044)) # (R/ ) Processor Feature Register
-r.append(reg32('ID_DFR0', 0x048)) # (R/ ) Debug Feature Register
-r.append(reg32('ID_ADR0', 0x04C)) # (R/ ) Auxiliary Feature Register
-r.append(reg32('ID_MMFR0', 0x050)) # (R/ ) Memory Model Feature Register
-r.append(reg32('ID_MMFR1', 0x054)) # (R/ ) Memory Model Feature Register
-r.append(reg32('ID_MMFR2', 0x058)) # (R/ ) Memory Model Feature Register
-r.append(reg32('ID_MMFR3', 0x05c)) # (R/ ) Memory Model Feature Register
-r.append(reg32('ID_ISAR0', 0x060)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ID_ISAR1', 0x064)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ID_ISAR2', 0x068)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ID_ISAR3', 0x06c)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('ID_ISAR4', 0x070)) # (R/ ) Instruction Set Attributes Register
-r.append(reg32('CPACR', 0x088)) # (R/W) Coprocessor Access Control Register
-r.append(reg32('STIR', 0x200)) #( /W) Software Trigger Interrupt Register
-scb_m4_regs = regset('system control block', r)
-
-r = []
-r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
-r.append(reg32('ICSR', 0x004)) # (R/W) Interrupt Control and State Register
-r.append(reg32('VTOR', 0x008)) # (R/W) Vector Table Offset Register
-r.append(reg32('AIRCR', 0x00C)) # (R/W) Application Interrupt and Reset Control Register
-r.append(reg32('SCR', 0x010)) # (R/W) System Control Register
-r.append(reg32('CCR', 0x014)) # (R/W) Configuration Control Register
-r.append(reg8('SHPR', 0x018, None)) # base register for access
-r.append(reg32('SHPR2', 0x01c)) # (R/W) System Handlers Priority Registers
-r.append(reg32('SHPR3', 0x020)) # (R/W) System Handlers Priority Registers
-r.append(reg32('SHCSR', 0x024)) # (R/W) System Handler Control and State Register
-scb_m0_plus_regs = regset('system control block', r)
-
-r = []
-r.append(reg32('CPUID', 0x000, CPUID_fields)) # (R/ ) CPUID Base Register
-cpuid_regs = regset('cpu id', r)
-
-# -----------------------------------------------------------------------------
-# Memory Protection Unit
-
-r = []
-r.append(reg32('TYPE', 0x00)) # (R/ ) MPU Type Register
-r.append(reg32('CTRL', 0x04)) # (R/W) MPU Control Register
-r.append(reg32('RNR', 0x08)) # (R/W) MPU Region RNRber Register
-r.append(reg32('RBAR', 0x0C)) # (R/W) MPU Region Base Address Register
-r.append(reg32('RASR', 0x10)) # (R/W) MPU Region Attribute and Size Register
-r.append(reg32('RBAR_A1', 0x14)) # (R/W) MPU Alias 1 Region Base Address Register
-r.append(reg32('RASR_A1', 0x18)) # (R/W) MPU Alias 1 Region Attribute and Size Register
-r.append(reg32('RBAR_A2', 0x1C)) # (R/W) MPU Alias 2 Region Base Address Register
-r.append(reg32('RASR_A2', 0x20)) # (R/W) MPU Alias 2 Region Attribute and Size Register
-r.append(reg32('RBAR_A3', 0x24)) # (R/W) MPU Alias 3 Region Base Address Register
-r.append(reg32('RASR_A3', 0x28)) # (R/W) MPU Alias 3 Region Attribute and Size Register
-mpu_m4_regs = regset('memory protection unit', r)
-
-r = []
-r.append(reg32('TYPE', 0x00)) # (R/ ) MPU Type Register
-r.append(reg32('CTRL', 0x04)) # (R/W) MPU Control Register
-r.append(reg32('RNR', 0x08)) # (R/W) MPU Region RNRber Register
-r.append(reg32('RBAR', 0x0C)) # (R/W) MPU Region Base Address Register
-r.append(reg32('RASR', 0x10)) # (R/W) MPU Region Attribute and Size Register
-mpu_m0_plus_regs = regset('memory protection unit', r)
-
-# -----------------------------------------------------------------------------
-# Floating Point Unit
-
-r = []
-r.append(reg32('FPCCR', 0x04)) # (R/W) Floating-Point Context Control Register
-r.append(reg32('FPCAR', 0x08)) # (R/W) Floating-Point Context Address Register
-r.append(reg32('FPDSCR', 0x0C)) # (R/W) Floating-Point Default Status Control Register
-r.append(reg32('MVFR0', 0x10)) # (R/ ) Media and FP Feature Register 0
-r.append(reg32('MVFR1', 0x14)) # (R/ ) Media and FP Feature Register 1
-fpu_regs = regset('floating point unit', r)
-
-# -----------------------------------------------------------------------------
-# Nested Vectored Interrupt Controller
-
-r = []
-r.append(reg32('ISER0', 0x000)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER1', 0x004)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER2', 0x008)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER3', 0x00c)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER4', 0x010)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER5', 0x014)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER6', 0x018)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ISER7', 0x01c)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ICER0', 0x080)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER1', 0x084)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER2', 0x088)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER3', 0x08c)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER4', 0x090)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER5', 0x094)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER6', 0x098)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ICER7', 0x09c)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ISPR0', 0x100)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR1', 0x104)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR2', 0x108)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR3', 0x10c)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR4', 0x110)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR5', 0x114)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR6', 0x118)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ISPR7', 0x11c)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ICPR0', 0x180)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR1', 0x184)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR2', 0x188)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR3', 0x18c)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR4', 0x190)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR5', 0x194)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR6', 0x198)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('ICPR7', 0x19c)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('IABR0', 0x200)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR1', 0x204)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR2', 0x208)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR3', 0x20c)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR4', 0x210)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR5', 0x214)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR6', 0x218)) # (R/W) Interrupt Active bit Register
-r.append(reg32('IABR7', 0x21c)) # (R/W) Interrupt Active bit Register
-r.append(reg8('IPR', 0x300, None)) # byte access
-r.append(reg32('IPR0', 0x300)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR1', 0x304)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR2', 0x308)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR3', 0x30c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR4', 0x310)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR5', 0x314)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR6', 0x318)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR7', 0x31c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR8', 0x320)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR9', 0x324)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR10', 0x328)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR11', 0x32c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR12', 0x330)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR13', 0x334)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR14', 0x338)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR15', 0x33c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR16', 0x340)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR17', 0x344)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR18', 0x348)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR19', 0x34c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR20', 0x350)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR21', 0x354)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR22', 0x358)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR23', 0x35c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR24', 0x360)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR25', 0x364)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR26', 0x368)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR27', 0x36c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR28', 0x370)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR29', 0x374)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR30', 0x378)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR31', 0x37c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR32', 0x380)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR33', 0x384)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR34', 0x388)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR35', 0x38c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR36', 0x390)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR37', 0x394)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR38', 0x398)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR39', 0x39c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR40', 0x3a0)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR41', 0x3a4)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR42', 0x3a8)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR43', 0x3ac)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR44', 0x3b0)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR45', 0x3b4)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR46', 0x3b8)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR47', 0x3bc)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR48', 0x3c0)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR49', 0x3c4)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR50', 0x3c8)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR51', 0x3cc)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR52', 0x3d0)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR53', 0x3d4)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR54', 0x3d8)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR55', 0x3dc)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR56', 0x3e0)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR57', 0x3e4)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR58', 0x3e8)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR59', 0x3ec)) # (R/W) Interrupt Priority Register
-nvic_m4_regs = regset('nested vectored interrupt controller', r)
-
-r = []
-r.append(reg32('ISER0', 0x000)) # (R/W) Interrupt Set Enable Register
-r.append(reg32('ICER0', 0x080)) # (R/W) Interrupt Clear Enable Register
-r.append(reg32('ISPR0', 0x100)) # (R/W) Interrupt Set Pending Register
-r.append(reg32('ICPR0', 0x180)) # (R/W) Interrupt Clear Pending Register
-r.append(reg32('IABR0', 0x200, None)) # not implemented on cortex-m0+
-r.append(reg8('IPR', 0x300, None)) # byte access
-r.append(reg32('IPR0', 0x300)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR1', 0x304)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR2', 0x308)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR3', 0x30c)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR4', 0x310)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR5', 0x314)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR6', 0x318)) # (R/W) Interrupt Priority Register
-r.append(reg32('IPR7', 0x31c)) # (R/W) Interrupt Priority Register
-nvic_m0_plus_regs = regset('nested vectored interrupt controller', r)
-
-# -----------------------------------------------------------------------------
-# Memory mapping of Cortex-Mx Hardware
-
-SCS_BASE        = 0xE000E000 # System Control Space Base Address
-ITM_BASE        = 0xE0000000 # ITM Base Address
-DWT_BASE        = 0xE0001000 # DWT Base Address
-TPI_BASE        = 0xE0040000 # TPI Base Address
-CoreDebug_BASE  = 0xE000EDF0 # Core Debug Base Address
-SysTick_BASE    = (SCS_BASE + 0x0010) # SysTick Base Address
-NVIC_BASE       = (SCS_BASE + 0x0100) # NVIC Base Address
-SCB_BASE        = (SCS_BASE + 0x0D00) # System Control Block Base Address
-MPU_BASE        = (SCS_BASE + 0x0D90) # Memory Protection Unit Base Address
-FPU_BASE        = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
-
-# Note: The various sets of registers are in general not in contiguous
-# regions- they are interleaved with one another while belonging to different
-# functional groups. So- we define a base address- but no size
-
-m4_memmap = {
-  'nvic': (NVIC_BASE, None, nvic_m4_regs),
-  'fpu': (FPU_BASE, None, fpu_regs),
-  'mpu': (MPU_BASE, None, mpu_m4_regs),
-  'scb': (SCB_BASE, None, scb_m4_regs),
-  'systick': (SysTick_BASE, None, systick_regs),
-}
-
-m0_plus_memmap = {
-  'nvic': (NVIC_BASE, None, nvic_m0_plus_regs),
-  'mpu': (MPU_BASE, None, mpu_m0_plus_regs),
-  'scb': (SCB_BASE, None, scb_m0_plus_regs),
-  'systick': (SysTick_BASE, None, systick_regs),
-}
-
-memmaps = {
-  'CM4': m4_memmap,
-  'CM0+': m0_plus_memmap,
-  'CM0PLUS': m0_plus_memmap,
-}
 
 # -----------------------------------------------------------------------------
 
 class cortexm(object):
 
-  def __init__(self, target, ui, jlink, cpu_info):
+  def __init__(self, target, ui, jlink, device):
     self.target = target
     self.ui = ui
     self.jlink = jlink
-    self.cpu_info = cpu_info
+    self.device = device
     self.saved_regs = []
     self.width = 32
-    self.memmap = memmaps[self.cpu_info.name]
 
     # setup the memory mapped registers for this cpu
-    self.scb = self.get_memio('scb')
-    self.systick = self.get_memio('systick')
-    self.nvic = self.get_memio('nvic')
+    self.scb = self.device.SCB
+    self.systick = self.device.SysTick
+    self.nvic = self.device.NVIC
 
     self.menu = (
       ('cpuid', self.cmd_cpuid),
       ('rate', self.cmd_systick_rate),
     )
-
-  def get_memio(self, name):
-    """return a memory accessor for a named register set"""
-    (base, size, regs) = self.memmap[name]
-    return memio(self, base, regs)
 
   def rd(self, adr, n):
     """read from memory - n bits aligned"""
@@ -538,13 +220,13 @@ class cortexm(object):
     """return the systick count after t seconds"""
     self.halt()
     # save the current settings
-    saved_ctrl = self.systick.rd('CTRL')
-    saved_load = self.systick.rd('LOAD')
-    saved_val = self.systick.rd('VAL')
+    saved_ctrl = self.systick.CTRL.rd()
+    saved_load = self.systick.LOAD.rd()
+    saved_val = self.systick.VAL.rd()
     # setup systick
-    self.systick.wr('CTRL', (cpuclk << 2) | (1 << 0))
-    self.systick.wr('VAL', SysTick_MAXCOUNT)
-    self.systick.wr('LOAD', SysTick_MAXCOUNT)
+    self.systick.CTRL.wr((cpuclk << 2) | (1 << 0))
+    self.systick.VAL.wr(SysTick_MAXCOUNT)
+    self.systick.LOAD.wr(SysTick_MAXCOUNT)
     # run for a while
     self.go()
     t_start = time.time()
@@ -552,11 +234,11 @@ class cortexm(object):
     t = time.time() - t_start
     self.halt()
     # read the counter
-    stop = self.systick.rd('VAL')
+    stop = self.systick.VAL.rd()
     # restore the saved settings
-    self.systick.wr('VAL', saved_val)
-    self.systick.wr('LOAD', saved_load)
-    self.systick.wr('CTRL', saved_ctrl)
+    self.systick.VAL.wr(saved_val)
+    self.systick.LOAD.wr(saved_load)
+    self.systick.CTRL.wr(saved_ctrl)
     # return the tick count and time
     return (SysTick_MAXCOUNT - stop, t)
 
@@ -584,8 +266,7 @@ class cortexm(object):
 
   def cmd_cpuid(self, ui, args):
     """display the cpu identifier"""
-    cpuid = memio(self, SCB_BASE, cpuid_regs)
-    ui.put('%s\n' % cpuid.emit())
+    ui.put('%s\n' % self.device.SCB.CPUID.display())
 
 # -----------------------------------------------------------------------------
 # return a string for the current state of the exceptions
