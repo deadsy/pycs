@@ -59,51 +59,58 @@ def _build_registers(p, reg_info):
 # -----------------------------------------------------------------------------
 #  Nested Vectored Interrupt Controller
 
-# base_name, offset, number, description
-_cm0_nvic_info = (
-  ('ISER', 0x000, 1, '(R/W) Interrupt Set Enable Register'),
-  ('ICER', 0x080, 1, '(R/W) Interrupt Clear Enable Register'),
-  ('ISPR', 0x100, 1, '(R/W) Interrupt Set Pending Register'),
-  ('ICPR', 0x180, 1, '(R/W) Interrupt Clear Pending Register'),
-  ('IABR', 0x200, 1, '(R/W) Interrupt Active Bit Register'),
-  ('IPR', 0x300, 8, '(R/W) Interrupt Priority Register'),
-)
-
-_cm3_nvic_info = (
-  ('ISER', 0x000, 8, '(R/W) Interrupt Set Enable Register'),
-  ('ICER', 0x080, 8, '(R/W) Interrupt Clear Enable Register'),
-  ('ISPR', 0x100, 8, '(R/W) Interrupt Set Pending Register'),
-  ('ICPR', 0x180, 8, '(R/W) Interrupt Clear Pending Register'),
-  ('IABR', 0x200, 8, '(R/W) Interrupt Active Bit Register'),
-  ('IPR', 0x300, 60, '(R/W) Interrupt Priority Register'),
-)
-
 def _build_nvic_registers(p, nvic_info):
   registers = {}
   for (name, offset, n, descr) in nvic_info:
-    for i in range(n):
+    if n is None:
+      # single instance of the register
       r = soc.register()
-      r.name = '%s%d' % (name, i)
-      r.description = '%s %d' % (descr, i)
+      r.name = name
+      r.description = descr
       r.size = 32
-      r.offset = offset + (i * 4)
+      r.offset = offset
       r.fields = None
       r.parent = p
       registers[r.name] = r
+    else:
+      # multiple registers 0..n-1
+      for i in range(n):
+        r = soc.register()
+        r.name = '%s%d' % (name, i)
+        r.description = '%s %d' % (descr, i)
+        r.size = 32
+        r.offset = offset + (i * 4)
+        r.fields = None
+        r.parent = p
+        registers[r.name] = r
   return registers
 
-def _build_nvic_peripheral(nvic_info):
+def build_nvic(n_ext):
+  """build an nvic peripheral with n external interrupts"""
+
+  # IPR registers support 4 interrupts per word.
+  n_ipr = (n_ext + 3) >> 2
+  # Other registers support 1 interrupt per bit
+  n_other = (n_ext + 31) >> 5
+
+  nvic_info = (
+    ('ICTR', 0x004, None, '(R/ ) Interrupt Controller Type Register'),
+    ('ISER', 0x100, n_other, '(R/W) Interrupt Set Enable Register'),
+    ('ICER', 0x180, n_other, '(R/W) Interrupt Clear Enable Register'),
+    ('ISPR', 0x200, n_other, '(R/W) Interrupt Set Pending Register'),
+    ('ICPR', 0x280, n_other, '(R/W) Interrupt Clear Pending Register'),
+    ('IABR', 0x300, n_other, '(R/W) Interrupt Active Bit Register'),
+    ('IPR', 0x400, n_ipr, '(R/W) Interrupt Priority Register'),
+  )
+
   p = soc.peripheral()
   p.name = 'NVIC'
   p.description = 'Nested Vectored Interrupt Controller'
-  p.address = NVIC_BASE
+  p.address = SCS_BASE
   p.size = None
   p.default_register_size = 32
   p.registers = _build_nvic_registers(p, nvic_info)
   return p
-
-cm0_nvic = _build_nvic_peripheral(_cm0_nvic_info)
-cm3_nvic = _build_nvic_peripheral(_cm3_nvic_info)
 
 # -----------------------------------------------------------------------------
 # SysTick
