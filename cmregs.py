@@ -136,6 +136,9 @@ f.append(fld('TENMS', 23, 0, TENMS_format))
 SysTick_CALIB_fields = fldset('SysTick_CALIB', f)
 """
 
+# systick is a 24-bit down counter
+SysTick_MAXCOUNT = (1 << 24) - 1
+
 # name, offset, description
 _systick_info = (
   ('CTRL', 0x00, '(R/W) SysTick Control and Status Register'),

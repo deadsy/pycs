@@ -11,6 +11,8 @@ import time
 import util
 import iobuf
 import jlink
+import cmregs
+import soc
 
 # -----------------------------------------------------------------------------
 
@@ -41,8 +43,55 @@ _reg_names = (
   ('cpsr', jlink.REG_CPSR),
 )
 
-# systick is a 24-bit down counter
-SysTick_MAXCOUNT = (1 << 24) - 1
+# -----------------------------------------------------------------------------
+# System Exceptions
+
+NUM_SYS_EXC = 16
+
+Reset_IRQn = -15
+NMI_IRQn = -14
+HardFault_IRQn = -13
+MemManage_IRQn = -12
+BusFault_IRQn = -11
+UsageFault_IRQn = -10
+SVCall_IRQn = -5
+DebugMonitor_IRQn = -4
+PendSV_IRQn = -2
+SysTick_IRQn = -1
+
+# name, number
+_system_exceptions = (
+  ('Reset', Reset_IRQn),
+  ('NMI', NMI_IRQn),
+  ('HardFault', HardFault_IRQn),
+  ('MemManage', MemManage_IRQn),
+  ('BusFault', BusFault_IRQn),
+  ('UsageFault', UsageFault_IRQn),
+  ('SVCall', SVCall_IRQn),
+  ('DebugMonitor', DebugMonitor_IRQn),
+  ('PendSV', PendSV_IRQn),
+  ('SysTick', SysTick_IRQn),
+)
+
+def add_system_exceptions(device):
+  """Add the system exceptions to the interrupt dictionary"""
+  for (name, irq) in _system_exceptions:
+    i = soc.interrupt()
+    i.name = name
+    i.description = None
+    i.irq = irq
+    # add it to the device
+    i.parent = device
+    device.interrupts[i.name] = i
+
+def find_irq(i_list, irq):
+  """return the index number of the interrupt list element matching irq"""
+  n = 0
+  for i in i_list:
+    if i.irq == irq:
+      return n
+    n += 1
+  return None
 
 # -----------------------------------------------------------------------------
 
@@ -55,11 +104,7 @@ class cortexm(object):
     self.device = device
     self.saved_regs = []
     self.width = 32
-
-    # setup the memory mapped registers for this cpu
-    self.scb = self.device.SCB
-    self.systick = self.device.SysTick
-    self.nvic = self.device.NVIC
+    self.priority_bits = self.device.cpu_info.nvicPrioBits
 
     self.menu = (
       ('cpuid', self.cmd_cpuid),
@@ -139,15 +184,14 @@ class cortexm(object):
       return -1
     elif irq < 0:
       # system exceptions
-      return self.scb.rd('SHPR', irq + NUM_SYS_EXC - 4) >> (8 - self.priority_bits)
+      return self.device.SCB.SHPR1.rd8(irq + NUM_SYS_EXC - 4) >> (8 - self.priority_bits)
     else:
       # interrupt handlers
-      return self.nvic.rd('IPR', irq) >> (8 - self.priority_bits)
+      return self.device.NVIC.IPR0.rd8(irq) >> (8 - self.priority_bits)
 
   def NVIC_GetPriorityGrouping(self):
     """return the priority grouping number"""
-    scb = self.get_memio('scb')
-    return (scb.rd('AIRCR') >> 8) & 7
+    return (self.device.SCB.AIRCR.rd() >> 8) & 7
 
   def NVIC_DecodePriority(self, priority, group):
     """decode a priority level"""
@@ -219,14 +263,15 @@ class cortexm(object):
   def systick_rate(self, t, cpuclk):
     """return the systick count after t seconds"""
     self.halt()
+    systick = self.device.SysTick
     # save the current settings
-    saved_ctrl = self.systick.CTRL.rd()
-    saved_load = self.systick.LOAD.rd()
-    saved_val = self.systick.VAL.rd()
+    saved_ctrl = systick.CTRL.rd()
+    saved_load = systick.LOAD.rd()
+    saved_val = systick.VAL.rd()
     # setup systick
-    self.systick.CTRL.wr((cpuclk << 2) | (1 << 0))
-    self.systick.VAL.wr(SysTick_MAXCOUNT)
-    self.systick.LOAD.wr(SysTick_MAXCOUNT)
+    systick.CTRL.wr((cpuclk << 2) | (1 << 0))
+    systick.VAL.wr(cmregs.SysTick_MAXCOUNT)
+    systick.LOAD.wr(cmregs.SysTick_MAXCOUNT)
     # run for a while
     self.go()
     t_start = time.time()
@@ -234,13 +279,13 @@ class cortexm(object):
     t = time.time() - t_start
     self.halt()
     # read the counter
-    stop = self.systick.VAL.rd()
+    stop = systick.VAL.rd()
     # restore the saved settings
-    self.systick.VAL.wr(saved_val)
-    self.systick.LOAD.wr(saved_load)
-    self.systick.CTRL.wr(saved_ctrl)
+    systick.VAL.wr(saved_val)
+    systick.LOAD.wr(saved_load)
+    systick.CTRL.wr(saved_ctrl)
     # return the tick count and time
-    return (SysTick_MAXCOUNT - stop, t)
+    return (cmregs.SysTick_MAXCOUNT - stop, t)
 
   def measure_systick(self, ui, msg, cpuclk):
     """measure systick rate"""
@@ -249,7 +294,7 @@ class cortexm(object):
     (c, t) = self.systick_rate(0.05, cpuclk)
     if c:
       # longer measurement for better accuracy
-      t = 0.8 * t * float(SysTick_MAXCOUNT) / float(c)
+      t = 0.8 * t * float(cmregs.SysTick_MAXCOUNT) / float(c)
       # clamp the time to a maximum limit
       if t > 4:
         t = 4
@@ -268,115 +313,88 @@ class cortexm(object):
     """display the cpu identifier"""
     ui.put('%s\n' % self.device.SCB.CPUID.display())
 
-# -----------------------------------------------------------------------------
-# return a string for the current state of the exceptions
-# This is a generic CPU function but to do this properly we need some information
-# from the SoC. So- this function is not a part of the cpu object.
+  def cmd_vtable(self, ui, args):
+    """display the exceptions vector table"""
+    s = []
+    group = self.NVIC_GetPriorityGrouping()
+    vtable = self.device.SCB.VTOR.rd()
+    icsr = self.device.SCB.ICSR.rd()
+    shcsr = self.device.SCB.SHCSR.rd()
 
-system_exceptions = {
-  1: 'Reset',
-  2: 'NMI',
-  3: 'HardFault',
-  4: 'MemManage',
-  5: 'BusFault',
-  6: 'UsageFault',
-  11: 'SVCall',
-  12: 'DebugMonitor',
-  14: 'PendSV',
-  15: 'SysTick',
-}
+    s.append('%-19s: %s' % ('priority grouping', self.NVIC_DecodeString(group)))
+    s.append('%-19s: %08x' % ('vector table', vtable))
+    s.append('Name                 Exc Irq EPA Prio Vector')
 
-NUM_SYS_EXC = 16
+    i_list = self.device.interrupt_list()
+    # stip superfluous prefix/suffix from external interrupt names
+    names = [i.name for i in i_list]
+    # don't include the system exceptions
+    k = find_irq(i_list, 0)
+    irq_names = names[k:]
+    util.rm_prefix(irq_names, ('INT_',))
+    util.rm_suffix(irq_names, ('_IRQ',))
+    names[k:] = irq_names
 
-Reset_IRQn = -15
-NMI_IRQn = -14
-HardFault_IRQn = -13
-MemManage_IRQn = -12
-BusFault_IRQn = -11
-UsageFault_IRQn = -10
-SVCall_IRQn = -5
-DebugMonitor_IRQn = -4
-PendSV_IRQn = -2
-SysTick_IRQn = -1
+    for (name, i) in zip(names, i_list):
+      irq = i.irq
+      n = i.irq + NUM_SYS_EXC
 
-def build_exceptions(vector_table):
-  """combine the system exceptions with an SoC irq vector table"""
-  d = dict(system_exceptions)
-  for (k, v) in vector_table.iteritems():
-    d[k + NUM_SYS_EXC] = v
-  return d
+      l = []
+      l.append('%-19s: ' % name) # name
+      l.append('%-3d ' % n) # exception number
+      l.append(('-   ', '%-3d ' % irq)[irq >= 0]) # irq number
 
-def exceptions_str(cpu, soc):
-  s = []
-  group = cpu.NVIC_GetPriorityGrouping()
-  vtable = cpu.scb.rd('VTOR')
-  icsr = cpu.scb.rd('ICSR')
-  shcsr = cpu.scb.rd('SHCSR')
+      # enabled/pending/active
+      enabled = pending = active = -1
+      if irq >= 0:
+        idx = (irq >> 5) & 7
+        shift = irq & 31
+        enabled = (self.device.NVIC.ISER0.rd(idx) >> shift) & 1
+        pending = (self.device.NVIC.ISPR0.rd(idx) >> shift) & 1
+        active = (self.device.NVIC.IABR0.rd(idx) >> shift) & 1
+      else:
+        if irq == NMI_IRQn:
+          enabled = 1
+          pending = (icsr >> 31) & 1
+        elif irq == MemManage_IRQn:
+          enabled = (shcsr >> 16) & 1
+          pending = (shcsr >> 13) & 1
+          active = (shcsr >> 0) & 1
+        elif irq == BusFault_IRQn:
+          enabled = (shcsr >> 17) & 1
+          pending = (shcsr >> 14) & 1
+          active = (shcsr >> 1) & 1
+        elif irq == UsageFault_IRQn:
+          enabled = (shcsr >> 18) & 1
+          pending = (shcsr >> 12) & 1
+          active = (shcsr >> 3) & 1
+        elif irq == SVCall_IRQn:
+          pending = (shcsr >> 15) & 1
+          active = (shcsr >> 7) & 1
+        elif irq == DebugMonitor_IRQn:
+          active = (shcsr >> 8) & 1
+        elif irq == PendSV_IRQn:
+          pending = (icsr >> 28) & 1
+        elif irq == SysTick_IRQn:
+          enabled = (self.device.SysTick.CTRL.rd() >> 1) & 1
+          pending = (icsr >> 26) & 1
+      l.append(util.format_bit(enabled, 'e'))
+      l.append(util.format_bit(pending, 'p'))
+      l.append(util.format_bit(active, 'a'))
+      l.append(' ')
 
-  s.append('%-19s: %s' % ('priority grouping', cpu.NVIC_DecodeString(group)))
-  s.append('%-19s: %08x' % ('vector table', vtable))
-  s.append('Name                 Exc Irq EPA Prio Vector')
-  for i in sorted(soc.exceptions.keys()):
-    l = []
-    irq = i - NUM_SYS_EXC
+      # priority
+      priority = self.NVIC_GetPriority(irq)
+      if priority < 0:
+        tmp = '%-4d' % priority
+      else:
+        tmp = '%d.%d' % self.NVIC_DecodePriority(priority, group)
+      l.append('%-4s ' % tmp)
 
-    # name
-    l.append('%-19s: ' % soc.exceptions[i])
-    # exception number
-    l.append('%-3d ' % i)
-    # irq number
-    l.append(('-   ', '%-3d ' % irq)[irq >= 0])
+      # vector
+      l.append('%08x ' % (self.rd(vtable + (n * 4), 32) & ~1))
+      s.append(''.join(l))
 
-    # enabled/pending/active
-    enabled = pending = active = -1
-    if irq >= 0:
-      idx = (irq >> 5) & 7
-      shift = irq & 31
-      enabled = (cpu.nvic.rd('ISER0', idx) >> shift) & 1
-      pending = (cpu.nvic.rd('ISPR0', idx) >> shift) & 1
-      active = (cpu.nvic.rd('IABR0', idx) >> shift) & 1
-    else:
-      if irq == NMI_IRQn:
-        enabled = 1
-        pending = (icsr >> 31) & 1
-      elif irq == MemManage_IRQn:
-        enabled = (shcsr >> 16) & 1
-        pending = (shcsr >> 13) & 1
-        active = (shcsr >> 0) & 1
-      elif irq == BusFault_IRQn:
-        enabled = (shcsr >> 17) & 1
-        pending = (shcsr >> 14) & 1
-        active = (shcsr >> 1) & 1
-      elif irq == UsageFault_IRQn:
-        enabled = (shcsr >> 18) & 1
-        pending = (shcsr >> 12) & 1
-        active = (shcsr >> 3) & 1
-      elif irq == SVCall_IRQn:
-        pending = (shcsr >> 15) & 1
-        active = (shcsr >> 7) & 1
-      elif irq == DebugMonitor_IRQn:
-        active = (shcsr >> 8) & 1
-      elif irq == PendSV_IRQn:
-        pending = (icsr >> 28) & 1
-      elif irq == SysTick_IRQn:
-        enabled = (cpu.systick.rd('CTRL') >> 1) & 1
-        pending = (icsr >> 26) & 1
-    l.append(util.format_bit(enabled, 'e'))
-    l.append(util.format_bit(pending, 'p'))
-    l.append(util.format_bit(active, 'a'))
-    l.append(' ')
-
-    # priority
-    priority = cpu.NVIC_GetPriority(irq)
-    if priority < 0:
-      tmp = '%-4d' % priority
-    else:
-      tmp = '%d.%d' % cpu.NVIC_DecodePriority(priority, group)
-    l.append('%-4s ' % tmp)
-
-    # vector
-    l.append('%08x ' % (cpu.rd(vtable + (i * 4), 32) & ~1))
-    s.append(''.join(l))
-  return '\n'.join(s)
+    ui.put('%s\n' % '\n'.join(s))
 
 # -----------------------------------------------------------------------------

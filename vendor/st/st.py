@@ -11,6 +11,7 @@ Run fixup functions to correct any SVD inadequecies.
 
 import soc
 import cmregs
+import cortexm
 
 #-----------------------------------------------------------------------------
 # ST typically doesn't provide cpu information in the SVD files
@@ -23,6 +24,7 @@ def cm4_fixup(d):
   d.insert(cmregs.cm3_scb)
   d.insert(cmregs.cm3_mpu)
   d.insert(cmregs.cm4_fpu)
+  cortexm.add_system_exceptions(d)
 
 #-----------------------------------------------------------------------------
 

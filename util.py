@@ -265,6 +265,46 @@ def format_bit(x, c):
 
 # -----------------------------------------------------------------------------
 
+def rm_prefix(names, prefix_set):
+  if prefix_set is None:
+    return
+  # find the longest matching prefix for all names
+  n = 0
+  for p in prefix_set:
+    match = True
+    for x in names:
+      if not x.startswith(p):
+        match = False
+        break
+    if match and len(p) > n:
+      n = len(p)
+  # remove the prefix
+  if n:
+    #print('removing prefix %s' % names[0][:n])
+    for i in xrange(len(names)):
+      names[i] = names[i][n:]
+
+def rm_suffix(names, suffix_set):
+  if suffix_set is None:
+    return
+  # find the longest matching suffix for all names
+  n = 0
+  for s in suffix_set:
+    match = True
+    for x in names:
+      if not x.endswith(s):
+        match = False
+        break
+    if match and len(s) > n:
+      n = len(s)
+  # remove the suffix
+  if n:
+    #print('removing suffix %s' % names[0][-n:])
+    for i in xrange(len(names)):
+      names[i] = names[i][:-n]
+
+# -----------------------------------------------------------------------------
+
 class progress:
   """percent complete and activity indication"""
 

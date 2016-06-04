@@ -45,6 +45,7 @@ class target(object):
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
       ('regs', self.cmd_regs, soc.help_regs),
+      ('vtable', self.cpu.cmd_vtable),
     )
 
     self.ui.cli.set_root(self.menu_root)

@@ -176,6 +176,9 @@ class register(object):
   def rd(self, idx = 0):
     return self.cpu.rd(self.adr(idx, self.size), self.size)
 
+  def rd8(self, idx = 0):
+    return self.cpu.rd(self.adr(idx, 8), 8)
+
   def wr(self, val, idx = 0):
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
@@ -319,6 +322,13 @@ class device(object):
     p_list.sort(key = lambda x : x.address)
     return p_list
 
+  def interrupt_list(self):
+    """return an ordered interrupt list"""
+    # sort by irq order
+    i_list = self.interrupts.values()
+    i_list.sort(key = lambda x : x.irq)
+    return i_list
+
   def cmd_map(self, ui, args):
     """display the memory map"""
     next_start = None
@@ -355,9 +365,7 @@ class device(object):
 
     # dump the interrupts in irq order
     s.append('interrupts = {}')
-    i_list = self.interrupts.values()
-    i_list.sort(key = lambda x : x.irq)
-    for i in i_list:
+    for i in self.interrupt_list():
       s.append('%s' % i)
 
     s.append('device = soc.device()')
