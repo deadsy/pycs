@@ -192,10 +192,11 @@ class register(object):
     pad = ('', ' ')[self.size == 8]
     s.append('[%d:0] %s= ' % (self.size - 1, pad))
     if val == 0:
-      s.append('0')
+      s.append('0         ')
     else:
       fmt = '0x%%0%dx' % (self.size / 4)
       s.append(fmt % val)
+    s.append(' %s' % self.description)
     s = ''.join(s)
     #if self.fields:
     #  return '%s\n%s' % (s, self.fields.emit(val))
@@ -313,6 +314,7 @@ class device(object):
   def insert(self, p):
     """insert a peripheral into the device"""
     assert self.peripherals.has_key(p.name) == False, 'device already has peripheral %s' % p.name
+    p.parent = self
     self.peripherals[p.name] = p
 
   def peripheral_list(self):

@@ -194,6 +194,7 @@ _cm0_scb_info = (
   ('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register'),
   ('SCR', 0x010, '(R/W) System Control Register'),
   ('CCR', 0x014, '(R/W) Configuration Control Register'),
+  ('SHPR1', 0x018, '(R/W) System Handlers Priority Registers'), # not implemented on cm0
   ('SHPR2', 0x01c, '(R/W) System Handlers Priority Registers'),
   ('SHPR3', 0x020, '(R/W) System Handlers Priority Registers'),
   ('SHCSR', 0x024, '(R/W) System Handler Control and State Register'),
