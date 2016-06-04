@@ -3,67 +3,62 @@
 
 SoC file for NXP Kinetis Devices
 
+Read in the SVD file for a named SoC.
+Run fixup functions to correct any SVD inadequecies.
+
 """
 #-----------------------------------------------------------------------------
 
+import soc
+import cmregs
 import cortexm
-from regs import fld, fld_set, reg32, reg16, reg8, regset, memio
 
 #-----------------------------------------------------------------------------
 
-# Vector Tables
-# irq_number : name
-
-vtable0 = {
-}
-
-memmap0 = {
-}
-
-MK64FN1M0VLL12_info = {
-  'name': 'MK64FN1M0VLL12',
-  'cpu_type': 'cortex-m4',
-  'priority_bits': 4,
-  'vtable': vtable0,
-  'memmap': memmap0,
-}
+def cm4_fixup(d):
+  d.cpu_info.name = 'CM4'
+  d.cpu_info.nvicPrioBits = 4
+  # nvic
+  d.deviceNumInterrupts = 106
+  d.remove(d.NVIC)
+  d.insert(cmregs.build_nvic(d.deviceNumInterrupts))
+  # systick
+  d.remove(d.SysTick)
+  d.insert(cmregs.systick)
+  # scb
+  d.remove(d.SystemControl)
+  d.insert(cmregs.cm3_scb)
+  d.insert(cmregs.cm4_fpu)
+  cortexm.add_system_exceptions(d)
 
 #-----------------------------------------------------------------------------
+# build a database of SoC devices
+
+class soc_info(object):
+  def __init__(self):
+    pass
 
 soc_db = {}
 
-def db_insert(info):
-  soc_db[info['name']] = info
-
-def lookup(name):
-  if soc_db.has_key(name):
-    return soc_db[name]
-  assert False, 'unknown SoC device %s' % device
-
-db_insert(MK64FN1M0VLL12_info)
+s = soc_info()
+s.name = 'MK64FN1M0VLL12'
+s.svd = 'MK64F12'
+s.fixups = (cm4_fixup,)
+soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
 
-class soc(object):
-  """NXP Kinetis SoC"""
-
-  def __init__(self, cpu, info):
-    self.cpu = cpu
-    self.info = info
-    self.exceptions = cortexm.build_exceptions(info['vtable'])
-    self.memmap = self.build_memmap()
-
-    self.menu = (
-      ('exceptions', self.cmd_exceptions),
-    )
-
-  def build_memmap(self):
-    """build the soc memory map"""
-    # TODO - build the tweaked map
-    return self.info['memmap']
-
-  def cmd_exceptions(self, ui, args):
-    """display the exceptions table"""
-    ui.put('%s\n' % cortexm.exceptions_str(self.cpu, self))
+def get_device(ui, name):
+  """return the device structure for the named SoC"""
+  if not soc_db.has_key(name):
+    assert False, 'unknown SoC name %s' % name
+    return None
+  info = soc_db[name]
+  svd_file = './vendor/nxp/svd/%s.svd.gz' % info.svd
+  ui.put('%s: building %s\n' % (name, svd_file))
+  device = soc.build_device(svd_file)
+  for f in info.fixups:
+    f(device)
+  return device
 
 #-----------------------------------------------------------------------------

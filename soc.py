@@ -317,6 +317,11 @@ class device(object):
     p.parent = self
     self.peripherals[p.name] = p
 
+  def remove(self, p):
+    """remove a peripheral from the device"""
+    assert self.peripherals.has_key(p.name) == True, 'device does not have peripheral %s' % p.name
+    del self.peripherals[p.name]
+
   def peripheral_list(self):
     """return an ordered peripheral list"""
     # sort in base address order
@@ -338,9 +343,9 @@ class device(object):
       start = p.address
       size = p.size
       # print a marker for gaps in the map
-      if (not next_start is None) and (start != next_start):
-        # reserved gap or overlap
-        ui.put('%s\n' % ('...', '!!!')[start < next_start])
+      #if (not next_start is None) and (start != next_start):
+        ## reserved gap or overlap
+        #ui.put('%s\n' % ('...', '!!!')[start < next_start])
       if size is None:
         next_start = None
         ui.put('%-16s: %08x%17s%s\n' % (p.name, start, '', p.description))

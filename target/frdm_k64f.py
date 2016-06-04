@@ -12,8 +12,9 @@ import conio
 import cli
 import jlink
 import cortexm
-import soc.kinetis as soc
 import mem
+import soc
+import vendor.nxp.kinetis as kinetis
 
 # -----------------------------------------------------------------------------
 
@@ -27,11 +28,11 @@ class target(object):
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    info = soc.lookup(soc_name)
-    self.jlink = jlink.JLink(usb_number, info['cpu_type'], jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink, info['cpu_type'], info['priority_bits'])
-    self.soc = soc.soc(self.cpu, info)
-    self.mem = mem.mem(self.cpu, self.soc)
+    self.device = kinetis.get_device(self.ui, soc_name)
+    self.jlink = jlink.JLink(usb_number, self.device.cpu_info.name, jlink._JLINKARM_TIF_SWD)
+    self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
+    self.device.bind_cpu(self.cpu)
+    self.mem = mem.mem(self.cpu)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -41,14 +42,22 @@ class target(object):
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
       ('jlink', self.jlink.cmd_jlink),
+      ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
-      ('regs', self.cpu.cmd_regs),
-      ('soc', self.soc.menu, 'system on chip functions'),
+      ('regs', self.cmd_regs, soc.help_regs),
+      ('vtable', self.cpu.cmd_vtable),
     )
 
     self.ui.cli.set_root(self.menu_root)
     self.set_prompt()
     self.jlink.cmd_jlink(self.ui, None)
+
+  def cmd_regs(self, ui, args):
+    """display registers"""
+    if len(args) == 0:
+      self.cpu.cmd_regs(ui, args)
+    else:
+      self.device.cmd_regs(ui, args)
 
   def set_prompt(self):
     indicator = ('*', '')[self.jlink.is_halted()]
