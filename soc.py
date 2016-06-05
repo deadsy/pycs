@@ -149,6 +149,20 @@ class field(object):
   def __init__(self):
     pass
 
+  def display(self, val):
+    mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
+    val = (val & mask) >> self.lsb
+    if self.msb == self.lsb:
+      name = '%s[%d]' % (self.name, self.lsb)
+    else:
+      name = '%s[%d:%d]' % (self.name, self.msb, self.lsb)
+    pad = ' ' * 2
+    if val < 10:
+      val_str = '%d' % val
+    else:
+      val_str = '0x%x' % val
+    return '%s%-31s: %-28s%s' % (pad, name, val_str, self.description)
+
   def __str__(self):
     s = []
     s.append('f = soc.field()')
@@ -182,25 +196,35 @@ class register(object):
   def wr(self, val, idx = 0):
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
-  def display(self):
+  def field_list(self):
+    """return an ordered fields list"""
+    # build a list of fields in most significant bit order
+    f_list = self.fields.values()
+    f_list.sort(key = lambda x : x.msb, reverse = True)
+    return f_list
+
+  def display(self, display_fields):
     """return a display string for this register"""
     adr = self.adr(0, self.size)
     val = self.rd()
-    s = []
-    s.append('%-32s : ' % self.name)
-    s.append('%08x' % adr)
+    l = []
+    l.append('%-32s : ' % self.name)
+    l.append('%08x' % adr)
     pad = ('', ' ')[self.size == 8]
-    s.append('[%d:0] %s= ' % (self.size - 1, pad))
+    l.append('[%d:0] %s= ' % (self.size - 1, pad))
     if val == 0:
-      s.append('0         ')
+      val_str = '0'
     else:
       fmt = '0x%%0%dx' % (self.size / 4)
-      s.append(fmt % val)
-    s.append(' %s' % self.description)
-    s = ''.join(s)
-    #if self.fields:
-    #  return '%s\n%s' % (s, self.fields.emit(val))
-    return s
+      val_str = fmt % val
+
+    l.append('%-10s' % val_str)
+    l.append(' %s' % self.description)
+    s = [''.join(l),]
+    if display_fields and self.fields:
+      for f in self.field_list():
+        s.append(f.display(val))
+    return '\n'.join(s)
 
   def __str__(self):
     s = []
@@ -245,11 +269,11 @@ class peripheral(object):
     r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
     return r_list
 
-  def display(self):
+  def display(self, display_fields):
     """return a display string for this peripheral"""
     s = []
     for r in self.register_list():
-      s.append(r.display())
+      s.append(r.display(display_fields))
     return '\n'.join(s)
 
   def __str__(self):
@@ -338,27 +362,33 @@ class device(object):
 
   def cmd_map(self, ui, args):
     """display the memory map"""
-    next_start = None
     for p in self.peripheral_list():
       start = p.address
       size = p.size
-      # print a marker for gaps in the map
-      #if (not next_start is None) and (start != next_start):
-        ## reserved gap or overlap
-        #ui.put('%s\n' % ('...', '!!!')[start < next_start])
       if size is None:
-        next_start = None
         ui.put('%-16s: %08x%17s%s\n' % (p.name, start, '', p.description))
       else:
-        next_start = start + size
-        ui.put('%-16s: %08x %08x %-6s %s\n' % (p.name, start, next_start - 1, util.memsize(size), p.description))
+        ui.put('%-16s: %08x %08x %-6s %s\n' % (p.name, start, start + size - 1, util.memsize(size), p.description))
 
   def cmd_regs(self, ui, args):
     """display peripheral registers"""
-    if self.peripherals.has_key(args[0]):
-      ui.put('%s\n' % self.peripherals[args[0]].display())
-    else:
+    if util.wrong_argc(ui, args, (1,2)):
+      return
+    if not self.peripherals.has_key(args[0]):
       ui.put("no peripheral named '%s' (run 'map' command for the names)\n" % args[0])
+      return
+    p = self.peripherals[args[0]]
+    if len(args) == 1:
+      ui.put('%s\n' % p.display(False))
+      return
+    if args[1] == '*':
+      ui.put('%s\n' % p.display(True))
+      return
+    if not p.registers.has_key(args[1]):
+      ui.put("no register named '%s' (run 'regs %s' command for the names)\n" % (args[1], args[0]))
+      return
+    r = p.registers[args[1]]
+    ui.put('%s\n' % r.display(True))
 
   def __str__(self):
     s = []
