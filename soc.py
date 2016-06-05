@@ -150,18 +150,18 @@ class field(object):
     pass
 
   def display(self, val):
+    """return display columns (name, val, '', descr) for this field"""
     mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
     val = (val & mask) >> self.lsb
     if self.msb == self.lsb:
-      name = '%s[%d]' % (self.name, self.lsb)
+      name = '  %s[%d]' % (self.name, self.lsb)
     else:
-      name = '%s[%d:%d]' % (self.name, self.msb, self.lsb)
-    pad = ' ' * 2
+      name = '  %s[%d:%d]' % (self.name, self.msb, self.lsb)
     if val < 10:
-      val_str = '%d' % val
+      val_str = ': %d' % val
     else:
-      val_str = '0x%x' % val
-    return '%s%-31s: %-28s%s' % (pad, name, val_str, self.description)
+      val_str = ': 0x%x' % val
+    return [name, val_str, '', self.description]
 
   def __str__(self):
     s = []
@@ -204,27 +204,22 @@ class register(object):
     return f_list
 
   def display(self, display_fields):
-    """return a display string for this register"""
+    """return display columns (name, adr, val, descr) for this register"""
     adr = self.adr(0, self.size)
     val = self.rd()
-    l = []
-    l.append('%-32s : ' % self.name)
-    l.append('%08x' % adr)
-    pad = ('', ' ')[self.size == 8]
-    l.append('[%d:0] %s= ' % (self.size - 1, pad))
+    adr_str = ': %08x[%d:0]' % (adr, self.size - 1)
     if val == 0:
-      val_str = '0'
+      val_str = '= 0'
     else:
-      fmt = '0x%%0%dx' % (self.size / 4)
+      fmt = '= 0x%%0%dx' % (self.size / 4)
       val_str = fmt % val
-
-    l.append('%-10s' % val_str)
-    l.append(' %s' % self.description)
-    s = [''.join(l),]
+    clist = []
+    clist.append([self.name, adr_str, val_str, self.description])
+    # output the fields
     if display_fields and self.fields:
       for f in self.field_list():
-        s.append(f.display(val))
-    return '\n'.join(s)
+        clist.append(f.display(val))
+    return clist
 
   def __str__(self):
     s = []
@@ -269,12 +264,18 @@ class peripheral(object):
     r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
     return r_list
 
-  def display(self, display_fields):
+  def display(self, register_name = None, fields= False):
     """return a display string for this peripheral"""
-    s = []
-    for r in self.register_list():
-      s.append(r.display(display_fields))
-    return '\n'.join(s)
+    clist = []
+    if register_name is not None:
+      # decode a single register
+      r = self.registers[register_name]
+      clist.extend(r.display(fields))
+    else:
+      # decose all registers
+      for r in self.register_list():
+        clist.extend(r.display(fields))
+    return util.display_cols(clist, [16,0,0,0])
 
   def __str__(self):
     s = []
@@ -362,13 +363,16 @@ class device(object):
 
   def cmd_map(self, ui, args):
     """display the memory map"""
+    clist = []
     for p in self.peripheral_list():
       start = p.address
       size = p.size
       if size is None:
-        ui.put('%-16s: %08x%17s%s\n' % (p.name, start, '', p.description))
+        region = ': %08x' % start
       else:
-        ui.put('%-16s: %08x %08x %-6s %s\n' % (p.name, start, start + size - 1, util.memsize(size), p.description))
+        region = ': %08x %08x %s' % (start, start + size - 1, util.memsize(size))
+      clist.append([p.name, region, p.description])
+    ui.put('%s\n' % util.display_cols(clist, [0,28,0]))
 
   def cmd_regs(self, ui, args):
     """display peripheral registers"""
@@ -379,16 +383,15 @@ class device(object):
       return
     p = self.peripherals[args[0]]
     if len(args) == 1:
-      ui.put('%s\n' % p.display(False))
+      ui.put('%s\n' % p.display(fields = False))
       return
     if args[1] == '*':
-      ui.put('%s\n' % p.display(True))
+      ui.put('%s\n' % p.display(fields = True))
       return
     if not p.registers.has_key(args[1]):
       ui.put("no register named '%s' (run 'regs %s' command for the names)\n" % (args[1], args[0]))
       return
-    r = p.registers[args[1]]
-    ui.put('%s\n' % r.display(True))
+    ui.put('%s\n' % p.display(args[1], fields = True))
 
   def __str__(self):
     s = []

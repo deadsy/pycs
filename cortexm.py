@@ -321,9 +321,10 @@ class cortexm(object):
     icsr = self.device.SCB.ICSR.rd()
     shcsr = self.device.SCB.SHCSR.rd()
 
-    s.append('%-19s: %s' % ('priority grouping', self.NVIC_DecodeString(group)))
-    s.append('%-19s: %08x' % ('vector table', vtable))
-    s.append('Name                 Exc Irq EPA Prio Vector')
+    s.append('priority group : %s' % self.NVIC_DecodeString(group))
+    s.append('vector table   : %08x' % vtable)
+    s.append('')
+    ui.put('%s\n' % '\n'.join(s))
 
     i_list = self.device.interrupt_list()
     # stip superfluous prefix/suffix from external interrupt names
@@ -335,15 +336,14 @@ class cortexm(object):
     util.rm_suffix(irq_names, ('_IRQ',))
     names[k:] = irq_names
 
+    clist = []
+    clist.append(['Name','  Exc','Irq','EPA','Prio','Vector', ''])
+
     for (name, i) in zip(names, i_list):
       irq = i.irq
       n = i.irq + NUM_SYS_EXC
-
-      l = []
-      l.append('%-19s: ' % name) # name
-      l.append('%-3d ' % n) # exception number
-      l.append(('-   ', '%-3d ' % irq)[irq >= 0]) # irq number
-
+      exc_n = ': %d' % n
+      irq_n = ('-', '%d' % irq)[irq >= 0]
       # enabled/pending/active
       enabled = pending = active = -1
       if irq >= 0:
@@ -378,23 +378,20 @@ class cortexm(object):
         elif irq == SysTick_IRQn:
           enabled = (self.device.SysTick.CTRL.rd() >> 1) & 1
           pending = (icsr >> 26) & 1
+      l = []
       l.append(util.format_bit(enabled, 'e'))
       l.append(util.format_bit(pending, 'p'))
       l.append(util.format_bit(active, 'a'))
-      l.append(' ')
-
+      epa = ''.join(l)
       # priority
       priority = self.NVIC_GetPriority(irq)
       if priority < 0:
-        tmp = '%-4d' % priority
+        prio = '%d' % priority
       else:
-        tmp = '%d.%d' % self.NVIC_DecodePriority(priority, group)
-      l.append('%-4s ' % tmp)
-
+        prio = '%d.%d' % self.NVIC_DecodePriority(priority, group)
       # vector
-      l.append('%08x ' % (self.rd(vtable + (n * 4), 32) & ~1))
-      s.append(''.join(l))
-
-    ui.put('%s\n' % '\n'.join(s))
+      vector = '%08x' % (self.rd(vtable + (n * 4), 32) & ~1)
+      clist.append([name, exc_n, irq_n, epa, prio, vector, i.description])
+    ui.put('%s\n' % util.display_cols(clist, [0,0,0,0,0,0,0]))
 
 # -----------------------------------------------------------------------------
