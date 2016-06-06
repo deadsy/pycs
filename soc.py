@@ -144,6 +144,32 @@ class interrupt(object):
 
 # -----------------------------------------------------------------------------
 
+class enumval(object):
+
+  def __init__(self):
+    pass
+
+  def __str__(self):
+    s = []
+    return '\n'.join(s)
+
+# -----------------------------------------------------------------------------
+
+class enumvals(object):
+
+  def __init__(self):
+    pass
+
+  def __str__(self):
+    s = []
+    s.append('e = soc.enumvals()')
+    s.append('e.name = %s' % attribute_string(self.name))
+    s.append('e.usage = %s' % attribute_string(self.usage))
+    s.append('enumvals[%s] = e\n' % attribute_string(self.name))
+    return '\n'.join(s)
+
+# -----------------------------------------------------------------------------
+
 class field(object):
 
   def __init__(self):
@@ -165,11 +191,19 @@ class field(object):
 
   def __str__(self):
     s = []
+    if self.enumvals is not None:
+      # dump the enumerate values in name order
+      s.append('enumvals = {}')
+      e_list = self.enumvals.values()
+      e_list.sort(key = lambda x : x.name)
+      for e in e_list:
+        s.append('%s' % e)
     s.append('f = soc.field()')
     s.append('f.name = %s' % attribute_string(self.name))
     s.append('f.description = %s' % attribute_string(self.description))
     s.append('f.msb = %d' % self.msb)
     s.append('f.lsb = %d' % self.lsb)
+    s.append('f.enumvals = %s' % ('enumvals', 'None')[self.enumvals is None])
     s.append('fields[%s] = f\n' % attribute_string(self.name))
     return '\n'.join(s)
 
@@ -425,6 +459,20 @@ class device(object):
 
 # -----------------------------------------------------------------------------
 
+def build_enumvals(f, svd_f):
+  """build the enumvals for a field"""
+  if svd_f.enumeratedValues is None:
+    f.enumvals = None
+  else:
+    f.enumvals = {}
+    for svd_e in svd_f.enumeratedValues:
+      e = enumvals()
+      e.name = svd_e.name
+      e.usage = svd_e.usage
+      # add it to the field
+      e.parent = f
+      f.enumvals[e.name] = e
+
 def build_fields(r, svd_r):
   """build the fields for a register"""
   if svd_r.fields is None:
@@ -448,6 +496,7 @@ def build_fields(r, svd_r):
         assert False, 'need to work out bit field for %s' % f.name
       f.msb = msb
       f.lsb = lsb
+      build_enumvals(f, svd_f)
       # add it to the register
       f.parent = r
       r.fields[f.name] = f

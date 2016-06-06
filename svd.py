@@ -140,6 +140,22 @@ class parser(object):
     self.tree = ET.parse(path)
     self.root = self.tree.getroot()
 
+  def get_enumvalue(self, node):
+    e = svd_object()
+    e.attribute(string_node(node, 'name'))
+    e.attribute(string_node(node, 'description'))
+    e.attribute(integer_node(node, 'value'))
+    e.attribute(boolean_node(node, 'isDefault'))
+    return e
+
+  def get_enumvalues(self, node):
+    e = svd_object()
+    e.attribute(string_node(node, 'name'))
+    e.attribute(string_node(node, 'usage'))
+    e.list_attribute([self.get_enumvalue(x) for x in node.findall('.//enumeratedValue')], 'enumeratedValue')
+    e.derivedFrom = node.get('derivedFrom')
+    return e
+
   def get_field(self, node):
     f = svd_object()
     f.attribute(string_node(node, 'name'))
@@ -150,7 +166,10 @@ class parser(object):
     f.attribute(integer_node(node, 'lsb'))
     f.attribute(integer_node(node, 'msb'))
     f.attribute(string_node(node, 'bitRange'))
+    f.list_attribute([self.get_enumvalues(x) for x in node.findall('.//enumeratedValues')], 'enumeratedValues')
     f.derivedFrom = node.get('derivedFrom')
+    # if an enumerated value set is "derivedFrom" another enumerated value set, add a derived_from reference
+    set_derived_from(f.enumeratedValues, 'enumeratedValues')
     return f
 
   def get_register(self, node):
