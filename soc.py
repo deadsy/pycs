@@ -151,6 +151,11 @@ class enumval(object):
 
   def __str__(self):
     s = []
+    s.append('ev = soc.enumval()')
+    s.append('ev.name = %s' % attribute_string(self.name))
+    s.append('ev.description = %s' % attribute_string(self.description))
+    s.append('ev.value = %d' % self.value)
+    s.append('enumval[%d] = ev\n' % self.value)
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
@@ -162,10 +167,18 @@ class enumvals(object):
 
   def __str__(self):
     s = []
+    if self.enumval is not None:
+      # dump the enumerate values in name order
+      s.append('enumval = {}')
+      e_list = self.enumval.values()
+      e_list.sort(key = lambda x : x.name)
+      for e in e_list:
+        s.append('%s' % e)
     s.append('e = soc.enumvals()')
     s.append('e.name = %s' % attribute_string(self.name))
     s.append('e.usage = %s' % attribute_string(self.usage))
-    s.append('enumvals[%s] = e\n' % attribute_string(self.name))
+    s.append('e.enumval = %s' % ('enumval', 'None')[self.enumval is None])
+    s.append('enumvals.append(e)\n')
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
@@ -173,7 +186,7 @@ class enumvals(object):
 class field(object):
 
   def __init__(self):
-    pass
+    self.fmt = None
 
   def display(self, val):
     """return display columns (name, val, '', descr) for this field"""
@@ -183,19 +196,26 @@ class field(object):
       name = '  %s[%d]' % (self.name, self.lsb)
     else:
       name = '  %s[%d:%d]' % (self.name, self.msb, self.lsb)
-    if val < 10:
-      val_str = ': %d' % val
+    if callable(self.fmt):
+      val_str = self.fmt(val)
     else:
-      val_str = ': 0x%x' % val
+      val_name = ''
+      if self.enumvals is not None and len(self.enumvals) >= 1:
+        # find the enumvals with usage == read, or just find one
+        for e in self.enumvals:
+          if e.usage == 'read':
+            break
+        val_name = e.enumval[val].name
+      val_str = (': 0x%x %s' % (val, val_name), ': %d %s' % (val, val_name))[val < 10]
     return [name, val_str, '', self.description]
 
   def __str__(self):
     s = []
     if self.enumvals is not None:
       # dump the enumerate values in name order
-      s.append('enumvals = {}')
-      e_list = self.enumvals.values()
-      e_list.sort(key = lambda x : x.name)
+      s.append('enumvals = []')
+      e_list = self.enumvals
+      e_list.sort(key = lambda x : x.usage)
       for e in e_list:
         s.append('%s' % e)
     s.append('f = soc.field()')
@@ -459,19 +479,38 @@ class device(object):
 
 # -----------------------------------------------------------------------------
 
+def build_enumval(e, svd_e):
+  if svd_e.enumeratedValue is None:
+    e.enumval = None
+  else:
+    e.enumval = {}
+    for svd_ev in svd_e.enumeratedValue:
+      ev = enumval()
+      ev.name = svd_ev.name
+      ev.description = description_cleanup(svd_ev.description)
+      ev.value = svd_ev.value
+      ev.isDefault = svd_ev.isDefault
+      # add it to the field
+      ev.parent = e
+      # store by value - that's the way we want to use it.
+      e.enumval[ev.value] = ev
+
 def build_enumvals(f, svd_f):
   """build the enumvals for a field"""
   if svd_f.enumeratedValues is None:
     f.enumvals = None
   else:
-    f.enumvals = {}
+    # enumvals is a list rather than a dictionary.
+    # vendors don't have to name the enumvals, so we don't have a key
+    f.enumvals = []
     for svd_e in svd_f.enumeratedValues:
       e = enumvals()
       e.name = svd_e.name
       e.usage = svd_e.usage
+      build_enumval(e, svd_e)
       # add it to the field
       e.parent = f
-      f.enumvals[e.name] = e
+      f.enumvals.append(e)
 
 def build_fields(r, svd_r):
   """build the fields for a register"""
