@@ -403,9 +403,11 @@ class device(object):
 
   def peripheral_list(self):
     """return an ordered peripheral list"""
-    # sort in base address order
+    # build a list of peripherals in base address order
+    # base addresses for peripherals are not always unique. e.g. nordic chips
+    # so tie break with the name to give a well-defined sort order
     p_list = self.peripherals.values()
-    p_list.sort(key = lambda x : x.address)
+    p_list.sort(key = lambda x : (x.address << 16) + sum(bytearray(x.name)))
     return p_list
 
   def interrupt_list(self):
