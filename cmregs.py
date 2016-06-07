@@ -26,6 +26,7 @@ Register and peripheral names are taken from the ARM documentation.
 # -----------------------------------------------------------------------------
 
 import soc
+import cortexm
 
 # -----------------------------------------------------------------------------
 # Memory mapping of Cortex-Mx Hardware
@@ -170,12 +171,12 @@ def Implementor_format(x):
 
 def Part_Number_format(x):
   names = {
-    0xc60: 'cortex-m0+',
-    0xc20: 'cortex-m0',
-    0xc21: 'cortex-m1',
-    0xc23: 'cortex-m3',
-    0xc24: 'cortex-m4',
-    0xc27: 'cortex-m7',
+    0xc60: 'CM0+',
+    0xc20: 'CM0',
+    0xc21: 'CM1',
+    0xc23: 'CM3',
+    0xc24: 'CM4',
+    0xc27: 'CM7',
   }
   return '(0x%03x) %s' % (x, names.get(x, '?'))
 
@@ -318,5 +319,16 @@ cm4_fpu = _p
 
 # -----------------------------------------------------------------------------
 # Trace Port Interface Unit
+
+# -----------------------------------------------------------------------------
+# CPU Fixup Functions
+
+def cm0_fixup(d):
+  d.cpu_info.name = 'CM0'
+  d.cpu_info.nvicPrioBits = 2
+  d.insert(systick)
+  d.insert(cm0_scb)
+  d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
+  cortexm.add_system_exceptions(d)
 
 # -----------------------------------------------------------------------------

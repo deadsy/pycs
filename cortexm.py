@@ -311,7 +311,7 @@ class cortexm(object):
 
   def cmd_cpuid(self, ui, args):
     """display the cpu identifier"""
-    ui.put('%s\n' % self.device.SCB.CPUID.display())
+    ui.put('%s\n' % self.device.SCB.display('CPUID', fields = True))
 
   def cmd_vtable(self, ui, args):
     """display the exceptions vector table"""
