@@ -22,9 +22,12 @@ class soc_info(object):
 soc_db = {}
 
 #-----------------------------------------------------------------------------
+# nRF51822
 
 def nRF51822_fixup(d):
   d.cpu_info.deviceNumInterrupts = 32
+  d.insert(soc.build_memory(('ram', 'Data RAM', 0x20000000, 16 << 10)))
+  d.insert(soc.build_memory(('flash', 'Code FLASH', 0, 256 << 10)))
 
 s = soc_info()
 s.name = 'nRF51822'
@@ -41,7 +44,7 @@ def get_device(ui, name):
     return None
   info = soc_db[name]
   svd_file = './vendor/nordic/svd/%s.svd.gz' % info.svd
-  ui.put('%s: building %s\n' % (name, svd_file))
+  ui.put('%s: compiling %s\n' % (name, svd_file))
   device = soc.build_device(svd_file)
   for f in info.fixups:
     f(device)

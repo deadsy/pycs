@@ -201,11 +201,12 @@ class field(object):
     else:
       val_name = ''
       if self.enumvals is not None and len(self.enumvals) >= 1:
-        # find the enumvals with usage == read, or just find one
+        # find the enumvals with usage 'read', or just find one
         for e in self.enumvals:
           if e.usage == 'read':
             break
-        val_name = e.enumval[val].name
+        if e.enumval.has_key(val):
+          val_name = e.enumval[val].name
       val_str = (': 0x%x %s' % (val, val_name), ': %d %s' % (val, val_name))[val < 10]
     return [name, val_str, '', self.description]
 
@@ -307,8 +308,9 @@ class peripheral(object):
   def bind_cpu(self, cpu):
     """bind a cpu to the peripheral"""
     self.cpu = cpu
-    for r in self.registers.values():
-      r.bind_cpu(cpu)
+    if self.registers:
+      for r in self.registers.values():
+        r.bind_cpu(cpu)
 
   def register_list(self):
     """return an ordered register list"""
@@ -320,16 +322,19 @@ class peripheral(object):
 
   def display(self, register_name = None, fields= False):
     """return a display string for this peripheral"""
-    clist = []
-    if register_name is not None:
-      # decode a single register
-      r = self.registers[register_name]
-      clist.extend(r.display(fields))
-    else:
-      # decose all registers
-      for r in self.register_list():
+    if self.registers:
+      clist = []
+      if register_name is not None:
+        # decode a single register
+        r = self.registers[register_name]
         clist.extend(r.display(fields))
-    return util.display_cols(clist, [16,0,0,0])
+      else:
+        # decode all registers
+        for r in self.register_list():
+          clist.extend(r.display(fields))
+      return util.display_cols(clist, [0,0,0,0])
+    else:
+      return 'no registers for %s' % self.name
 
   def __str__(self):
     s = []
@@ -428,7 +433,7 @@ class device(object):
       else:
         region = ': %08x %08x %s' % (start, start + size - 1, util.memsize(size))
       clist.append([p.name, region, p.description])
-    ui.put('%s\n' % util.display_cols(clist, [0,28,0]))
+    ui.put('%s\n' % util.display_cols(clist, [0,0,0]))
 
   def cmd_regs(self, ui, args):
     """display peripheral registers"""
@@ -480,6 +485,7 @@ class device(object):
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
+# build a device from an svd file
 
 def build_enumval(e, svd_e):
   if svd_e.enumeratedValue is None:
@@ -657,5 +663,18 @@ def build_device(svdpath):
   build_peripherals(d, svd_device)
   build_interrupts(d, svd_device)
   return d
+
+# -----------------------------------------------------------------------------
+
+def build_memory(x):
+  """build and return a memory peripheral"""
+  (name, description, address, size) = x
+  p = peripheral()
+  p.name = name
+  p.description = description
+  p.address = address
+  p.size = size
+  p.registers = None
+  return p
 
 # -----------------------------------------------------------------------------
