@@ -64,4 +64,4 @@ It has an interactive CLI.
 
 ## Other Documents
 
- * ![HOWTO hookup development boards](https://github.com/deadsy/pycs/blob/master/docs/hookup.md)
+ * [HOWTO hookup development boards](https://github.com/deadsy/pycs/blob/master/docs/hookup.md)
