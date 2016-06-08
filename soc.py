@@ -553,7 +553,7 @@ def build_registers(p, svd_p):
         r = register()
         r.name = svd_r.name
         r.description = description_cleanup(svd_r.description)
-        r.size = (svd_r.size, p.size)[svd_r.size is None]
+        r.size = (svd_r.size, p.default_register_size)[svd_r.size is None]
         if r.size is None:
           # still no size: default to 32 bits
           r.size = 32
@@ -572,7 +572,7 @@ def build_registers(p, svd_p):
           r = register()
           r.name =  svd_name % indices[i]
           r.description = description_cleanup(svd_r.description)
-          r.size = (svd_r.size, p.size)[svd_r.size is None]
+          r.size = (svd_r.size, p.default_register_size)[svd_r.size is None]
           if r.size is None:
             # still no size: default to 32 bits
             r.size = 32
