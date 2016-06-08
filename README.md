@@ -4,6 +4,7 @@ Python Based ARM CoreSight Debug and Trace Tools
  * PyCS is a python based JTAG/SWD debugger for ARM chips.
  * Its current focus is systems using Cortex-M ARM CPUs.
  * It uses a Segger JLINK Debug Probe to communicate with the ARM CPU. 
+ * It reads the SoC SVD files to give full peripheral/register decode.
 
 ## What do I need?
  * A PC running Linux (with Python)
@@ -54,24 +55,13 @@ It has an interactive CLI.
  * etc. etc.
 
 ## Current Targets
+ * frdm_k64f (NXP Kinetis K64 Board)
  * mb1035b (STM32F3 Discovery Board)
  * mb997c (STM32F4 Discovery Board)
+ * nRF51822 (Adafruit BLE USB Dongle) 
  * saml21 (Atmel SAM L21 Xplained Pro Board)
- * frdm_k64f (NXP Kinetis K64 Board)
 
-## Hooking up ST Development Boards
 
-![mb1035b_image](https://github.com/deadsy/pycs/blob/master/docs/pics/mb1035b.jpg "mb1035b_image")
+## Other Documents
 
-The ST boards have a 6 pin SWD debug connector.
-The JLINK has a 20 pin connector.
-
- * Board Pin 1 (VDD_TARGET) - No Connect (this is not actually a target reference voltage)
- * Board Pin 2 (SWCLK) - JLINK Pin 9 (SWCLK)
- * Board Pin 3 (GND) - JLINK Pin 4 (GND)
- * Board Pin 4 (SWDIO) - JLINK Pin 7 (SWDIO)
- * Board Pin 5 (NRST) - JLINK Pin 15 (RESET)
- * Board Pin 6 (SWO) - JLINK Pin 13 (SWO) - this is optional
- * Board 3V Vdd - JLINK Pin 1 (VTref)
-
-Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to the Discovery CPU.
+ * ![HOWTO hookup development boards](https://github.com/deadsy/pycs/blob/master/docs/hookup.md)
