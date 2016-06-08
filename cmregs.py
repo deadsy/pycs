@@ -162,93 +162,77 @@ systick = _p
 
 # ACTLR?
 
-"""
-def Implementor_format(x):
-  names = {
-    0x41: 'ARM',
-  }
-  return '(0x%02x) %s' % (x, names.get(x, '?'))
+_implementor_enumset = (
+  ('ARM', 0x41, None),
+)
 
-def Part_Number_format(x):
-  names = {
-    0xc60: 'CM0+',
-    0xc20: 'CM0',
-    0xc21: 'CM1',
-    0xc23: 'CM3',
-    0xc24: 'CM4',
-    0xc27: 'CM7',
-  }
-  return '(0x%03x) %s' % (x, names.get(x, '?'))
+_part_number_enumset = (
+  ('CM0+', 0xc60, None),
+  ('CM0',  0xc20, None),
+  ('CM1',  0xc21, None),
+  ('CM3',  0xc23, None),
+  ('CM4',  0xc24, None),
+  ('CM7',  0xc27, None),
+)
 
-f = []
-f.append(fld('Implementor', 31, 24, Implementor_format))
-f.append(fld('Variant', 23, 20))
-f.append(fld('Architecture', 19, 16))
-f.append(fld('Part Number', 15, 4, Part_Number_format))
-f.append(fld('Revision', 3, 0))
-CPUID_fields = fldset('CPUID', f)
-"""
+_cpuid_fieldset = (
+  ('Implementor', 31, 24, _implementor_enumset, None),
+  ('Variant', 23, 20, None, None),
+  ('Architecture', 19, 16, None, None),
+  ('Part Number', 15, 4, _part_number_enumset, None),
+  ('Revision', 3, 0, None, None),
+)
 
 # name, offset, description
-_cm0_scb_info = (
-  ('CPUID', 0x000, '(R/ ) CPUID Base Register'),
-  ('ICSR', 0x004, '(R/W) Interrupt Control and State Register'),
-  ('VTOR', 0x008, '(R/W) Vector Table Offset Register'),
-  ('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register'),
-  ('SCR', 0x010, '(R/W) System Control Register'),
-  ('CCR', 0x014, '(R/W) Configuration Control Register'),
-  ('SHPR1', 0x018, '(R/W) System Handlers Priority Registers'), # not implemented on cm0
-  ('SHPR2', 0x01c, '(R/W) System Handlers Priority Registers'),
-  ('SHPR3', 0x020, '(R/W) System Handlers Priority Registers'),
-  ('SHCSR', 0x024, '(R/W) System Handler Control and State Register'),
+_cm0_scb_regset = (
+  ('CPUID', 32, 0x000, _cpuid_fieldset, '(R/ ) CPUID Base Register'),
+  ('ICSR', 32, 0x004, None, '(R/W) Interrupt Control and State Register'),
+  ('VTOR', 32, 0x008, None, '(R/W) Vector Table Offset Register'),
+  ('AIRCR', 32, 0x00C, None, '(R/W) Application Interrupt and Reset Control Register'),
+  ('SCR', 32, 0x010, None, '(R/W) System Control Register'),
+  ('CCR', 32, 0x014, None, '(R/W) Configuration Control Register'),
+  ('SHPR1', 32, 0x018, None, '(R/W) System Handlers Priority Registers'), # not implemented on cm0
+  ('SHPR2', 32, 0x01c, None, '(R/W) System Handlers Priority Registers'),
+  ('SHPR3', 32, 0x020, None, '(R/W) System Handlers Priority Registers'),
+  ('SHCSR', 32, 0x024, None, '(R/W) System Handler Control and State Register'),
 )
 
-_cm3_scb_info = (
-  ('CPUID', 0x000, '(R/ ) CPUID Base Register'),
-  ('ICSR', 0x004, '(R/W) Interrupt Control and State Register'),
-  ('VTOR', 0x008, '(R/W) Vector Table Offset Register'),
-  ('AIRCR', 0x00C, '(R/W) Application Interrupt and Reset Control Register'),
-  ('SCR', 0x010, '(R/W) System Control Register'),
-  ('CCR', 0x014, '(R/W) Configuration Control Register'),
-  ('SHPR1', 0x018, '(R/W) System Handlers Priority Registers'),
-  ('SHPR2', 0x01c, '(R/W) System Handlers Priority Registers'),
-  ('SHPR3', 0x020, '(R/W) System Handlers Priority Registers'),
-  ('SHCSR', 0x024, '(R/W) System Handler Control and State Register'),
-  ('CFSR', 0x028, '(R/W) Configurable Fault Status Register'),
-  ('HFSR', 0x02C, '(R/W) HardFault Status Register'),
-  ('DFSR', 0x030, '(R/W) Debug Fault Status Register'),
-  ('MMFAR', 0x034, '(R/W) MemManage Fault Address Register'),
-  ('BFAR', 0x038, '(R/W) BusFault Address Register'),
-  ('AFSR', 0x03C, '(R/W) Auxiliary Fault Status Register'),
-  ('ID_PFR0', 0x040, '(R/ ) Processor Feature Register'),
-  ('ID_PFR1', 0x044, '(R/ ) Processor Feature Register'),
-  ('ID_DFR0', 0x048, '(R/ ) Debug Feature Register'),
-  ('ID_ADR0', 0x04C, '(R/ ) Auxiliary Feature Register'),
-  ('ID_MMFR0', 0x050, '(R/ ) Memory Model Feature Register'),
-  ('ID_MMFR1', 0x054, '(R/ ) Memory Model Feature Register'),
-  ('ID_MMFR2', 0x058, '(R/ ) Memory Model Feature Register'),
-  ('ID_MMFR3', 0x05c, '(R/ ) Memory Model Feature Register'),
-  ('ID_ISAR0', 0x060, '(R/ ) Instruction Set Attributes Register'),
-  ('ID_ISAR1', 0x064, '(R/ ) Instruction Set Attributes Register'),
-  ('ID_ISAR2', 0x068, '(R/ ) Instruction Set Attributes Register'),
-  ('ID_ISAR3', 0x06c, '(R/ ) Instruction Set Attributes Register'),
-  ('ID_ISAR4', 0x070, '(R/ ) Instruction Set Attributes Register'),
-  ('CPACR', 0x088, '(R/W) Coprocessor Access Control Register'),
-  ('STIR', 0x200, '( /W) Software Trigger Interrupt Register'),
+_cm3_scb_regset = (
+  ('CPUID', 32, 0x000, _cpuid_fieldset, '(R/ ) CPUID Base Register'),
+  ('ICSR', 32, 0x004, None, '(R/W) Interrupt Control and State Register'),
+  ('VTOR', 32, 0x008, None, '(R/W) Vector Table Offset Register'),
+  ('AIRCR', 32, 0x00C, None, '(R/W) Application Interrupt and Reset Control Register'),
+  ('SCR', 32, 0x010, None, '(R/W) System Control Register'),
+  ('CCR', 32, 0x014, None, '(R/W) Configuration Control Register'),
+  ('SHPR1', 32, 0x018, None, '(R/W) System Handlers Priority Registers'),
+  ('SHPR2', 32, 0x01c, None, '(R/W) System Handlers Priority Registers'),
+  ('SHPR3', 32, 0x020, None, '(R/W) System Handlers Priority Registers'),
+  ('SHCSR', 32, 0x024, None, '(R/W) System Handler Control and State Register'),
+  ('CFSR', 32, 0x028, None, '(R/W) Configurable Fault Status Register'),
+  ('HFSR', 32, 0x02C, None, '(R/W) HardFault Status Register'),
+  ('DFSR', 32, 0x030, None, '(R/W) Debug Fault Status Register'),
+  ('MMFAR', 32,  0x034, None, '(R/W) MemManage Fault Address Register'),
+  ('BFAR', 32, 0x038, None, '(R/W) BusFault Address Register'),
+  ('AFSR', 32, 0x03C, None, '(R/W) Auxiliary Fault Status Register'),
+  ('ID_PFR0', 32, 0x040, None, '(R/ ) Processor Feature Register'),
+  ('ID_PFR1', 32, 0x044, None, '(R/ ) Processor Feature Register'),
+  ('ID_DFR0', 32, 0x048, None, '(R/ ) Debug Feature Register'),
+  ('ID_ADR0', 32, 0x04C, None, '(R/ ) Auxiliary Feature Register'),
+  ('ID_MMFR0', 32, 0x050, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR1', 32, 0x054, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR2', 32, 0x058, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR3', 32, 0x05c, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_ISAR0', 32, 0x060, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR1', 32, 0x064, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR2', 32, 0x068, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR3', 32, 0x06c, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR4', 32, 0x070, None, '(R/ ) Instruction Set Attributes Register'),
+  ('CPACR', 32, 0x088, None, '(R/W) Coprocessor Access Control Register'),
+  ('STIR', 32, 0x200, None, '( /W) Software Trigger Interrupt Register'),
 )
 
-def _build_scb_peripheral(info):
-  p = soc.peripheral()
-  p.name = 'SCB'
-  p.description = 'System Control Block'
-  p.address = SCB_BASE
-  p.size = None
-  p.default_register_size = 32
-  p.registers = _build_registers(p, info)
-  return p
-
-cm0_scb = _build_scb_peripheral(_cm0_scb_info)
-cm3_scb = _build_scb_peripheral(_cm3_scb_info)
+cm0_scb = soc.make_peripheral('SCB', SCB_BASE, None, _cm0_scb_regset, 'System Control Block')
+cm3_scb = soc.make_peripheral('SCB', SCB_BASE, None, _cm3_scb_regset, 'System Control Block')
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit

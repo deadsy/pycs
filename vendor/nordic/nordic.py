@@ -26,8 +26,8 @@ soc_db = {}
 
 def nRF51822_fixup(d):
   d.cpu_info.deviceNumInterrupts = 32
-  d.insert(soc.build_memory(('ram', 'Data RAM', 0x20000000, 16 << 10)))
-  d.insert(soc.build_memory(('flash', 'Code FLASH', 0, 256 << 10)))
+  d.insert(soc.make_peripheral('ram', 0x20000000, 16 << 10, None, 'Data RAM'))
+  d.insert(soc.make_peripheral('flash', 0, 256 << 10, None, 'Code FLASH'))
 
 s = soc_info()
 s.name = 'nRF51822'

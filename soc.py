@@ -665,16 +665,66 @@ def build_device(svdpath):
   return d
 
 # -----------------------------------------------------------------------------
+# make peripherals from tables
 
-def build_memory(x):
-  """build and return a memory peripheral"""
-  (name, description, address, size) = x
+def make_enumval(parent, enum_set):
+  e = {}
+  for (name, value, description) in enum_set:
+    ev = enumval()
+    ev.name = name
+    ev.description = description
+    ev.value = value
+    ev.parent = parent
+    e[ev.value] = ev
+  return e
+
+def make_enumvals(parent, enum_set):
+  if enum_set is None:
+    return None
+  # we build a single enumvals structure
+  e = enumvals()
+  e.usage = 'read'
+  e.enumval = make_enumval(e, enum_set)
+  e.parent = parent
+  return [e,]
+
+def make_fields(parent, field_set):
+  if field_set is None:
+    return None
+  fields = {}
+  for (name, msb, lsb, enum_set, description) in field_set:
+    f = field()
+    f.name = name
+    f.description = description
+    f.msb = msb
+    f.lsb = lsb
+    f.enumvals = make_enumvals(f, enum_set)
+    f.parent = parent
+    fields[f.name] = f
+  return fields
+
+def make_registers(parent, register_set):
+  if register_set is None:
+    return None
+  registers = {}
+  for (name, size, offset, field_set, description) in register_set:
+    r = register()
+    r.name = name
+    r.description = description
+    r.size = size
+    r.offset = offset
+    r.fields = make_fields(r, field_set)
+    r.parent = parent
+    registers[r.name] = r
+  return registers
+
+def make_peripheral(name, address, size, register_set, description):
   p = peripheral()
   p.name = name
   p.description = description
   p.address = address
   p.size = size
-  p.registers = None
+  p.registers = make_registers(p, register_set)
   return p
 
 # -----------------------------------------------------------------------------
