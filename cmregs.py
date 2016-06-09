@@ -108,7 +108,7 @@ def build_nvic(n_ext):
   p.name = 'NVIC'
   p.description = 'Nested Vectored Interrupt Controller'
   p.address = SCS_BASE
-  p.size = None
+  p.size = 4 << 10
   p.default_register_size = 32
   p.registers = _build_nvic_registers(p, nvic_info)
   return p
@@ -145,7 +145,7 @@ _systick_regset = (
   ('CALIB', 32, 0x0c, _calib_fieldset, '(R/ ) SysTick Calibration Register'),
 )
 
-systick = soc.make_peripheral('SysTick', SysTick_BASE, None, _systick_regset, 'SysTick')
+systick = soc.make_peripheral('SysTick', SysTick_BASE, 1 << 10, _systick_regset, 'SysTick')
 
 # -----------------------------------------------------------------------------
 # System Control Block
@@ -221,8 +221,8 @@ _cm3_scb_regset = (
   ('STIR', 32, 0x200, None, '( /W) Software Trigger Interrupt Register'),
 )
 
-cm0_scb = soc.make_peripheral('SCB', SCB_BASE, None, _cm0_scb_regset, 'System Control Block')
-cm3_scb = soc.make_peripheral('SCB', SCB_BASE, None, _cm3_scb_regset, 'System Control Block')
+cm0_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm0_scb_regset, 'System Control Block')
+cm3_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm3_scb_regset, 'System Control Block')
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit

@@ -6,39 +6,38 @@ Memory Functions
 """
 # -----------------------------------------------------------------------------
 
+import math
+
 import util
 import iobuf
 
 # -----------------------------------------------------------------------------
 
-help_memdisplay = (
-    ('<adr> [len]', 'address (hex)'),
-    ('', 'length (hex) - default is 0x40'),
-)
-
-help_mem2file = (
+help_mem_2file = (
     ('<adr> <len> [file]', 'address (hex)'),
     ('', 'length (hex)'),
     ('', 'filename - default is \"mem.bin\"'),
 )
 
-help_file2mem = (
-    ('<adr> [file] [len]', 'address (hex)'),
-    ('', 'filename - default is \"mem.bin\"'),
-    ('', 'length (hex) - default is file length'),
+#help_file2mem = (
+    #('<adr> [file] [len]', 'address (hex)'),
+    #('', 'filename - default is \"mem.bin\"'),
+    #('', 'length (hex) - default is file length'),
+#)
+
+help_mem_region = (
+    ('<adr> <len>', 'address (hex)'),
+    ('', 'length (hex) - default is 0x40'),
+    ('<name>', "region name - see 'map' command"),
 )
 
-help_memrd = (
+help_mem_rd = (
     ('<adr>', 'address (hex)'),
 )
 
-help_memwr = (
+help_mem_wr = (
     ('<adr> <val>', 'address (hex)'),
     ('', 'value (hex)'),
-)
-
-help_regs = (
-    ('<name>', 'register set name'),
 )
 
 # -----------------------------------------------------------------------------
@@ -81,18 +80,19 @@ class mem(object):
     self.cpu = cpu
 
     self.menu = (
-      ('compare', self.cmd_compare, help_file2mem),
-      ('d8', self.cmd_display8, help_memdisplay),
-      ('d16', self.cmd_display16, help_memdisplay),
-      ('d32', self.cmd_display32, help_memdisplay),
-      ('>file', self.cmd_mem2file, help_mem2file),
-      ('<file', self.cmd_file2mem, help_file2mem),
-      ('rd8', self.cmd_rd8, help_memrd),
-      ('rd16', self.cmd_rd16, help_memrd),
-      ('rd32', self.cmd_rd32, help_memrd),
-      ('wr8', self.cmd_wr8, help_memwr),
-      ('wr16', self.cmd_wr16, help_memwr),
-      ('wr32', self.cmd_wr32, help_memwr),
+      #('compare', self.cmd_compare, help_file2mem),
+      ('d8', self.cmd_display8, help_mem_region),
+      #('d16', self.cmd_display16, help_memdisplay),
+      #('d32', self.cmd_display32, help_memdisplay),
+      ('>file', self.cmd_mem2file, help_mem_2file),
+      #('<file', self.cmd_file2mem, help_file2mem),
+      ('pic', self.cmd_pic, help_mem_region),
+      ('rd8', self.cmd_rd8, help_mem_rd),
+      ('rd16', self.cmd_rd16, help_mem_rd),
+      ('rd32', self.cmd_rd32, help_mem_rd),
+      ('wr8', self.cmd_wr8, help_mem_wr),
+      ('wr16', self.cmd_wr16, help_mem_wr),
+      ('wr32', self.cmd_wr32, help_mem_wr),
     )
 
   def cmd_rd(self, ui, args, n):
@@ -172,7 +172,7 @@ class mem(object):
 
   def cmd_display8(self, ui, args):
     """display memory 8 bits"""
-    x = util.m2d_args(ui, 32, args)
+    x = util.mem_region_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n) = x
@@ -193,5 +193,64 @@ class mem(object):
     """display memory 32 bits"""
     ui.put('todo\n')
 
-# -----------------------------------------------------------------------------
+  def analyze(self, buf, ofs, n):
+    """return a character to respresent the buffer"""
+    b0 = buf[ofs]
+    if b0 == 0:
+      c = '-'
+    elif b0 == 0xff:
+      c = '.'
+    else:
+      c = '$'
+    for i in range(1, n):
+      if buf[ofs + i] != b0:
+        return '$'
+    return c
 
+  def cmd_pic(self, ui, args):
+    """display a pictorial summary of memory"""
+    x = util.mem_region_args(ui, args, self.cpu.device)
+    if x is None:
+      return
+    (adr, n) = x
+    # work out how many rows, columns and bytes per symbol we should display
+    if n == 0:
+      return
+    elif n == 1:
+      rows = 1
+      cols = 1
+      bps = 1
+    else:
+      cols_max = 70
+      cols = cols_max + 1
+      bps = 1
+      # we try to display a matrix that is roughly square
+      while cols > cols_max:
+        bps *= 2
+        cols = int(math.sqrt(float(n)/float(bps)))
+      rows = int(math.ceil(n / (float(cols) * float(bps))))
+    # bytes per row
+    bpr = cols * bps
+    # read the memory
+    if n > (16 << 10):
+      ui.put('reading memory ...\n')
+    nwords = (((cols * rows * bps) + 3) & ~3)/4
+    data = iobuf.data_buffer(32)
+    self.cpu.rd_mem(adr, nwords, data)
+    data.convert8(mode = 'le')
+    # summary
+    ui.put("'.' all ones, '-' all zeroes, '$' various\n")
+    ui.put('%d (0x%x) bytes per symbol\n' % (bps, bps))
+    ui.put('%d (0x%x) bytes per row\n' % (bpr, bpr))
+    ui.put('%d cols x %d rows\n' % (cols, rows))
+    # display the matrix
+    ofs = 0
+    for y in range(rows):
+      s = []
+      adr_str = '0x%08x: ' % (adr + ofs)
+      for x in range(cols):
+        s.append(self.analyze(data.buf, ofs, bps))
+        ofs += bps
+      ui.put('%s%s\n' % (adr_str, ''.join(s)))
+
+# -----------------------------------------------------------------------------

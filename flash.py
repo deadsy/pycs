@@ -9,7 +9,7 @@ Those drivers expose a common API used by this code.
 #-----------------------------------------------------------------------------
 
 _help_erase = (
-  ('<address> <len>', 'flash address (hex) rounded down to a flash page boundary'),
+  ('<adr> <len>', 'flash address (hex) rounded down to a flash page boundary'),
   ('', 'flash length (hex) rounded up to n flash pages'),
   ('<name>', 'erase named flash region'),
   ('<cr>', 'erase default flash region'),

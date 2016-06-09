@@ -21,6 +21,9 @@ class flash(object):
     self.init = False
 
   def hw_init(self):
+    """initialise the hardware"""
+    if self.init:
+      return
     self.init = True
 
 #-----------------------------------------------------------------------------
