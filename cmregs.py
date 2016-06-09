@@ -116,46 +116,36 @@ def build_nvic(n_ext):
 # -----------------------------------------------------------------------------
 # SysTick
 
-"""
-def CLKSOURCE_format(x):
-  return '(%d) %s' % (x, ('cpuclk', 'extclk')[x == 0])
-
-f = []
-f.append(fld('COUNTFLAG', 16, 16))
-f.append(fld('CLKSOURCE', 2, 2, CLKSOURCE_format))
-f.append(fld('TICKINT', 1, 1))
-f.append(fld('ENABLE', 0, 0))
-SysTick_CTRL_fields = fldset('SysTick_CTRL', f)
-
-def TENMS_format(x):
-  return ('0', '(0x%06x) %.2f MHz' % (x, float(x)/1e+4))[x != 0]
-
-f = []
-f.append(fld('NOREF', 31, 31))
-f.append(fld('SKEW', 30, 30))
-f.append(fld('TENMS', 23, 0, TENMS_format))
-SysTick_CALIB_fields = fldset('SysTick_CALIB', f)
-"""
-
 # systick is a 24-bit down counter
 SysTick_MAXCOUNT = (1 << 24) - 1
 
-# name, offset, description
-_systick_info = (
-  ('CTRL', 0x00, '(R/W) SysTick Control and Status Register'),
-  ('LOAD', 0x04, '(R/W) SysTick Reload Value Register'),
-  ('VAL', 0x08, '(R/W) SysTick Current Value Register'),
-  ('CALIB', 0x0c, '(R/ ) SysTick Calibration Register'),
+def _CLKSOURCE_format(x):
+  return '%s' % ('cpuclk', 'extclk')[x == 0]
+
+def _TENMS_format(x):
+  return ('', '%.2f MHz' % (float(x)/1e+4))[x != 0]
+
+_ctrl_fieldset = (
+  ('COUNTFLAG', 16, 16, None, None),
+  ('CLKSOURCE', 2, 2, _CLKSOURCE_format, None),
+  ('TICKINT', 1, 1, None, None),
+  ('ENABLE', 0, 0, None, None),
 )
 
-_p = soc.peripheral()
-_p.name = 'SysTick'
-_p.description = 'SysTick'
-_p.address = SysTick_BASE
-_p.size = None
-_p.default_register_size = 32
-_p.registers = _build_registers(_p, _systick_info)
-systick = _p
+_calib_fieldset = (
+  ('NOREF', 31, 31, None, None),
+  ('SKEW', 30, 30, None, None),
+  ('TENMS', 23, 0, _TENMS_format, None),
+)
+
+_systick_regset = (
+  ('CTRL', 32, 0x00, _ctrl_fieldset, '(R/W) SysTick Control and Status Register'),
+  ('LOAD', 32, 0x04, None, '(R/W) SysTick Reload Value Register'),
+  ('VAL', 32, 0x08, None, '(R/W) SysTick Current Value Register'),
+  ('CALIB', 32, 0x0c, _calib_fieldset, '(R/ ) SysTick Calibration Register'),
+)
+
+systick = soc.make_peripheral('SysTick', SysTick_BASE, None, _systick_regset, 'SysTick')
 
 # -----------------------------------------------------------------------------
 # System Control Block
@@ -309,6 +299,14 @@ cm4_fpu = _p
 
 def cm0_fixup(d):
   d.cpu_info.name = 'CM0'
+  d.cpu_info.nvicPrioBits = 2
+  d.insert(systick)
+  d.insert(cm0_scb)
+  d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
+  cortexm.add_system_exceptions(d)
+
+def cm0plus_fixup(d):
+  d.cpu_info.name = 'CM0+'
   d.cpu_info.nvicPrioBits = 2
   d.insert(systick)
   d.insert(cm0_scb)

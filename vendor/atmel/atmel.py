@@ -11,16 +11,6 @@ Run fixup functions to correct any SVD inadequecies.
 
 import soc
 import cmregs
-import cortexm
-
-def cm0plus_fixup(d):
-  d.cpu_info.name = 'CM0+'
-  d.cpu_info.nvicPrioBits = 2
-  d.deviceNumInterrupts = 32
-  d.insert(cmregs.build_nvic(d.deviceNumInterrupts))
-  d.insert(cmregs.systick)
-  d.insert(cmregs.cm0_scb)
-  cortexm.add_system_exceptions(d)
 
 #-----------------------------------------------------------------------------
 # build a database of SoC devices
@@ -31,10 +21,16 @@ class soc_info(object):
 
 soc_db = {}
 
+#-----------------------------------------------------------------------------
+# ATSAML21J18B
+
+def ATSAML21J18B_fixup(d):
+  d.cpu_info.deviceNumInterrupts = 32
+
 s = soc_info()
 s.name = 'ATSAML21J18B'
 s.svd = 'ATSAML21J18B'
-s.fixups = (cm0plus_fixup,)
+s.fixups = (ATSAML21J18B_fixup, cmregs.cm0plus_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
@@ -46,7 +42,7 @@ def get_device(ui, name):
     return None
   info = soc_db[name]
   svd_file = './vendor/atmel/svd/%s.svd.gz' % info.svd
-  ui.put('%s: building %s\n' % (name, svd_file))
+  ui.put('%s: compiling %s\n' % (name, svd_file))
   device = soc.build_device(svd_file)
   for f in info.fixups:
     f(device)

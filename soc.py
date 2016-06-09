@@ -196,10 +196,10 @@ class field(object):
       name = '  %s[%d]' % (self.name, self.lsb)
     else:
       name = '  %s[%d:%d]' % (self.name, self.msb, self.lsb)
+    val_name = ''
     if callable(self.fmt):
-      val_str = self.fmt(val)
+      val_name = self.fmt(val)
     else:
-      val_name = ''
       if self.enumvals is not None and len(self.enumvals) >= 1:
         # find the enumvals with usage 'read', or just find one
         for e in self.enumvals:
@@ -207,7 +207,7 @@ class field(object):
             break
         if e.enumval.has_key(val):
           val_name = e.enumval[val].name
-      val_str = (': 0x%x %s' % (val, val_name), ': %d %s' % (val, val_name))[val < 10]
+    val_str = (': 0x%x %s' % (val, val_name), ': %d %s' % (val, val_name))[val < 10]
     return [name, val_str, '', self.description]
 
   def __str__(self):
@@ -698,7 +698,11 @@ def make_fields(parent, field_set):
     f.description = description
     f.msb = msb
     f.lsb = lsb
-    f.enumvals = make_enumvals(f, enum_set)
+    if callable(enum_set):
+      # enum_set is actually a formatting function
+      f.fmt = enum_set
+    else:
+      f.enumvals = make_enumvals(f, enum_set)
     f.parent = parent
     fields[f.name] = f
   return fields
