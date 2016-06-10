@@ -13,8 +13,10 @@ import cli
 import jlink
 import cortexm
 import mem
-import vendor.st.st as st
 import soc
+import flash
+
+import vendor.st.st as vendor
 
 # -----------------------------------------------------------------------------
 
@@ -28,16 +30,18 @@ class target(object):
 
   def __init__(self, ui, usb_number):
     self.ui = ui
-    self.device = st.get_device(self.ui, soc_name)
+    self.device = vendor.get_device(self.ui, soc_name)
     self.jlink = jlink.JLink(usb_number, self.device.cpu_info.name, jlink._JLINKARM_TIF_SWD)
     self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
+    self.flash = flash.flash(None)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('exit', self.cmd_exit),
+      ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
