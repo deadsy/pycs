@@ -13,31 +13,25 @@ import iobuf
 
 # -----------------------------------------------------------------------------
 
-help_mem_2file = (
-    ('<adr> <len> [file]', 'address (hex)'),
-    ('', 'length (hex)'),
-    ('', 'filename - default is \"mem.bin\"'),
+help_mem_file = (
+  ('<adr> <len> [file]', 'address (hex) length (hex)'),
+  ('<name> [file]', "region name - see 'map' command"),
+  ('<name> <len> [file]', 'filename - default is \"mem.bin\"'),
 )
 
-#help_file2mem = (
-    #('<adr> [file] [len]', 'address (hex)'),
-    #('', 'filename - default is \"mem.bin\"'),
-    #('', 'length (hex) - default is file length'),
-#)
-
 help_mem_region = (
-    ('<adr> <len>', 'address (hex)'),
-    ('', 'length (hex) - default is 0x40'),
-    ('<name>', "region name - see 'map' command"),
+  ('<adr> <len>', 'address (hex)'),
+  ('', 'length (hex) - default is 0x40'),
+  ('<name>', "region name - see 'map' command"),
 )
 
 help_mem_rd = (
-    ('<adr>', 'address (hex)'),
+  ('<adr>', 'address (hex)'),
 )
 
 help_mem_wr = (
-    ('<adr> <val>', 'address (hex)'),
-    ('', 'value (hex)'),
+  ('<adr> <val>', 'address (hex)'),
+  ('', 'value (hex)'),
 )
 
 # -----------------------------------------------------------------------------
@@ -84,7 +78,7 @@ class mem(object):
       ('d8', self.cmd_display8, help_mem_region),
       #('d16', self.cmd_display16, help_memdisplay),
       #('d32', self.cmd_display32, help_memdisplay),
-      ('>file', self.cmd_mem2file, help_mem_2file),
+      ('>file', self.cmd_mem2file, help_mem_file),
       #('<file', self.cmd_file2mem, help_file2mem),
       ('pic', self.cmd_pic, help_mem_region),
       ('rd8', self.cmd_rd8, help_mem_rd),
@@ -150,7 +144,7 @@ class mem(object):
 
   def cmd_mem2file(self, ui, args):
     """read from memory, write to file"""
-    x = util.m2f_args(ui, 32, args)
+    x = util.mem_file_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n, name) = x

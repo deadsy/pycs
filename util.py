@@ -149,19 +149,43 @@ def nbytes_to_nwords(n, width):
 
 # -----------------------------------------------------------------------------
 
-def m2f_args(ui, width, args):
-  """memory to file arguments: return (adr, n, name) or None"""
-  if wrong_argc(ui, args, (2, 3)):
-    return None
-  adr = sex_arg(ui, args[0], width)
-  if adr is None:
-    return None
-  n = int_arg(ui, args[1], (1, 0xffffffff), 16)
-  if n is None:
-    return None
+def mem_file_args(ui, args, device):
+  """memory/file arguments: return (adr, n, name) or None"""
+
+  adr = None
+  n = None
   name = 'mem.bin'
-  if len(args) == 3:
+
+  if wrong_argc(ui, args, (1, 2, 3)):
+    return None
+
+  if len(args) >= 1:
+    if device.peripherals.has_key(args[0]):
+      # args[0] is a peripheral name
+      p = device.peripherals[args[0]]
+      adr = p.address
+      n = p.size
+    else:
+      # args[0] is an address
+      adr = sex_arg(ui, args[0], 32)
+      if adr is None:
+        return None
+
+  if len(args) >= 2:
+    # do we have a length or a filename?
+    try:
+      int(args[1], 16)
+      n = int_arg(ui, args[1], (1, 0xffffffff), 16)
+    except ValueError:
+      name = args[1]
+
+  if n is None:
+    ui.put('bad length')
+    return None
+
+  if len(args) >= 3:
     name = args[2]
+
   return (adr, n, name)
 
 # -----------------------------------------------------------------------------
