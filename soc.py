@@ -187,11 +187,19 @@ class field(object):
 
   def __init__(self):
     self.fmt = None
+    self.cached_val = None
 
   def display(self, val):
     """return display columns (name, val, '', descr) for this field"""
     mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
     val = (val & mask) >> self.lsb
+    # work out if the value has changed since we last displayed it
+    changed = '  '
+    if self.cached_val is None:
+      self.cached_val = val
+    elif self.cached_val != val:
+      self.cached_val = val
+      changed = ' *'
     if self.msb == self.lsb:
       name = '  %s[%d]' % (self.name, self.lsb)
     else:
@@ -207,7 +215,7 @@ class field(object):
             break
         if e.enumval.has_key(val):
           val_name = e.enumval[val].name
-    val_str = (': 0x%x %s' % (val, val_name), ': %d %s' % (val, val_name))[val < 10]
+    val_str = (': 0x%x %s%s' % (val, val_name, changed), ': %d %s%s' % (val, val_name, changed))[val < 10]
     return [name, val_str, '', self.description]
 
   def __str__(self):
@@ -233,7 +241,7 @@ class field(object):
 class register(object):
 
   def __init__(self):
-    pass
+    self.cached_val = None
 
   def bind_cpu(self, cpu):
     """bind a cpu to the register"""
@@ -262,12 +270,19 @@ class register(object):
     """return display columns (name, adr, val, descr) for this register"""
     adr = self.adr(0, self.size)
     val = self.rd()
+    # work out if the value has changed since we last displayed it
+    changed = '  '
+    if self.cached_val is None:
+      self.cached_val = val
+    elif self.cached_val != val:
+      self.cached_val = val
+      changed = ' *'
     adr_str = ': %08x[%d:0]' % (adr, self.size - 1)
     if val == 0:
-      val_str = '= 0'
+      val_str = '= 0%s' % changed
     else:
-      fmt = '= 0x%%0%dx' % (self.size / 4)
-      val_str = fmt % val
+      fmt = '= 0x%%0%dx%%s' % (self.size / 4)
+      val_str = fmt % (val, changed)
     clist = []
     clist.append([self.name, adr_str, val_str, self.description])
     # output the fields
