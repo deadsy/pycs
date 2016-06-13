@@ -43,21 +43,6 @@ MPU_BASE = (SCS_BASE + 0x0D90) # Memory Protection Unit Base Address
 FPU_BASE = (SCS_BASE + 0x0F30) # Floating Point Unit Base Address
 
 # -----------------------------------------------------------------------------
-
-def _build_registers(p, reg_info):
-  registers = {}
-  for (name, offset, descr) in reg_info:
-    r = soc.register()
-    r.name = name
-    r.description = descr
-    r.size = 32
-    r.offset = offset
-    r.fields = None
-    r.parent = p
-    registers[r.name] = r
-  return registers
-
-# -----------------------------------------------------------------------------
 #  Nested Vectored Interrupt Controller
 
 def _build_nvic_registers(p, nvic_info):
@@ -227,60 +212,43 @@ cm3_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm3_scb_regset, 'System
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
 
-_cm3_mpu_info = (
-  ('TYPE', 0x00, '(R/ ) MPU Type Register'),
-  ('CTRL', 0x04, '(R/W) MPU Control Register'),
-  ('RNR', 0x08, '(R/W) MPU Region RNRber Register'),
-  ('RBAR', 0x0C, '(R/W) MPU Region Base Address Register'),
-  ('RASR', 0x10, '(R/W) MPU Region Attribute and Size Register'),
-  ('RBAR_A1', 0x14, '(R/W) MPU Alias 1 Region Base Address Register'),
-  ('RASR_A1', 0x18, '(R/W) MPU Alias 1 Region Attribute and Size Register'),
-  ('RBAR_A2', 0x1C, '(R/W) MPU Alias 2 Region Base Address Register'),
-  ('RASR_A2', 0x20, '(R/W) MPU Alias 2 Region Attribute and Size Register'),
-  ('RBAR_A3', 0x24, '(R/W) MPU Alias 3 Region Base Address Register'),
-  ('RASR_A3', 0x28, '(R/W) MPU Alias 3 Region Attribute and Size Register'),
+_cm3_mpu_regset = (
+  ('TYPE', 32, 0x00, None, '(R/ ) MPU Type Register'),
+  ('CTRL', 32, 0x04, None, '(R/W) MPU Control Register'),
+  ('RNR', 32, 0x08, None, '(R/W) MPU Region RNRber Register'),
+  ('RBAR', 32, 0x0C, None, '(R/W) MPU Region Base Address Register'),
+  ('RASR', 32, 0x10, None, '(R/W) MPU Region Attribute and Size Register'),
+  ('RBAR_A1', 32, 0x14, None, '(R/W) MPU Alias 1 Region Base Address Register'),
+  ('RASR_A1', 32, 0x18, None, '(R/W) MPU Alias 1 Region Attribute and Size Register'),
+  ('RBAR_A2', 32, 0x1C, None, '(R/W) MPU Alias 2 Region Base Address Register'),
+  ('RASR_A2', 32, 0x20, None, '(R/W) MPU Alias 2 Region Attribute and Size Register'),
+  ('RBAR_A3', 32, 0x24, None, '(R/W) MPU Alias 3 Region Base Address Register'),
+  ('RASR_A3', 32, 0x28, None, '(R/W) MPU Alias 3 Region Attribute and Size Register'),
 )
 
-_cm0_mpu_info = (
-  ('TYPE', 0x00, '(R/ ) MPU Type Register'),
-  ('CTRL', 0x04, '(R/W) MPU Control Register'),
-  ('RNR', 0x08, '(R/W) MPU Region RNRber Register'),
-  ('RBAR', 0x0C, '(R/W) MPU Region Base Address Register'),
-  ('RASR', 0x10, '(R/W) MPU Region Attribute and Size Register'),
+_cm0_mpu_regset = (
+  ('TYPE', 32, 0x00, None, '(R/ ) MPU Type Register'),
+  ('CTRL', 32, 0x04, None, '(R/W) MPU Control Register'),
+  ('RNR', 32, 0x08, None, '(R/W) MPU Region RNRber Register'),
+  ('RBAR', 32, 0x0C, None, '(R/W) MPU Region Base Address Register'),
+  ('RASR', 32, 0x10, None, '(R/W) MPU Region Attribute and Size Register'),
 )
 
-def _build_mpu_peripheral(info):
-  p = soc.peripheral()
-  p.name = 'MPU'
-  p.description = 'Memory Protection Unit'
-  p.address = MPU_BASE
-  p.size = None
-  p.default_register_size = 32
-  p.registers = _build_registers(p, info)
-  return p
-
-cm0_mpu = _build_mpu_peripheral(_cm0_mpu_info)
-cm3_mpu = _build_mpu_peripheral(_cm3_mpu_info)
+cm0_mpu = soc.make_peripheral('MPU', MPU_BASE, 1 << 10, _cm0_mpu_regset, 'Memory Protection Unit')
+cm3_mpu = soc.make_peripheral('MPU', MPU_BASE, 1 << 10, _cm3_mpu_regset, 'Memory Protection Unit')
 
 # -----------------------------------------------------------------------------
 # Floating Point Unit
 
-_cm4_fpu_info = (
-  ('FPCCR', 0x04, '(R/W) Floating-Point Context Control Register'),
-  ('FPCAR', 0x08, '(R/W) Floating-Point Context Address Register'),
-  ('FPDSCR', 0x0C, '(R/W) Floating-Point Default Status Control Register'),
-  ('MVFR0', 0x10, '(R/ ) Media and FP Feature Register 0'),
-  ('MVFR1', 0x14, '(R/ ) Media and FP Feature Register 1'),
+_cm4_fpu_regset = (
+  ('FPCCR', 32, 0x04, None, '(R/W) Floating-Point Context Control Register'),
+  ('FPCAR', 32, 0x08, None, '(R/W) Floating-Point Context Address Register'),
+  ('FPDSCR', 32, 0x0C, None, '(R/W) Floating-Point Default Status Control Register'),
+  ('MVFR0', 32, 0x10, None, '(R/ ) Media and FP Feature Register 0'),
+  ('MVFR1', 32, 0x14, None, '(R/ ) Media and FP Feature Register 1'),
 )
 
-_p = soc.peripheral()
-_p.name = 'FPU'
-_p.description = 'Floating Point Unit'
-_p.address = FPU_BASE
-_p.size = None
-_p.default_register_size = 32
-_p.registers = _build_registers(_p, _cm4_fpu_info)
-cm4_fpu = _p
+cm4_fpu = soc.make_peripheral('FPU', FPU_BASE, 1 << 10, _cm4_fpu_regset, 'Floating Point Unit')
 
 # -----------------------------------------------------------------------------
 # Instrumentation Trace Macrocell Unit
@@ -301,6 +269,7 @@ def cm0_fixup(d):
   d.cpu_info.name = 'CM0'
   d.cpu_info.nvicPrioBits = 2
   d.insert(systick)
+  d.insert(cm0_mpu)
   d.insert(cm0_scb)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
@@ -309,6 +278,7 @@ def cm0plus_fixup(d):
   d.cpu_info.name = 'CM0+'
   d.cpu_info.nvicPrioBits = 2
   d.insert(systick)
+  d.insert(cm0_mpu)
   d.insert(cm0_scb)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
@@ -316,7 +286,9 @@ def cm0plus_fixup(d):
 def cm4_fixup(d):
   d.cpu_info.name = 'CM4'
   d.insert(systick)
+  d.insert(cm3_mpu)
   d.insert(cm3_scb)
+  d.insert(cm4_fpu)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
 

@@ -22,11 +22,39 @@ class soc_info(object):
 soc_db = {}
 
 #-----------------------------------------------------------------------------
+# more enumeration decodes
+
+# DBGMCU.IDCODE.REV_ID
+_rev_id_enumset = (
+  ('A', 0x1000, None),
+  ('Z', 0x1001, None),
+  ('Y', 0x1003, None),
+  ('1', 0x1007, None),
+)
+
+# DBGMCU.IDCODE.DEV_ID
+_dev_id_enumset = (
+  ('STM32F405xx/07xx,STM32F415xx/17xx', 0x413, None),
+  ('STM32F42xxx,STM32F43xxx', 0x419, None),
+  ('STM32F303xB/C,STM32F358', 0x422, None),
+  ('STM32F303x6/8,STM32F328', 0x438, None),
+  ('STM32F303xD/E,STM32F398xE', 0x446, None),
+)
+
+def more_enumval_decodes(d):
+  f = d.DBGMCU.IDCODE.REV_ID
+  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
+  f = d.DBGMCU.IDCODE.DEV_ID
+  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+
+#-----------------------------------------------------------------------------
 
 def STM32F407xx_fixup(d):
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 80
   d.remove(d.NVIC)
+  d.remove(d.FPU)
+  more_enumval_decodes(d)
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
   d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 30 << 10, None, 'flash system memory'))
@@ -38,6 +66,26 @@ s = soc_info()
 s.name = 'STM32F407xx'
 s.svd = 'STM32F40x'
 s.fixups = (STM32F407xx_fixup, cmregs.cm4_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
+
+def STM32F303xC_fixup(d):
+  d.cpu_info.nvicPrioBits = 4
+  d.cpu_info.deviceNumInterrupts = 84
+  d.remove(d.NVIC)
+  d.remove(d.FPU)
+  more_enumval_decodes(d)
+  d.insert(soc.make_peripheral('sram', 0x20000000, 40 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
+  d.insert(soc.make_peripheral('flash_system', 0x1fffd800, 8 << 10, None, 'flash system memory'))
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 256 << 10, None, 'flash main memory'))
+  d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 2 << 10, None, 'flash option memory'))
+
+s = soc_info()
+s.name = 'STM32F303xC'
+s.svd = 'STM32F30x'
+s.fixups = (STM32F303xC_fixup, cmregs.cm4_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------

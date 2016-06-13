@@ -243,6 +243,10 @@ class register(object):
   def __init__(self):
     self.cached_val = None
 
+  def __getattr__(self, name):
+    """make the field name a class attribute"""
+    return self.fields[name]
+
   def bind_cpu(self, cpu):
     """bind a cpu to the register"""
     self.cpu = cpu
