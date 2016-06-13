@@ -226,7 +226,7 @@ _cm3_mpu_regset = (
   ('RASR_A3', 32, 0x28, None, '(R/W) MPU Alias 3 Region Attribute and Size Register'),
 )
 
-_cm0_mpu_regset = (
+_cm0plus_mpu_regset = (
   ('TYPE', 32, 0x00, None, '(R/ ) MPU Type Register'),
   ('CTRL', 32, 0x04, None, '(R/W) MPU Control Register'),
   ('RNR', 32, 0x08, None, '(R/W) MPU Region RNRber Register'),
@@ -234,7 +234,7 @@ _cm0_mpu_regset = (
   ('RASR', 32, 0x10, None, '(R/W) MPU Region Attribute and Size Register'),
 )
 
-cm0_mpu = soc.make_peripheral('MPU', MPU_BASE, 1 << 10, _cm0_mpu_regset, 'Memory Protection Unit')
+cm0plus_mpu = soc.make_peripheral('MPU', MPU_BASE, 1 << 10, _cm0plus_mpu_regset, 'Memory Protection Unit')
 cm3_mpu = soc.make_peripheral('MPU', MPU_BASE, 1 << 10, _cm3_mpu_regset, 'Memory Protection Unit')
 
 # -----------------------------------------------------------------------------
@@ -269,7 +269,6 @@ def cm0_fixup(d):
   d.cpu_info.name = 'CM0'
   d.cpu_info.nvicPrioBits = 2
   d.insert(systick)
-  d.insert(cm0_mpu)
   d.insert(cm0_scb)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
@@ -278,7 +277,7 @@ def cm0plus_fixup(d):
   d.cpu_info.name = 'CM0+'
   d.cpu_info.nvicPrioBits = 2
   d.insert(systick)
-  d.insert(cm0_mpu)
+  d.insert(cm0plus_mpu)
   d.insert(cm0_scb)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
