@@ -12,7 +12,6 @@ _help_erase = (
   ('<adr> <len>', 'flash address (hex) rounded down to a flash page boundary'),
   ('', 'flash length (hex) rounded up to n flash pages'),
   ('<name>', 'erase named flash region'),
-  ('<cr>', 'erase default flash region'),
 )
 
 #-----------------------------------------------------------------------------
@@ -25,6 +24,7 @@ class flash(object):
       ('ep', self.cmd_ep),
       ('epv', self.cmd_epv),
       ('erase', self.cmd_erase, _help_erase),
+      ('info', self.cmd_info),
       ('program', self.cmd_program),
       ('verify', self.cmd_verify),
     )
@@ -39,7 +39,15 @@ class flash(object):
 
   def cmd_erase(self, ui, args):
     """erase flash"""
-    pass
+
+
+
+
+    self.driver.erase(0, 1)
+
+  def cmd_info(self, ui,args):
+    """display flash information"""
+    ui.put('%s\n' % self.driver)
 
   def cmd_program(self, ui, args):
     """program flash"""
@@ -48,6 +56,8 @@ class flash(object):
   def cmd_verify(self, ui, args):
     """verify flash"""
     pass
+
+
 
 #-----------------------------------------------------------------------------
 
