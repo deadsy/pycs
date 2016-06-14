@@ -13,8 +13,10 @@ We only access the hardware when the user wants to do something.
 """
 #-----------------------------------------------------------------------------
 
-import util
 import time
+
+import util
+import mem
 
 #-----------------------------------------------------------------------------
 
@@ -22,16 +24,6 @@ import time
 CONFIG_REN = 0 # read enable
 CONFIG_WEN = 1 # write enable
 CONFIG_EEN = 2 # erase enable
-
-#-----------------------------------------------------------------------------
-
-class page(object):
-  """flash device erase unit"""
-
-  def __init__(self, adr, size):
-    self.adr = adr
-    self.size = size
-    self.end = self.adr + self.size - 1
 
 #-----------------------------------------------------------------------------
 
@@ -65,7 +57,7 @@ class flash(object):
     """return a list of erase regions"""
     self.__hw_init()
     # for this device the page is the erase unit
-    return [page(self.adr + (i * self.page_size), self.page_size) for i in range(self.number_of_pages)]
+    return [mem.region(self.adr + (i * self.page_size), self.page_size) for i in range(self.number_of_pages)]
 
   def erase(self, p):
     """erase a flash page - return non-zero for an error"""

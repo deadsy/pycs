@@ -9,6 +9,7 @@ Those drivers expose a common API used by this code.
 #-----------------------------------------------------------------------------
 
 import util
+import mem
 
 #-----------------------------------------------------------------------------
 
@@ -17,15 +18,6 @@ _help_erase = (
   ('<name> <len>', 'region name length (hex)'),
   ('<name>', 'region name (entire region)'),
 )
-
-#-----------------------------------------------------------------------------
-
-class region(object):
-  """class to represent a memory region"""
-  def __init__(self, adr, size):
-    self.adr = adr
-    self.size = size
-    self.end = self.adr + self.size - 1
 
 #-----------------------------------------------------------------------------
 
@@ -49,9 +41,9 @@ class flash(object):
     if x is None:
       return
     (adr, size) = x
-    r = region(adr, size)
+    r = mem.region(adr, size)
     # build a list of regions to be erased
-    erase_list = [x for x in self.driver.region_list() if util.overlap(x, r)]
+    erase_list = [x for x in self.driver.region_list() if r.overlap(x)]
     if len(erase_list) == 0:
       ui.put('nothing to erase\n')
       return

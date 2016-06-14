@@ -63,14 +63,6 @@ def ltob32(x):
 
 # -----------------------------------------------------------------------------
 
-def overlap(a, b):
-  """do memory regions a and b overlap?"""
-  # x.adr = start of region
-  # x.end = end of region
-  return max(a.adr, b.adr) <= min(a.end, b.end)
-
-# -----------------------------------------------------------------------------
-
 def wrong_argc(ui, args, valid):
   """return True if argc is not valid"""
   argc = len(args)

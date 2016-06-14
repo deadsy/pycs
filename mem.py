@@ -68,6 +68,19 @@ def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
 
 # -----------------------------------------------------------------------------
 
+class region(object):
+  """class to represent a memory region"""
+  def __init__(self, adr, size):
+    self.adr = adr
+    self.size = size
+    self.end = self.adr + self.size - 1
+
+  def overlap(self, x):
+    """return True if this region and x overlap"""
+    return max(self.adr, x.adr) <= min(self.end, x.end)
+
+# -----------------------------------------------------------------------------
+
 class mem(object):
 
   def __init__(self, cpu):
