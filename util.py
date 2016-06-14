@@ -63,6 +63,14 @@ def ltob32(x):
 
 # -----------------------------------------------------------------------------
 
+def overlap(a, b):
+  """do memory regions a and b overlap?"""
+  # x.adr = start of region
+  # x.end = end of region
+  return max(a.adr, b.adr) <= min(a.end, b.end)
+
+# -----------------------------------------------------------------------------
+
 def wrong_argc(ui, args, valid):
   """return True if argc is not valid"""
   argc = len(args)
@@ -146,6 +154,43 @@ def nbytes_to_nwords(n, width):
   """how many width-bit words in n bytes?"""
   (mask, shift) = ((3, 2), (7, 3))[width == 64]
   return ((n + mask) & ~mask) >> shift
+
+# -----------------------------------------------------------------------------
+
+def mem_region_args2(ui, args, device, default_size = None):
+  """memory region arguments: return (adr, size) or None"""
+  adr = None
+  size = None
+
+  if wrong_argc(ui, args, (1, 2)):
+    return None
+
+  if len(args) >= 1:
+    if device.peripherals.has_key(args[0]):
+      # args[0] is a peripheral name
+      p = device.peripherals[args[0]]
+      adr = p.address
+      size = p.size
+    else:
+      # args[0] is an address
+      adr = sex_arg(ui, args[0], 32)
+      if adr is None:
+        return None
+
+  if len(args) >= 2:
+    # do we have a length?
+    size = int_arg(ui, args[1], (1, 0xffffffff), 16)
+    if size is None:
+      return None
+
+  if size is None:
+    size = default_size
+
+  if size is None:
+    ui.put('bad size')
+    return None
+
+  return (adr, size)
 
 # -----------------------------------------------------------------------------
 

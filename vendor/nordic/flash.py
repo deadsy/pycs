@@ -25,6 +25,16 @@ CONFIG_EEN = 2 # erase enable
 
 #-----------------------------------------------------------------------------
 
+class page(object):
+  """flash device erase unit"""
+
+  def __init__(self, adr, size):
+    self.adr = adr
+    self.size = size
+    self.end = self.adr + self.size - 1
+
+#-----------------------------------------------------------------------------
+
 class flash(object):
 
   def __init__(self, device):
@@ -32,7 +42,7 @@ class flash(object):
     self.io = self.device.NVMC
     self.init = False
 
-  def hw_init(self):
+  def __hw_init(self):
     """initialise the hardware"""
     if self.init:
       return
@@ -42,41 +52,32 @@ class flash(object):
     self.size = self.number_of_pages * self.page_size
     self.init = True
 
-  def wait4ready(self):
+  def __wait4ready(self):
     """wait for flash operation completion"""
-    for i in range(5):
+    for i in xrange(5):
       if self.io.READY.rd() & 1:
         # operation completed
         return
       time.sleep(0.1)
     assert False, 'time out waiting for flash ready'
 
-  def erase_page(self, adr):
-    """erase a flash page"""
+  def region_list(self):
+    """return a list of erase regions"""
+    self.__hw_init()
+    # for this device the page is the erase unit
+    return [page(self.adr + (i * self.page_size), self.page_size) for i in range(self.number_of_pages)]
+
+  def erase(self, p):
+    """erase a flash page - return non-zero for an error"""
+    self.__hw_init()
     self.io.CONFIG.wr(CONFIG_EEN)
-    self.io.ERASEPAGE.wr(adr)
-    self.wait4ready()
+    self.io.ERASEPAGE.wr(p.adr)
+    self.__wait4ready()
     self.io.CONFIG.wr(CONFIG_REN)
-
-  def erase(self, adr, n):
-    """erase n bytes at adr"""
-    self.hw_init()
-    mask = ~(self.page_size - 1)
-    # round down to a page boundary
-    adr &= mask
-    # round up to n pages
-    n = (n + self.page_size - 1) & mask
-    if n == 0:
-      return
-    n_pages = n / self.page_size
-
-    print '%x' % adr, '%x' % n_pages
-
-    for i in range(n_pages):
-      self.erase_page(adr + (self.page_size * i))
+    return 0
 
   def __str__(self):
-    self.hw_init()
+    self.__hw_init()
     s = [
       ['flash address', ': 0x%08x' % self.adr],
       ['flash size', ': 0x%x (%s)' % (self.size, util.memsize(self.size))],

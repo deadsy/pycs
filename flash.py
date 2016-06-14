@@ -8,26 +8,72 @@ Those drivers expose a common API used by this code.
 """
 #-----------------------------------------------------------------------------
 
+import util
+
+#-----------------------------------------------------------------------------
+
 _help_erase = (
-  ('<adr> <len>', 'flash address (hex) rounded down to a flash page boundary'),
-  ('', 'flash length (hex) rounded up to n flash pages'),
-  ('<name>', 'erase named flash region'),
+  ('<adr> <len>', 'address (hex) length (hex)'),
+  ('<name> <len>', 'region name length (hex)'),
+  ('<name>', 'region name (entire region)'),
 )
+
+#-----------------------------------------------------------------------------
+
+class region(object):
+  """class to represent a memory region"""
+  def __init__(self, adr, size):
+    self.adr = adr
+    self.size = size
+    self.end = self.adr + self.size - 1
 
 #-----------------------------------------------------------------------------
 
 class flash(object):
 
-  def __init__(self, driver):
+  def __init__(self, driver, device):
     self.driver = driver
+    self.device = device
     self.menu = (
-      ('ep', self.cmd_ep),
-      ('epv', self.cmd_epv),
+      #('ep', self.cmd_ep),
+      #('epv', self.cmd_epv),
       ('erase', self.cmd_erase, _help_erase),
       ('info', self.cmd_info),
-      ('program', self.cmd_program),
-      ('verify', self.cmd_verify),
+      #('program', self.cmd_program),
+      #('verify', self.cmd_verify),
     )
+
+  def cmd_erase(self, ui, args):
+    """erase flash"""
+    x = util.mem_region_args2(ui, args, self.device)
+    if x is None:
+      return
+    (adr, size) = x
+    r = region(adr, size)
+    # build a list of regions to be erased
+    erase_list = [x for x in self.driver.region_list() if util.overlap(x, r)]
+    if len(erase_list) == 0:
+      ui.put('nothing to erase\n')
+      return
+    # do the erase
+    ui.put('erasing : ')
+    progress = util.progress(ui, 1, len(erase_list))
+    n_erased = 0
+    n_errors = 0
+    for x in erase_list:
+      n_errors += self.driver.erase(x)
+      n_erased += 1
+      progress.update(n_erased)
+    progress.erase()
+    ui.put('done (%d errors)\n' % n_errors)
+
+  def cmd_info(self, ui,args):
+    """display flash information"""
+    ui.put('%s\n' % self.driver)
+
+
+
+
 
   def cmd_ep(self, ui, args):
     """erase and program flash"""
@@ -37,18 +83,6 @@ class flash(object):
     """erase, program and verify flash"""
     pass
 
-  def cmd_erase(self, ui, args):
-    """erase flash"""
-
-
-
-
-    self.driver.erase(0, 1)
-
-  def cmd_info(self, ui,args):
-    """display flash information"""
-    ui.put('%s\n' % self.driver)
-
   def cmd_program(self, ui, args):
     """program flash"""
     pass
@@ -57,8 +91,4 @@ class flash(object):
     """verify flash"""
     pass
 
-
-
 #-----------------------------------------------------------------------------
-
-
