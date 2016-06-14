@@ -29,7 +29,7 @@ class flash(object):
 
   def __init__(self, device):
     self.device = device
-    self.nvmc = self.device.NVMC
+    self.io = self.device.NVMC
     self.init = False
 
   def hw_init(self):
@@ -45,7 +45,7 @@ class flash(object):
   def wait4ready(self):
     """wait for flash operation completion"""
     for i in range(5):
-      if self.nvmc.READY.rd() & 1:
+      if self.io.READY.rd() & 1:
         # operation completed
         return
       time.sleep(0.1)
@@ -53,10 +53,10 @@ class flash(object):
 
   def erase_page(self, adr):
     """erase a flash page"""
-    self.nvmc.CONFIG.wr(CONFIG_EEN)
-    self.nvmc.ERASEPAGE.wr(adr)
+    self.io.CONFIG.wr(CONFIG_EEN)
+    self.io.ERASEPAGE.wr(adr)
     self.wait4ready()
-    self.nvmc.CONFIG.wr(CONFIG_REN)
+    self.io.CONFIG.wr(CONFIG_REN)
 
   def erase(self, adr, n):
     """erase n bytes at adr"""
@@ -79,8 +79,8 @@ class flash(object):
     self.hw_init()
     s = [
       ['flash address', ': 0x%08x' % self.adr],
-      ['flash size', ': %s' % util.memsize(self.size)],
-      ['page size', ': %s' % util.memsize(self.page_size)],
+      ['flash size', ': 0x%x (%s)' % (self.size, util.memsize(self.size))],
+      ['page size', ': 0x%x (%s)' % (self.page_size, util.memsize(self.page_size))],
       ['number pages', ': %d' % self.number_of_pages],
     ]
     return util.display_cols(s)

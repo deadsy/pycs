@@ -17,6 +17,7 @@ import soc
 import flash
 
 import vendor.st.st as vendor
+import vendor.st.flash as flash_driver
 
 # -----------------------------------------------------------------------------
 
@@ -35,7 +36,7 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    self.flash = flash.flash(None)
+    self.flash = flash.flash(flash_driver.page_based(self.device))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),

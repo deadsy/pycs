@@ -80,7 +80,7 @@ def STM32F303xC_fixup(d):
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
   d.insert(soc.make_peripheral('flash_system', 0x1fffd800, 8 << 10, None, 'flash system memory'))
   d.insert(soc.make_peripheral('flash_main', 0x08000000, 256 << 10, None, 'flash main memory'))
-  d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 2 << 10, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 16, None, 'flash option memory'))
 
 s = soc_info()
 s.name = 'STM32F303xC'
