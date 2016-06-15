@@ -70,7 +70,8 @@ def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
 
 class region(object):
   """class to represent a memory region"""
-  def __init__(self, adr, size):
+  def __init__(self, name, adr, size):
+    self.name = name
     self.adr = adr
     self.size = size
     self.end = self.adr + self.size - 1
@@ -78,6 +79,13 @@ class region(object):
   def overlap(self, x):
     """return True if this region and x overlap"""
     return max(self.adr, x.adr) <= min(self.end, x.end)
+
+  def contains(self, x):
+    """return True is x is entirely contained by this region"""
+    return (self.adr <= x.adr) and (self.end >= x.end)
+
+  def __str__(self):
+    return '%-16s: %08x %08x %s' % (self.name, self.adr, self.end, util.memsize(self.size))
 
 # -----------------------------------------------------------------------------
 
