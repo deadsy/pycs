@@ -149,7 +149,7 @@ def nbytes_to_nwords(n, width):
 
 # -----------------------------------------------------------------------------
 
-def mem_region_args2(ui, args, device, default_size = None):
+def mem_region_args(ui, args, device, default_size = None):
   """memory region arguments: return (adr, size) or None"""
   adr = None
   size = None
@@ -224,27 +224,6 @@ def mem_file_args(ui, args, device):
     name = args[2]
 
   return (adr, n, name)
-
-# -----------------------------------------------------------------------------
-
-def mem_region_args(ui, args, device):
-  """memory region arguments: return (adr, len) or None"""
-  if wrong_argc(ui, args, (1, 2)):
-    return
-  if len(args) == 1 and device.peripherals.has_key(args[0]):
-    # memory region defined by a peripheral name
-    p = device.peripherals[args[0]]
-    return (p.address, p.size)
-  # parse <adr> <len> arguments
-  adr = sex_arg(ui, args[0], 32)
-  if adr is None:
-    return
-  n = 0x40
-  if len(args) == 2:
-    n = int_arg(ui, args[1], (1, 0xffffffff), 16)
-    if n is None:
-      return
-  return (adr, n)
 
 # ----------------------------------------------------------------------------
 

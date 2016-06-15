@@ -52,7 +52,7 @@ class flash(object):
 
   def cmd_erase(self, ui, args):
     """erase flash"""
-    x = util.mem_region_args2(ui, args, self.device)
+    x = util.mem_region_args(ui, args, self.device)
     if x is None:
       return
     (adr, size) = x
@@ -80,7 +80,7 @@ class flash(object):
 
   def cmd_wr(self, ui,args):
     """write to flash"""
-    self.wrbuf(0, (0xcafebabe, 0xdeadbeef))
+    self.wrbuf(0, (0xcafebabe,) * 0x200)
 
   def cmd_ep(self, ui, args):
     """erase and program flash"""

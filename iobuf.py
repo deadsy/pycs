@@ -15,14 +15,6 @@ import darm
 
 # ----------------------------------------------------------------------------
 
-_shifts8 = (0,)
-_shifts32_be = (24, 16, 8, 0)
-_shifts32_le = (0, 8, 16, 24)
-_shifts64 = (56, 48, 40, 32, 24, 16, 8, 0)
-
-_display32 = 'address   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n'
-_display64 = 'address           0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n'
-
 printable = string.letters + string.digits + string.punctuation + ' '
 
 # ----------------------------------------------------------------------------
@@ -72,51 +64,6 @@ class arm_disassemble:
   def write(self, data):
     self.emit16(data & 0xffff)
     self.emit16(data >> 16)
-
-# ----------------------------------------------------------------------------
-
-class to_display:
-  """write data as a memory dump to the display"""
-
-  def __init__(self, width, ui, adr, le=False):
-    self.width = width
-    self.ui = ui
-    self.base = adr
-    self.adr = adr
-    self.inc = self.width >> 3
-    if self.width == 8:
-      self.shifts = _shifts8
-      self.ui.put(_display32)
-      self.format = '%08x: %s'
-    elif self.width == 32:
-      self.shifts = (_shifts32_be, _shifts32_le)[le]
-      self.ui.put(_display32)
-      self.format = '%08x: %s'
-    elif self.width == 64:
-      self.shifts = _shifts64
-      self.ui.put(_display64)
-      self.format = '%016x: %s'
-
-  def byte2char(self, bytes):
-    """convert a set of bytes into printable characters"""
-    char_str = [('.', chr(b))[chr(b) in printable] for b in bytes]
-    return ''.join(char_str)
-
-  def write(self, data):
-    """output the memory dump to the console"""
-    bytes = [((data >> s) & 0xff) for s in self.shifts]
-    byte_str = ''.join(['%02x ' % b for b in bytes])
-    posn = (self.adr - self.base) & 0x0f
-    if posn == 0:
-      self.ascii = self.byte2char(bytes)
-      self.ui.put(self.format % (self.adr, byte_str))
-    elif (posn + self.inc) == 16:
-      ascii_str = ''.join([self.ascii, self.byte2char(bytes)])
-      self.ui.put('%s %s\n' % (byte_str, ascii_str))
-    else:
-      self.ascii = ''.join([self.ascii, self.byte2char(bytes)])
-      self.ui.put('%s' % byte_str)
-    self.adr += self.inc
 
 # ----------------------------------------------------------------------------
 
@@ -206,7 +153,17 @@ class data_buffer(object):
           new_buf.append((x >> 24) & 255)
       self.buf = new_buf
     elif self.width == 16:
-      assert False, 'TODO: unsupported conversion from 16 to 32 bits'
+      new_buf = []
+      for x in self.buf:
+        if mode == 'be':
+          # big endian conversion
+          new_buf.append((x >> 8) & 255)
+          new_buf.append(x & 255)
+        else:
+          # little endian conversion
+          new_buf.append(x & 255)
+          new_buf.append((x >> 8) & 255)
+      self.buf = new_buf
     elif self.width == 8:
       # nothing to do
       return
@@ -216,6 +173,32 @@ class data_buffer(object):
     self.wr_idx = len(self.buf)
     self.rd_idx = 0
     self.width = 8
+
+  def convert16(self, mode):
+    """convert the buffer to 16 bit values"""
+    if self.width == 32:
+      new_buf = []
+      for x in self.buf:
+        if mode == 'be':
+          # big endian conversion
+          new_buf.append((x >> 16) & 0xffff)
+          new_buf.append(x & 0xffff)
+        else:
+          # little endian conversion
+          new_buf.append(x & 0xffff)
+          new_buf.append((x >> 16) & 0xffff)
+      self.buf = new_buf
+    elif self.width == 16:
+      # nothing to do
+      return
+    elif self.width == 8:
+      assert False, 'TODO: unsupported conversion from 8 to 16 bits'
+    else:
+      assert False, 'conversion error: width %d' % self.width
+    # reset the buffer indices
+    self.wr_idx = len(self.buf)
+    self.rd_idx = 0
+    self.width = 16
 
   def convert32(self, mode):
     """convert the buffer to 32 bit values"""
@@ -251,6 +234,16 @@ class data_buffer(object):
     self.rd_idx = 0
     self.width = 32
 
+  def convert(self, width, mode):
+    if width == 8:
+      self.convert8(mode)
+    elif width == 16:
+      self.convert16(mode)
+    elif width == 32:
+      self.convert32(mode)
+    else:
+      assert False, 'bad width'
+
   def endian_swap(self):
     """swap the endian-ness of all values"""
     if self.width == 32:
@@ -262,5 +255,15 @@ class data_buffer(object):
       return
     else:
       assert False, 'endian swap error: width %d' % self.width
+
+  def ascii_str(self):
+    """return an ascii string respresenting an 8-bit buffer"""
+    assert self.width == 8, 'width must be 8 bits'
+    return ''.join([('.', chr(b))[chr(b) in printable] for b in self.buf])
+
+  def __str__(self):
+    """return a string for the buffer values"""
+    fmt = '%%0%dx' % (self.width / 4)
+    return ' '.join([fmt % x for x in self.buf])
 
 #-----------------------------------------------------------------------------

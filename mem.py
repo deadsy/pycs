@@ -98,8 +98,8 @@ class mem(object):
     self.menu = (
       #('compare', self.cmd_compare, help_file2mem),
       ('d8', self.cmd_display8, help_mem_region),
-      #('d16', self.cmd_display16, help_memdisplay),
-      #('d32', self.cmd_display32, help_memdisplay),
+      ('d16', self.cmd_display16, help_mem_region),
+      ('d32', self.cmd_display32, help_mem_region),
       ('>file', self.cmd_mem2file, help_mem_file),
       #('<file', self.cmd_file2mem, help_file2mem),
       ('pic', self.cmd_pic, help_mem_region),
@@ -186,30 +186,52 @@ class mem(object):
     """compare memory with a file"""
     ui.put('todo\n')
 
-  def cmd_display8(self, ui, args):
-    """display memory 8 bits"""
+  def __display(self, ui, args, width):
+    """display memory: as width bits"""
     x = util.mem_region_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n) = x
-    # address is on a 16 byte boundary
-    # n is an integral multiple of 16 bytes
+    # round down address to 16 byte boundary
     adr &= ~15
+    # round up n to an integral multiple of 16 bytes
     n = (n + 15) & ~15
-    n = util.nbytes_to_nwords(n, 32)
-    # read memory, dump to display
-    md = iobuf.to_display(32, ui, adr, le = True)
-    self.cpu.rd_mem(adr, n, md)
+    # print the header
+    if width == 8:
+      ui.put('address   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n')
+    elif width == 16:
+      ui.put('address   0    2    4    6    8    A    C    E\n')
+    elif width == 32:
+      ui.put('address   0        4        8        C\n')
+    else:
+      assert False, 'bad width'
+    # read and print the data
+    for i in xrange(n/16):
+      # read 4, 32-bit words (16 bytes per line)
+      io = iobuf.data_buffer(32)
+      self.cpu.rd_mem(adr, 4, io)
+      # work out the data string
+      io.convert(width, 'le')
+      data_str = str(io)
+      # work out the ascii string
+      io.convert(8, 'le')
+      ascii_str = io.ascii_str()
+      ui.put('%08x: %s  %s\n' % (adr, data_str, ascii_str))
+      adr += 16
+
+  def cmd_display8(self, ui, args):
+    """display memory 8 bits"""
+    self.__display(ui, args, 8)
 
   def cmd_display16(self, ui, args):
     """display memory 16 bits"""
-    ui.put('todo\n')
+    self.__display(ui, args, 16)
 
   def cmd_display32(self, ui, args):
     """display memory 32 bits"""
-    ui.put('todo\n')
+    self.__display(ui, args, 32)
 
-  def analyze(self, buf, ofs, n):
+  def __analyze(self, buf, ofs, n):
     """return a character to respresent the buffer"""
     b0 = buf[ofs]
     if b0 == 0:
@@ -265,7 +287,7 @@ class mem(object):
       s = []
       adr_str = '0x%08x: ' % (adr + ofs)
       for x in range(cols):
-        s.append(self.analyze(data.buf, ofs, bps))
+        s.append(self.__analyze(data.buf, ofs, bps))
         ofs += bps
       ui.put('%s%s\n' % (adr_str, ''.join(s)))
 

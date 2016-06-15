@@ -18,7 +18,8 @@ locations marked as "customer reserved" in the SVD.
 
 4) According to the datasheet we can't write a code0 region from the SWD debug
 interface. So - we don't bother with code 0 regions. I don't have one in this
-chip in any case (FICR.CLENR0 = 0xffffffff).
+chip in any case (FICR.CLENR0 = 0xffffffff). It looks like the code 0 page is
+deprecated.
 
 5) Checking for sane inputs is a common problem and is done in common code.
 The general assumption for the driver API is that inputs have been checked
@@ -101,8 +102,10 @@ class flash(object):
   def erase(self, p):
     """erase a flash page - return non-zero for an error"""
     self.__hw_init()
-    self.__wait4ready()
+    # write enable
     self.io.CONFIG.wr(CONFIG_EEN)
+    self.__wait4ready()
+    # erase the page
     if p.name == 'flash1':
       self.io.ERASEPCR1.wr(p.adr)
     elif p.name == 'UICR':
@@ -110,16 +113,23 @@ class flash(object):
     else:
       assert False, 'unrecognised flash page name %s' % p.name
     self.__wait4ready()
+    # back to read only
     self.io.CONFIG.wr(CONFIG_REN)
+    self.__wait4ready()
     return 0
 
   def wrbuf(self, adr, buf):
-    """write a buffer of 32 bit words to the 32 bit aligned memory adr"""
-    self.__wait4ready()
+    """write a buffer of 32 bit words to a 32 bit aligned memory adr"""
+    self.__hw_init()
+    # write enable
     self.io.CONFIG.wr(CONFIG_WEN)
+    self.__wait4ready()
+    # write the data
     self.device.cpu.wr_buf(adr, buf)
     self.__wait4ready()
+    # back to read only
     self.io.CONFIG.wr(CONFIG_REN)
+    self.__wait4ready()
 
   def __str__(self):
     self.__hw_init()
