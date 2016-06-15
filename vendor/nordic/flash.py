@@ -4,10 +4,6 @@ Flash Driver for Nordic Chips
 
 Notes:
 
-This driver controls the pages in flash code region 1. The device I am
-developing with has code region 0 unused (FICR.CLENR0 = 0xffffffff)
-so this is not limitation to erasing the entire code flash.
-
 Instantiating this driver does not touch the hardware. No reads or writes.
 We only access the hardware when the user wants to do something.
 """
@@ -40,7 +36,7 @@ class flash(object):
       return
     self.number_of_pages = self.device.FICR.CODESIZE.rd()
     self.page_size = self.device.FICR.CODEPAGESIZE.rd()
-    self.adr = self.device.flash.address
+    self.adr = self.device.flash1.address
     self.size = self.number_of_pages * self.page_size
     self.init = True
 

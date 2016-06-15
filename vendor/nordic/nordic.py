@@ -27,7 +27,8 @@ soc_db = {}
 def nRF51822_fixup(d):
   d.cpu_info.deviceNumInterrupts = 32
   d.insert(soc.make_peripheral('ram', 0x20000000, 16 << 10, None, 'Data RAM'))
-  d.insert(soc.make_peripheral('flash', 0, 256 << 10, None, 'Code FLASH'))
+  # This device has FICR.CLENR0 = 0xffffffff indicating that the code 0 region does not exit
+  d.insert(soc.make_peripheral('flash1', 0, 256 << 10, None, 'FLASH Code Region 1'))
 
 s = soc_info()
 s.name = 'nRF51822'
