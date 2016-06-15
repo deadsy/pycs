@@ -84,8 +84,9 @@ class region(object):
     """return True is x is entirely contained by this region"""
     return (self.adr <= x.adr) and (self.end >= x.end)
 
-  def __str__(self):
-    return '%-16s: %08x %08x %s' % (self.name, self.adr, self.end, util.memsize(self.size))
+  def col_str(self):
+    """return a 3 string column for this region [name, range, size]"""
+    return [self.name, ': %08x - %08x' % (self.adr, self.end), util.memsize(self.size)]
 
 # -----------------------------------------------------------------------------
 

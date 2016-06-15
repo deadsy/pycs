@@ -148,6 +148,10 @@ class cortexm(object):
     """write n 32 bit words to memory starting at adr"""
     self.jlink.wrmem32(adr, [io.read() for i in range(n)])
 
+  def wr_buf(self, adr, buf):
+    """write a buffer of 32 bit words to the 32 bit aligned memory adr"""
+    self.jlink.wrmem32(adr, buf)
+
   def halt(self, msg=False):
     """halt the cpu"""
     if self.jlink.is_halted():

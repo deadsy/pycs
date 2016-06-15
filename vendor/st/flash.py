@@ -4,8 +4,14 @@ Flash Driver for ST Chips
 
 Notes:
 
-Instantiating this driver does not touch the hardware. No reads or writes.
+1) Instantiating this driver does not touch the hardware. No reads or writes.
 We only access the hardware when the user wants to do something.
+
+2) Some ST devices talk of "flash pages" others of "flash sectors". Pages
+are small and uniform in size, sectors are larger and variable in size.
+No matter- this driver calls them all "sectors" and maintains a list of them.
+Each sector is an erase unit.
+
 """
 #-----------------------------------------------------------------------------
 
@@ -65,6 +71,6 @@ class flash(object):
     return 0
 
   def __str__(self):
-    return '\n'.join([str(x) for x in self.device.flash_sectors])
+    return util.display_cols([x.col_str() for x in self.flash_sectors])
 
 #-----------------------------------------------------------------------------

@@ -11,7 +11,6 @@ Run fixup functions to correct any SVD inadequecies.
 
 import soc
 import cmregs
-import vendor.st.flash as flash_driver
 
 #-----------------------------------------------------------------------------
 # build a database of SoC devices
@@ -78,8 +77,6 @@ def STM32F407xx_fixup(d):
   d.insert(soc.make_peripheral('flash_otp', 0x1fff7800, 528, None, 'flash otp memory'))
   d.insert(soc.make_peripheral('UID', 0x1fff7a10, 12, _uuid_regset, 'Unique Device ID'))
   d.insert(soc.make_peripheral('FLASH_SIZE', 0x1fff7a22, 2, _flash_size_regset, 'Flash Size'))
-  # build the flash sector list - do this after defining the flash regions
-  d.flash_sectors = flash_driver.sector_based_flash(d)
 
 s = soc_info()
 s.name = 'STM32F407xx'
@@ -102,8 +99,6 @@ def STM32F303xC_fixup(d):
   d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 16, None, 'flash option memory'))
   d.insert(soc.make_peripheral('UID', 0x1ffff7ac, 12, _uuid_regset, 'Unique Device ID'))
   d.insert(soc.make_peripheral('FLASH_SIZE', 0x1ffff7cc, 2, _flash_size_regset, 'Flash Size'))
-  # build the flash sector list - do this after defining the flash regions
-  d.flash_sectors = flash_driver.page_based_flash(d)
 
 s = soc_info()
 s.name = 'STM32F303xC'

@@ -31,9 +31,24 @@ class flash(object):
       #('epv', self.cmd_epv),
       ('erase', self.cmd_erase, _help_erase),
       ('info', self.cmd_info),
+      ('wr', self.cmd_wr),
       #('program', self.cmd_program),
       #('verify', self.cmd_verify),
     )
+
+  def wrbuf(self, adr, buf):
+    """write a buffer of 32 bit words to the 32 bit aligned memory adr"""
+    if len(buf) == 0:
+      # nothing to write
+      return 'no data to write'
+    # check for address alignment
+    if adr & 3 != 0:
+      return 'write address is not 32 bit aligned'
+    # the memory we want to write must be contained by one of the device flash regions
+    if not self.driver.in_flash(mem.region(None, adr, len(buf))):
+      return 'write is not to flash'
+    # write to flash
+    self.driver.wrbuf(adr, buf)
 
   def cmd_erase(self, ui, args):
     """erase flash"""
@@ -41,9 +56,9 @@ class flash(object):
     if x is None:
       return
     (adr, size) = x
-    r = mem.region(adr, size)
+    r = mem.region(None, adr, size)
     # build a list of regions to be erased
-    erase_list = [x for x in self.driver.region_list() if r.overlap(x)]
+    erase_list = [x for x in self.driver.sector_list() if r.overlap(x)]
     if len(erase_list) == 0:
       ui.put('nothing to erase\n')
       return
@@ -63,9 +78,9 @@ class flash(object):
     """display flash information"""
     ui.put('%s\n' % self.driver)
 
-
-
-
+  def cmd_wr(self, ui,args):
+    """write to flash"""
+    self.wrbuf(0, (0xcafebabe, 0xdeadbeef))
 
   def cmd_ep(self, ui, args):
     """erase and program flash"""
