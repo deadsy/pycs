@@ -64,6 +64,7 @@ def more_enumval_decodes(d):
 #-----------------------------------------------------------------------------
 
 def STM32F407xx_fixup(d):
+  d.soc_name = 'STM32F407xx'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 80
   d.remove(d.NVIC)
@@ -87,6 +88,7 @@ soc_db[s.name] = s
 #-----------------------------------------------------------------------------
 
 def STM32F303xC_fixup(d):
+  d.soc_name = 'STM32F303xC'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 84
   d.remove(d.NVIC)

@@ -1,8 +1,6 @@
 # -----------------------------------------------------------------------------
 """
-
 Memory Functions
-
 """
 # -----------------------------------------------------------------------------
 
@@ -33,38 +31,6 @@ help_mem_wr = (
   ('<adr> <val>', 'address (hex)'),
   ('', 'value (hex)'),
 )
-
-# -----------------------------------------------------------------------------
-
-def memory_test(ui, cpu, adr, block_size, num_blocks, iters):
-  """test ram memory over a given region"""
-  # test a 32 bit write at the start and end of the block
-  locns = [adr + (block_size * i) for i in range(num_blocks)]
-  locns.extend([adr - 4 + (block_size * (i + 1)) for i in range(num_blocks)])
-  max_adr = adr + (block_size * num_blocks) - 4
-  ui.put('testing %d locations %08x-%08x (32 bit write/read, %d iterations)\n' % (len(locns), adr, max_adr, iters))
-
-  for i in range(iters):
-    # writing random values
-    ui.put('%d: writing...\n' % i)
-    saved = []
-    for adr in locns:
-      val = random.getrandbits(32)
-      cpu.wr(adr, val, 32)
-      saved.append(val)
-    # reading back values
-    ui.put('%d: reading...\n' % i)
-    bad = 0
-    for (adr, wr_val) in zip(locns, saved):
-      val = cpu.rd(adr, 32)
-      if val != wr_val:
-        ui.put('[%08x] = %08x : should be %08x, xor %08x\n' % (adr, val, wr_val, val ^ wr_val))
-        bad += 1
-    # report for this iteration
-    if not bad:
-      ui.put('%d: passed\n' % i)
-    else:
-      ui.put('%d: %d of %d locations failed\n' % (i, bad, len(locns)))
 
 # -----------------------------------------------------------------------------
 
@@ -234,14 +200,17 @@ class mem(object):
   def __analyze(self, buf, ofs, n):
     """return a character to respresent the buffer"""
     b0 = buf[ofs]
-    if b0 == 0:
+    if b0 is None:
+      c = ' '
+    elif b0 == 0:
       c = '-'
     elif b0 == 0xff:
       c = '.'
     else:
       c = '$'
     for i in range(1, n):
-      if buf[ofs + i] != b0:
+      k = buf[ofs + i]
+      if k is not None and k != b0:
         return '$'
     return c
 
@@ -251,32 +220,36 @@ class mem(object):
     if x is None:
       return
     (adr, n) = x
-    # work out how many rows, columns and bytes per symbol we should display
     if n == 0:
       return
-    elif n == 1:
-      rows = 1
-      cols = 1
-      bps = 1
-    else:
-      cols_max = 70
-      cols = cols_max + 1
-      bps = 1
-      # we try to display a matrix that is roughly square
-      while cols > cols_max:
-        bps *= 2
-        cols = int(math.sqrt(float(n)/float(bps)))
-      rows = int(math.ceil(n / (float(cols) * float(bps))))
+    # round down address to 32-bit byte boundary
+    adr &= ~3
+    # round up n to an integral multiple of 4 bytes
+    n = (n + 3) & ~3
+    # work out how many rows, columns and bytes per symbol we should display
+    cols_max = 70
+    cols = cols_max + 1
+    bps = 1
+    # we try to display a matrix that is roughly square
+    while cols > cols_max:
+      bps *= 2
+      cols = int(math.sqrt(float(n)/float(bps)))
+    rows = int(math.ceil(n / (float(cols) * float(bps))))
     # bytes per row
     bpr = cols * bps
+    # work out the none padding
+    nwords = n / 4
+    nwords_displayed = (((cols * rows * bps) + 3) & ~3) / 4
+    none_pad = [None,] * ((nwords_displayed - nwords) * 4)
     # read the memory
     if n > (16 << 10):
       ui.put('reading memory ...\n')
-    nwords = (((cols * rows * bps) + 3) & ~3)/4
     data = iobuf.data_buffer(32)
     self.cpu.rd_mem(adr, nwords, data)
     data.convert8(mode = 'le')
-    # summary
+    # add the none padding
+    data.buf.extend(none_pad)
+    # display the summary
     ui.put("'.' all ones, '-' all zeroes, '$' various\n")
     ui.put('%d (0x%x) bytes per symbol\n' % (bps, bps))
     ui.put('%d (0x%x) bytes per row\n' % (bpr, bpr))
