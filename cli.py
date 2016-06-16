@@ -24,6 +24,7 @@ Help Format:
 #-----------------------------------------------------------------------------
 
 import conio
+import util
 
 # -----------------------------------------------------------------------------
 # common help for cli leaf functions
@@ -40,8 +41,7 @@ general_help = (
     ('* note', 'commands can be incomplete - Eg. sh = sho = show'),
 )
 
-help_fmt1 = '  %-20s  %s\n'
-help_fmt2 = '  %-20s: %s\n'
+help_fmt = '  %-20s: %s\n'
 
 #-----------------------------------------------------------------------------
 
@@ -265,11 +265,15 @@ class cli:
     self.ui.put('\n%s\n' % s)
 
   def display_function_help(self, help_info):
+    s = []
     for (parm, descr) in help_info:
-      if parm != '':
-        self.ui.put(help_fmt2 % (parm, descr))
+      if parm is None:
+        s.append(['', ''])
+      elif descr is None:
+        s.append([parm, ''])
       else:
-        self.ui.put(help_fmt1 % ('', descr))
+        s.append([parm, ': %s' % descr])
+    self.ui.put('%s\n' % util.display_cols(s, [16,0]))
 
   def command_help(self, cmd, menu):
     """display help results for a command at a menu level"""
@@ -283,7 +287,7 @@ class cli:
         else:
           # command: docstring is the help
           descr = item[1].__doc__
-        self.ui.put(help_fmt2 % (name, descr))
+        self.ui.put(help_fmt % (name, descr))
 
   def function_help(self, item):
     """display help for a leaf function"""

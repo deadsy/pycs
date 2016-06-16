@@ -11,23 +11,26 @@ import iobuf
 
 # -----------------------------------------------------------------------------
 
-help_mem_file = (
-  ('<adr> <len> [file]', 'address (hex) length (hex)'),
-  ('<name> [file]', "region name - see 'map' command"),
-  ('<name> <len> [file]', 'filename - default is \"mem.bin\"'),
+_help_mem2file = (
+  ('<filename> <address/name> [len]', 'read memory - write to file'),
+  ('  filename', 'name of file'),
+  ('  address', 'address of memory (hex)'),
+  ('  name', 'name of memory region - see "map" command'),
+  ('  len', 'length of memory region (hex) - defaults to file size'),
 )
 
-help_mem_region = (
-  ('<adr> <len>', 'address (hex)'),
-  ('', 'length (hex) - default is 0x40'),
-  ('<name>', "region name - see 'map' command"),
+_help_mem_display = (
+  ('<address/name> <len>', 'display a memory region'),
+  ('  address', 'address of memory (hex)'),
+  ('  name', 'name of memory region - see "map" command'),
+  ('  len', 'length of memory region (hex) - defaults to region size or 0x40'),
 )
 
-help_mem_rd = (
+_help_mem_rd = (
   ('<adr>', 'address (hex)'),
 )
 
-help_mem_wr = (
+_help_mem_wr = (
   ('<adr> <val>', 'address (hex)'),
   ('', 'value (hex)'),
 )
@@ -63,18 +66,18 @@ class mem(object):
 
     self.menu = (
       #('compare', self.cmd_compare, help_file2mem),
-      ('d8', self.cmd_display8, help_mem_region),
-      ('d16', self.cmd_display16, help_mem_region),
-      ('d32', self.cmd_display32, help_mem_region),
-      ('>file', self.cmd_mem2file, help_mem_file),
+      ('d8', self.cmd_display8, _help_mem_display),
+      ('d16', self.cmd_display16, _help_mem_display),
+      ('d32', self.cmd_display32, _help_mem_display),
+      ('>file', self.cmd_mem2file, _help_mem2file),
       #('<file', self.cmd_file2mem, help_file2mem),
-      ('pic', self.cmd_pic, help_mem_region),
-      ('rd8', self.cmd_rd8, help_mem_rd),
-      ('rd16', self.cmd_rd16, help_mem_rd),
-      ('rd32', self.cmd_rd32, help_mem_rd),
-      ('wr8', self.cmd_wr8, help_mem_wr),
-      ('wr16', self.cmd_wr16, help_mem_wr),
-      ('wr32', self.cmd_wr32, help_mem_wr),
+      ('pic', self.cmd_pic, _help_mem_display),
+      ('rd8', self.cmd_rd8, _help_mem_rd),
+      ('rd16', self.cmd_rd16, _help_mem_rd),
+      ('rd32', self.cmd_rd32, _help_mem_rd),
+      ('wr8', self.cmd_wr8, _help_mem_wr),
+      ('wr16', self.cmd_wr16, _help_mem_wr),
+      ('wr32', self.cmd_wr32, _help_mem_wr),
     )
 
   def cmd_rd(self, ui, args, n):

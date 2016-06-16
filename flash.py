@@ -14,10 +14,21 @@ import mem
 #-----------------------------------------------------------------------------
 
 _help_erase = (
-  ('<adr> <len>', 'address (hex) length (hex)'),
-  ('<name> <len>', 'region name length (hex)'),
-  ('<name>', 'region name (entire region)'),
+  ('<address/name> [len]', 'erase flash'),
   ('*', 'erase all'),
+  (None, None),
+  ('  address', 'address of memory (hex)'),
+  ('  name', 'name of memory region - see "map" command'),
+  ('  len', 'length of memory region (hex) - defaults to region size'),
+)
+
+_help_write = (
+  ('<filename> <address/name> [len]', 'write a file to flash'),
+  (None, None),
+  ('  filename', 'name of file'),
+  ('  address', 'address of memory (hex)'),
+  ('  name', 'name of memory region - see "map" command'),
+  ('  len', 'length of memory region (hex) - defaults to file size'),
 )
 
 #-----------------------------------------------------------------------------
@@ -28,13 +39,9 @@ class flash(object):
     self.driver = driver
     self.device = device
     self.menu = (
-      #('ep', self.cmd_ep),
-      #('epv', self.cmd_epv),
       ('erase', self.cmd_erase, _help_erase),
       ('info', self.cmd_info),
-      ('wr', self.cmd_wr),
-      #('program', self.cmd_program),
-      #('verify', self.cmd_verify),
+      ('write', self.cmd_write, _help_write),
     )
 
   def wrbuf(self, adr, buf):
@@ -82,28 +89,13 @@ class flash(object):
     progress.erase()
     ui.put('done (%d errors)\n' % n_errors)
 
+  def cmd_write(self, ui,args):
+    """write to flash"""
+    #self.wrbuf(0, (0xcafebabe,) * 0x200)
+    pass
+
   def cmd_info(self, ui,args):
     """display flash information"""
     ui.put('%s\n' % self.driver)
-
-  def cmd_wr(self, ui,args):
-    """write to flash"""
-    self.wrbuf(0, (0xcafebabe,) * 0x200)
-
-  def cmd_ep(self, ui, args):
-    """erase and program flash"""
-    pass
-
-  def cmd_epv(self, ui, args):
-    """erase, program and verify flash"""
-    pass
-
-  def cmd_program(self, ui, args):
-    """program flash"""
-    pass
-
-  def cmd_verify(self, ui, args):
-    """verify flash"""
-    pass
 
 #-----------------------------------------------------------------------------
