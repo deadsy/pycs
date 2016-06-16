@@ -99,15 +99,29 @@ class flash(object):
       return True
     return False
 
+  def erase_all(self):
+    """erase all (code 1 and uicr) - return non-zero for an error"""
+    self.__hw_init()
+    # erase enable
+    self.io.CONFIG.wr(CONFIG_EEN)
+    self.__wait4ready()
+    # erase all
+    self.io.ERASEALL.wr(1)
+    self.__wait4ready()
+    # back to read only
+    self.io.CONFIG.wr(CONFIG_REN)
+    self.__wait4ready()
+    return 0
+
   def erase(self, p):
     """erase a flash page - return non-zero for an error"""
     self.__hw_init()
-    # write enable
+    # erase enable
     self.io.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
     # erase the page
     if p.name == 'flash1':
-      self.io.ERASEPCR1.wr(p.adr)
+      self.io.ERASEPAGE.wr(p.adr)
     elif p.name == 'UICR':
       self.io.ERASEUICR.wr(p.adr)
     else:

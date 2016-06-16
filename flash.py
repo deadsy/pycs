@@ -17,6 +17,7 @@ _help_erase = (
   ('<adr> <len>', 'address (hex) length (hex)'),
   ('<name> <len>', 'region name length (hex)'),
   ('<name>', 'region name (entire region)'),
+  ('*', 'erase all'),
 )
 
 #-----------------------------------------------------------------------------
@@ -52,6 +53,13 @@ class flash(object):
 
   def cmd_erase(self, ui, args):
     """erase flash"""
+    # check for erase all
+    if len(args) == 1 and args[0] == '*':
+      ui.put('erase all : ')
+      n_errors = self.driver.erase_all()
+      ui.put('done (%d errors)\n' % n_errors)
+      return
+    # memory region erase
     x = util.mem_region_args(ui, args, self.device)
     if x is None:
       return
