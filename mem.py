@@ -135,13 +135,16 @@ class mem(object):
 
   def cmd_mem2file(self, ui, args):
     """read from memory, write to file"""
-    x = util.mem_file_args(ui, args, self.cpu.device)
+    x = util.file_mem(ui, args, self.cpu.device)
     if x is None:
       return
-    (adr, n, name) = x
+    (name, adr, size) = x
+    if size is None:
+      ui.put('invalid length')
+      return
     # adjust the address and length
     adr = util.align_adr(adr, 32)
-    n = util.nbytes_to_nwords(n, 32)
+    n = util.nbytes_to_nwords(size, 32)
     # read memory, write to file object
     mf = iobuf.to_file(32, ui, name, n, le = True)
     self.cpu.rd_mem(adr, n, mf)
@@ -157,7 +160,7 @@ class mem(object):
 
   def __display(self, ui, args, width):
     """display memory: as width bits"""
-    x = util.mem_region_args(ui, args, self.cpu.device)
+    x = util.mem_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n) = x
@@ -219,7 +222,7 @@ class mem(object):
 
   def cmd_pic(self, ui, args):
     """display a pictorial summary of memory"""
-    x = util.mem_region_args(ui, args, self.cpu.device)
+    x = util.mem_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n) = x

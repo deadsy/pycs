@@ -108,14 +108,11 @@ def dict_arg(ui, arg, d):
 # ----------------------------------------------------------------------------
 
 def file_arg(ui, name):
-  """return True if the file exists and is non-zero in size"""
+  """return the size of a file or None if it does not exist"""
   if os.path.isfile(name) == False:
     ui.put('%s does not exist\n' % name)
-    return False
-  if os.path.getsize(name) == 0:
-    ui.put('%s has zero size\n' % name)
-    return False
-  return True
+    return None
+  return os.path.getsize(name)
 
 # ----------------------------------------------------------------------------
 
@@ -149,25 +146,23 @@ def nbytes_to_nwords(n, width):
 
 # -----------------------------------------------------------------------------
 
-def mem_region_args(ui, args, device, default_size = None):
-  """memory region arguments: return (adr, size) or None"""
-  adr = None
+def mem_args(ui, args, device):
+  """memory arguments: return (adr, size) or None"""
   size = None
 
   if wrong_argc(ui, args, (1, 2)):
     return None
 
-  if len(args) >= 1:
-    if device.peripherals.has_key(args[0]):
-      # args[0] is a peripheral name
-      p = device.peripherals[args[0]]
-      adr = p.address
-      size = p.size
-    else:
-      # args[0] is an address
-      adr = sex_arg(ui, args[0], 32)
-      if adr is None:
-        return None
+  if device.peripherals.has_key(args[0]):
+    # args[0] is a peripheral name
+    p = device.peripherals[args[0]]
+    adr = p.address
+    size = p.size
+  else:
+    # args[0] is an address
+    adr = sex_arg(ui, args[0], 32)
+    if adr is None:
+      return None
 
   if len(args) >= 2:
     # do we have a length?
@@ -175,55 +170,26 @@ def mem_region_args(ui, args, device, default_size = None):
     if size is None:
       return None
 
-  if size is None:
-    size = default_size
-
-  if size is None:
-    ui.put('bad size')
-    return None
-
   return (adr, size)
 
 # -----------------------------------------------------------------------------
 
-def mem_file_args(ui, args, device):
-  """memory/file arguments: return (adr, n, name) or None"""
+def file_mem_args(ui, args, device):
+  """file and memory arguments: return (name, adr, size) or None"""
 
-  adr = None
-  n = None
-  name = 'mem.bin'
-
-  if wrong_argc(ui, args, (1, 2, 3)):
+  if wrong_argc(ui, args, (2, 3)):
     return None
 
-  if len(args) >= 1:
-    if device.peripherals.has_key(args[0]):
-      # args[0] is a peripheral name
-      p = device.peripherals[args[0]]
-      adr = p.address
-      n = p.size
-    else:
-      # args[0] is an address
-      adr = sex_arg(ui, args[0], 32)
-      if adr is None:
-        return None
+  # args[0] is the filename
+  name = args[0]
 
-  if len(args) >= 2:
-    # do we have a length or a filename?
-    try:
-      int(args[1], 16)
-      n = int_arg(ui, args[1], (1, 0xffffffff), 16)
-    except ValueError:
-      name = args[1]
-
-  if n is None:
-    ui.put('bad length')
+  # remaining arguments define the memory region
+  x = mem_args(ui, args[1:], device)
+  if x is None:
     return None
+  (adr, size) = x
 
-  if len(args) >= 3:
-    name = args[2]
-
-  return (adr, n, name)
+  return (name, adr, size)
 
 # ----------------------------------------------------------------------------
 

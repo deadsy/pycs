@@ -14,9 +14,8 @@ import mem
 #-----------------------------------------------------------------------------
 
 _help_erase = (
-  ('<address/name> [len]', 'erase flash'),
   ('*', 'erase all'),
-  (None, None),
+  ('<address/name> [len]', 'erase memory region'),
   ('  address', 'address of memory (hex)'),
   ('  name', 'name of memory region - see "map" command'),
   ('  len', 'length of memory region (hex) - defaults to region size'),
@@ -24,7 +23,6 @@ _help_erase = (
 
 _help_write = (
   ('<filename> <address/name> [len]', 'write a file to flash'),
-  (None, None),
   ('  filename', 'name of file'),
   ('  address', 'address of memory (hex)'),
   ('  name', 'name of memory region - see "map" command'),
@@ -67,11 +65,14 @@ class flash(object):
       ui.put('done (%d errors)\n' % n_errors)
       return
     # memory region erase
-    x = util.mem_region_args(ui, args, self.device)
+    x = util.mem_args(ui, args, self.device)
     if x is None:
       return
-    (adr, size) = x
-    r = mem.region(None, adr, size)
+    (adr, n) = x
+    if n is None:
+      ui.put('bad erase length\n')
+      return
+    r = mem.region(None, adr, n)
     # build a list of regions to be erased
     erase_list = [x for x in self.driver.sector_list() if r.overlap(x)]
     if len(erase_list) == 0:
@@ -91,8 +92,32 @@ class flash(object):
 
   def cmd_write(self, ui,args):
     """write to flash"""
-    #self.wrbuf(0, (0xcafebabe,) * 0x200)
-    pass
+    x = util.file_mem_args(ui, args, self.device)
+    if x is None:
+      return
+    (name, adr, n) = x
+    # check the file
+    filesize = util.file_arg(ui, name)
+    if filesize is None:
+      # file does not exist
+      return
+    if filesize == 0:
+      ui.put('%s has zero size\n' % name)
+      return
+    if n is None:
+      n = filesize
+    # make sure the user has pointed to flash
+    r = mem.region(None, adr, n)
+    if not self.driver.in_flash(r):
+      ui.put('memory region is not within flash\n')
+      return
+    # check for the file bigger than the target region
+    if filesize > n:
+      ui.put('%s larger than target memory (%d > %d bytes) - truncating\n' % (name, filesize, n))
+
+    ui.put('%s 0x%x %d\n' % (name, adr, n))
+
+
 
   def cmd_info(self, ui,args):
     """display flash information"""
