@@ -5,7 +5,6 @@ Memory Functions
 # -----------------------------------------------------------------------------
 
 import math
-
 import util
 import iobuf
 
@@ -19,8 +18,8 @@ _help_mem2file = (
   ('  len', 'length of memory region (hex) - defaults to file size'),
 )
 
-_help_mem_display = (
-  ('<address/name> <len>', 'display a memory region'),
+_help_mem_region = (
+  ('<address/name> <len>', 'memory region'),
   ('  address', 'address of memory (hex)'),
   ('  name', 'name of memory region - see "map" command'),
   ('  len', 'length of memory region (hex) - defaults to region size or 0x40'),
@@ -65,13 +64,12 @@ class mem(object):
     self.cpu = cpu
 
     self.menu = (
-      #('compare', self.cmd_compare, help_file2mem),
-      ('d8', self.cmd_display8, _help_mem_display),
-      ('d16', self.cmd_display16, _help_mem_display),
-      ('d32', self.cmd_display32, _help_mem_display),
+      ('d8', self.cmd_display8, _help_mem_region),
+      ('d16', self.cmd_display16, _help_mem_region),
+      ('d32', self.cmd_display32, _help_mem_region),
       ('>file', self.cmd_mem2file, _help_mem2file),
-      #('<file', self.cmd_file2mem, help_file2mem),
-      ('pic', self.cmd_pic, _help_mem_display),
+      ('md5', self.cmd_md5, _help_mem_region),
+      ('pic', self.cmd_pic, _help_mem_region),
       ('rd8', self.cmd_rd8, _help_mem_rd),
       ('rd16', self.cmd_rd16, _help_mem_rd),
       ('rd32', self.cmd_rd32, _help_mem_rd),
@@ -150,21 +148,17 @@ class mem(object):
     self.cpu.rd_mem(adr, n, mf)
     mf.close()
 
-  def cmd_file2mem(self, ui, args):
-    """read from file, write to memory"""
-    ui.put('todo\n')
-
-  def cmd_compare(self, ui, args):
-    """compare memory with a file"""
-    ui.put('todo\n')
-
   def __display(self, ui, args, width):
     """display memory: as width bits"""
     x = util.mem_args(ui, args, self.cpu.device)
     if x is None:
       return
     (adr, n) = x
-    # round down address to 16 byte boundary
+    if n == 0:
+      return
+    if n is None:
+      n = 0x40
+     # round down address to 16 byte boundary
     adr &= ~15
     # round up n to an integral multiple of 16 bytes
     n = (n + 15) & ~15
@@ -228,6 +222,8 @@ class mem(object):
     (adr, n) = x
     if n == 0:
       return
+    if n is None:
+      n = 0x40
     # round down address to 32-bit byte boundary
     adr &= ~3
     # round up n to an integral multiple of 4 bytes
@@ -269,5 +265,21 @@ class mem(object):
         s.append(self.__analyze(data.buf, ofs, bps))
         ofs += bps
       ui.put('%s%s\n' % (adr_str, ''.join(s)))
+
+  def cmd_md5(self, ui, args):
+    """calculate an md5 hash of memory"""
+    x = util.mem_args(ui, args, self.cpu.device)
+    if x is None:
+      return
+    (adr, n) = x
+    if n == 0:
+      return
+    if n is None:
+      n = 0x40
+    # round down address to 32-bit byte boundary
+    adr &= ~3
+    # round up n to an integral multiple of 4 bytes
+    n = (n + 3) & ~3
+    ui.put('todo\n')
 
 # -----------------------------------------------------------------------------

@@ -263,6 +263,12 @@ class register(object):
   def wr(self, val, idx = 0):
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
+  def set_bit(self, val, idx = 0):
+    self.wr(self.rd(idx) | val, idx)
+
+  def clr_bit(self, val, idx = 0):
+    self.wr(self.rd(idx) & ~val, idx)
+
   def field_list(self):
     """return an ordered fields list"""
     # build a list of fields in most significant bit order

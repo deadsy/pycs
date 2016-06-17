@@ -15,8 +15,14 @@ Each page/sector is an erase unit.
 """
 #-----------------------------------------------------------------------------
 
+import time
 import util
 import mem
+
+#-----------------------------------------------------------------------------
+
+POLL_MAX = 5
+POLL_TIME = 0.1
 
 #-----------------------------------------------------------------------------
 
@@ -49,43 +55,37 @@ def region_pages(d, name):
   number_of_pages = size / page_size
   return [mem.region(name, adr + (i * page_size), page_size) for i in range(number_of_pages)]
 
-def build_sectors(d):
-  """return a list of the flash pages/sectors for this device"""
-  if d.soc_name in ('STM32F303xC',):
-    # page based flash
-    return region_pages(d, 'flash_main') + region_pages(d, 'flash_system')
-  elif d.soc_name in ('STM32F407xx',):
-    # sector based flash
-    return []
-  else:
-    assert False, 'unrecognised SoC name %s' % d.soc_name
-
 #-----------------------------------------------------------------------------
 
 class flash(object):
-  """st flash driver"""
+  """flash driver for STM32F3xxx page based devices"""
 
   def __init__(self, device):
     self.device = device
     self.io = self.device.Flash
-    self.flash_sectors = build_sectors(self.device)
-    self.init = False
+    self.flash_main = mem.region(None, self.device.flash_main.address, self.device.flash_main.size)
+    self.pages = region_pages(self.device, 'flash_main') #  + region_pages(d, 'flash_system')
 
-  def __hw_init(self):
-    """initialise the hardware"""
-    if self.init:
-      return
-    self.init = True
-
-  def __wait4busy(self):
+  def __wait4complete(self):
     """wait for flash operation completion"""
-    for i in xrange(5):
-      # check the BSY bit
-      if self.io.SR.rd() & SR_BSY == 0:
-        # operation completed
-        return
-      time.sleep(0.1)
-    assert False, 'time out waiting for not busy'
+    n = 0
+    while n < POLL_MAX:
+      status = self.io.SR.rd()
+      if status & SR_BSY == 0:
+        break
+      time.sleep(POLL_TIME)
+      n += 1
+    # clear status bits
+    self.io.SR.wr(status | SR_EOP | SR_WRPRT | SR_PGERR)
+    # check for errors
+    if n >= POLL_MAX:
+      return 'timeout'
+    if status & SR_WRPRT:
+      return 'write protect error'
+    if status & SR_PGERR:
+      return 'programming error'
+    # done
+    return None
 
   def __unlock(self):
     """unlock the flash"""
@@ -98,36 +98,79 @@ class flash(object):
 
   def __lock(self):
     """lock the flash"""
-    self.io.CR.wr(CR_LOCK)
+    self.io.CR.set_bit(CR_LOCK)
+
+  def __wr16(self, adr, val):
+    """write 16 bits to flash"""
+    # set the progam bit
+    self.io.CR.set_bit(CR_PG)
+    self.device.cpu.wr(adr, val, 16)
+    errors = self.__wait4complete()
+    # clear the progam bit
+    self.io.CR.clr_bit(CR_PG)
+    return errors
 
   def sector_list(self):
-    """return a list of flash sectors"""
-    return self.flash_sectors
+    """return a list of flash pages"""
+    return self.pages
 
-  def erase(self, r):
-    """erase a flash region - return non-zero for an error"""
-    return 0
+  def in_flash(self, x):
+    """return True if x is contained within a flash region"""
+    if self.flash_main.contains(x):
+      return True
+    return False
 
   def erase_all(self):
     """erase all - return non-zero for an error"""
-    # Check the busy bit in the FLASH_SR register
-    self.__wait4busy()
+    # make sure the flash is not busy
+    self.__wait4complete()
     # unlock the flash
     self.__unlock()
-    # Set the mass erase bit in the FLASH_CR register
-    self.io.CR.wr(CR_MER)
-    # Set the start bit in the FLASH_CR register
-    self.io.CR.wr(CR_STRT)
-    # Wait for the busy bit to be reset
-    self.__wait4busy()
-    # check and clear the end of programming bit
-    errors = (1,0)[self.io.SR.rd() & SR_EOP != 0]
-    self.io.SR.wr(0)
+    # set the mass erase bit
+    self.io.CR.set_bit(CR_MER)
+    # set the start bit
+    self.io.CR.set_bit(CR_STRT)
+    # wait for completion
+    error = self.__wait4complete()
+    # clear the mass erase bit
+    self.io.CR.clr_bit(CR_MER)
     # lock the flash
     self.__lock()
-    return errors
+    return (1,0)[error is None]
+
+  def erase(self, page):
+    """erase a flash page - return non-zero for an error"""
+    # make sure the flash is not busy
+    self.__wait4complete()
+    # unlock the flash
+    self.__unlock()
+    # set the page erase bit
+    self.io.CR.set_bit(CR_PER)
+    # set the page address
+    self.io.AR.wr(page.adr)
+    # set the start bit
+    self.io.CR.set_bit(CR_STRT)
+    # wait for completion
+    error = self.__wait4complete()
+    # clear the page erase bit
+    self.io.CR.clr_bit(CR_PER)
+    # lock the flash
+    self.__lock()
+    return (1,0)[error is None]
+
+  def write(self, r, io):
+    """write memory region r with the data from the io buffer"""
+    # make sure the flash is not busy
+    self.__wait4complete()
+    # unlock the flash
+    self.__unlock()
+
+    self.__wr16(2, 0xbabe)
+
+    # lock the flash
+    self.__lock()
 
   def __str__(self):
-    return util.display_cols([x.col_str() for x in self.flash_sectors])
+    return util.display_cols([x.col_str() for x in self.pages])
 
 #-----------------------------------------------------------------------------

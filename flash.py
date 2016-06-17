@@ -111,12 +111,14 @@ class flash(object):
     if not self.driver.in_flash(r):
       ui.put('memory region is not within flash\n')
       return
-    # check for the file bigger than the target region
-    if filesize > n:
+    if n >= filesize:
+      # program the filesize
+      n = filesize
+    else:
       ui.put('%s larger than target memory (%d > %d bytes) - truncating\n' % (name, filesize, n))
 
     ui.put('%s 0x%x %d\n' % (name, adr, n))
-
+    self.driver.write(None, None)
 
 
   def cmd_info(self, ui,args):
