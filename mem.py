@@ -153,7 +153,7 @@ class mem(object):
     adr = util.align_adr(adr, 32)
     n = util.nbytes_to_nwords(size, 32)
     # read memory, write to file object
-    mf = iobuf.to_file(32, ui, name, n, le = True)
+    mf = iobuf.write_file(ui, name, n * 4)
     self.cpu.rdmem32(adr, n, mf)
     mf.close()
 

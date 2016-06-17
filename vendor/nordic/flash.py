@@ -129,7 +129,7 @@ class flash(object):
     self.io.CONFIG.wr(CONFIG_WEN)
     self.__wait4ready()
     # write the data
-    self.device.cpu.wrmem32(mr.adr, mr.size/4, io)
+    self.device.cpu.wrmem32(mr.adr, mr.size >> 2, io)
     self.__wait4ready()
     # back to read only
     self.io.CONFIG.wr(CONFIG_REN)

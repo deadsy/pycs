@@ -10,6 +10,7 @@ Those drivers expose a common API used by this code.
 
 import util
 import mem
+import iobuf
 
 #-----------------------------------------------------------------------------
 
@@ -104,23 +105,25 @@ class flash(object):
     if filesize == 0:
       ui.put('%s has zero size\n' % name)
       return
-
     if n is None:
       n = filesize
-    # make sure the user has pointed to flash
-    mr = mem.region(None, adr, n)
-    if not self.driver.in_flash(mr):
-      ui.put('memory region is not within flash\n')
-      return
     if n >= filesize:
       # program the filesize
       n = filesize
     else:
       ui.put('%s larger than target memory (%d > %d bytes) - truncating\n' % (name, filesize, n))
-
-    ui.put('%s 0x%x %d\n' % (name, adr, n))
-    self.driver.write(mr, None)
-
+    # adjust the address and length
+    adr = util.align_adr(adr, 32)
+    n = util.nbytes_to_nwords(n, 32)
+    # make sure the user has pointed to flash
+    mr = mem.region(None, adr, n * 4)
+    if not self.driver.in_flash(mr):
+      ui.put('memory region is not within flash\n')
+      return
+    # read from file, write to memory
+    mf = iobuf.read_file(ui, name, n * 4)
+    self.driver.write(mr, mf)
+    mf.close()
 
   def cmd_info(self, ui,args):
     """display flash information"""

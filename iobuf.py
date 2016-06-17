@@ -66,43 +66,85 @@ class arm_disassemble:
     self.emit16(data & 0xffff)
     self.emit16(data >> 16)
 
-# ----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
-class to_file:
-  """write data to a file"""
+class write_file(object):
 
-  def __init__(self, width, ui, name, nmax, le = False):
-    self.width = width
+  def __init__(self, ui, name, size, mode = 'le'):
     self.ui = ui
-    self.file = open(name, 'wb')
+    self.f = open(name, 'wb')
     self.n = 0
-    # endian converion
-    self.convert = util.identity
-    if le:
-      if self.width == 32:
-        self.convert = util.btol32
-      elif self.width == 64:
-        self.convert = util.btol64
+    self.fmt16 = ('>H', '<H')[mode == 'le']
+    self.fmt32 = ('>L', '<L')[mode == 'le']
     # display output
     self.ui.put('writing to %s ' % name)
-    self.progress = util.progress(ui, 7, nmax)
+    self.progress = util.progress(ui, 8, size)
 
   def close(self):
-    self.file.close()
+    self.f.close()
     self.progress.erase()
     self.ui.put('done\n')
 
-  def write(self, data):
-    """output the memory dump to a file"""
-    data = self.convert(data)
-    if self.width == 64:
-      self.file.write(struct.pack('>Q', data))
-    elif self.width == 32:
-      self.file.write(struct.pack('>L', data))
-    else:
-      self.file.write(struct.pack('B', data))
+  def wr32(self, val):
+    self.f.write(struct.pack(self.fmt32, val))
+    self.n += 4
+    self.progress.update(self.n)
+
+  def wr16(self, val):
+    self.f.write(struct.pack(self.fmt16, val))
+    self.n += 2
+    self.progress.update(self.n)
+
+  def wr8(self, val):
+    self.f.write(struct.pack('B', val))
     self.n += 1
     self.progress.update(self.n)
+
+#-----------------------------------------------------------------------------
+
+class read_file(object):
+
+  def __init__(self, ui, name, size, mode = 'le'):
+    self.ui = ui
+    self.f = open(name, 'rb')
+    self.n = 0
+    self.fmt16 = ('>H', '<H')[mode == 'le']
+    self.fmt32 = ('>L', '<L')[mode == 'le']
+    # display output
+    self.ui.put('reading from %s ' % name)
+    self.progress = util.progress(ui, 8, size)
+
+  def close(self):
+    self.f.close()
+    self.progress.erase()
+    self.ui.put('done\n')
+
+  def rd32(self):
+    val = self.f.read(4)
+    n = len(val)
+    if n != 4:
+      val = ''.join([val, '\xff' * (4 - n)])
+    self.n += 4
+    self.progress.update(self.n)
+    return struct.unpack(self.fmt32, val)[0]
+
+  def rd16(self):
+    val = self.f.read(2)
+    n = len(val)
+    if n != 2:
+      val = ''.join([val, '\xff' * (2 - n)])
+    self.n += 2
+    self.progress.update(self.n)
+    return struct.unpack(self.fmt16, val)[0]
+
+  def rd8():
+    val = self.file.read(1)
+    n = len(val)
+    if n == 0:
+      val = '\xff'
+    self.n += 1
+    self.progress.update(self.n)
+    return struct.unpack('B', val)[0]
 
 #-----------------------------------------------------------------------------
 
@@ -138,6 +180,10 @@ class data_buffer(object):
       self.buf[self.wr_idx] = val
     else:
       assert False, 'buffer write error: more than 1 off the end'
+
+  def wr32(self, val):
+    assert self.width == 32, 'width is not 32 bits'
+    self.write(val)
 
   def convert8(self, mode):
     """convert the buffer to 8 bit values"""
