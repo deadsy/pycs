@@ -47,16 +47,6 @@ CR_PG = 1 << 0                # Programming
 
 #-----------------------------------------------------------------------------
 
-def region_pages(d, name):
-  """return the pages for a flash region"""
-  page_size = 2 << 10
-  adr = d.peripherals[name].address
-  size = d.peripherals[name].size
-  number_of_pages = size / page_size
-  return [mem.region(name, adr + (i * page_size), page_size) for i in range(number_of_pages)]
-
-#-----------------------------------------------------------------------------
-
 class flash(object):
   """flash driver for STM32F3xxx page based devices"""
 
@@ -64,7 +54,10 @@ class flash(object):
     self.device = device
     self.io = self.device.Flash
     self.flash_main = mem.region(None, self.device.flash_main.address, self.device.flash_main.size)
-    self.pages = region_pages(self.device, 'flash_main') #  + region_pages(d, 'flash_system')
+    self.page_size = 2 << 10
+    self.pages = []
+    self.pages.extend(mem.flash_pages(self.device, 'flash_main', self.page_size))
+    #self.pages.extend(mem.flash_pages(self.device, 'flash_system', self.page_size))
 
   def __wait4complete(self):
     """wait for flash operation completion"""
@@ -158,15 +151,17 @@ class flash(object):
     self.__lock()
     return (1,0)[error is None]
 
-  def write(self, r, io):
-    """write memory region r with the data from the io buffer"""
+  def write(self, mr, io):
+    """write memory region with data from an io buffer"""
+    assert mr.adr & 2 == 0, 'memory region address is not 16-bit aligned'
+    assert mr.size & 2 == 0, 'memory region size is not an integral multiple of 16 bits'
     # make sure the flash is not busy
     self.__wait4complete()
     # unlock the flash
     self.__unlock()
-
-    self.__wr16(2, 0xbabe)
-
+    # write the flash 16 bits at a time
+    for adr in xrange(mr.adr, mr.end, 2):
+      self.__wr16(adr, io.rd16())
     # lock the flash
     self.__lock()
 

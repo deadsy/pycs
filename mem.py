@@ -58,6 +58,15 @@ class region(object):
 
 # -----------------------------------------------------------------------------
 
+def flash_pages(device, name, page_size):
+  """divide the named peripheral of a device into page sized memory regions"""
+  adr = device.peripherals[name].address
+  size = device.peripherals[name].size
+  number_of_pages = size / page_size
+  return [region(name, adr + (i * page_size), page_size) for i in range(number_of_pages)]
+
+# -----------------------------------------------------------------------------
+
 class mem(object):
 
   def __init__(self, cpu):
@@ -133,7 +142,7 @@ class mem(object):
 
   def cmd_mem2file(self, ui, args):
     """read from memory, write to file"""
-    x = util.file_mem(ui, args, self.cpu.device)
+    x = util.file_mem_args(ui, args, self.cpu.device)
     if x is None:
       return
     (name, adr, size) = x
@@ -145,7 +154,7 @@ class mem(object):
     n = util.nbytes_to_nwords(size, 32)
     # read memory, write to file object
     mf = iobuf.to_file(32, ui, name, n, le = True)
-    self.cpu.rd_mem(adr, n, mf)
+    self.cpu.rdmem32(adr, n, mf)
     mf.close()
 
   def __display(self, ui, args, width):
@@ -175,7 +184,7 @@ class mem(object):
     for i in xrange(n/16):
       # read 4, 32-bit words (16 bytes per line)
       io = iobuf.data_buffer(32)
-      self.cpu.rd_mem(adr, 4, io)
+      self.cpu.rdmem32(adr, 4, io)
       # work out the data string
       io.convert(width, 'le')
       data_str = str(io)
@@ -247,7 +256,7 @@ class mem(object):
     if n > (16 << 10):
       ui.put('reading memory ...\n')
     data = iobuf.data_buffer(32)
-    self.cpu.rd_mem(adr, nwords, data)
+    self.cpu.rdmem32(adr, nwords, data)
     data.convert8(mode = 'le')
     # add the none padding
     data.buf.extend(none_pad)
@@ -280,6 +289,11 @@ class mem(object):
     adr &= ~3
     # round up n to an integral multiple of 4 bytes
     n = (n + 3) & ~3
-    ui.put('todo\n')
+    # read the memory
+    if n > (16 << 10):
+      ui.put('reading memory ...\n')
+    data = iobuf.data_buffer(32)
+    self.cpu.rdmem32(adr, n/4, data)
+    ui.put('%s\n' % data.md5('le'))
 
 # -----------------------------------------------------------------------------

@@ -135,7 +135,7 @@ class cortexm(object):
     else:
       return 0
 
-  def rd_mem(self, adr, n, io):
+  def rdmem32(self, adr, n, io):
     """read n 32 bit words from memory starting at adr"""
     max_words = 16
     while n > 0:
@@ -144,13 +144,9 @@ class cortexm(object):
       n -= nwords
       adr += nwords * 4
 
-  def wr_mem(self, adr, n, io):
+  def wrmem32(self, adr, n, io):
     """write n 32 bit words to memory starting at adr"""
     self.jlink.wrmem32(adr, [io.read() for i in range(n)])
-
-  def wr_buf(self, adr, buf):
-    """write a buffer of 32 bit words to the 32 bit aligned memory adr"""
-    self.jlink.wrmem32(adr, buf)
 
   def halt(self, msg=False):
     """halt the cpu"""

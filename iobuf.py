@@ -8,10 +8,11 @@ Stateful objects used to produce/consume data from JTAG devices
 import sys
 import string
 import struct
-import util
+import hashlib
 
 sys.path.append('./darm/darm-master')
 import darm
+import util
 
 # ----------------------------------------------------------------------------
 
@@ -114,6 +115,10 @@ class data_buffer(object):
       self.buf = [util.mask_val(x, self.width) for x in data]
     self.wr_idx = len(self.buf)
     self.rd_idx = 0
+
+  def copy(self):
+    """return a copy of this buffer"""
+    return data_buffer(self.width, self.buf)
 
   def read(self):
     """read from the data buffer"""
@@ -256,8 +261,16 @@ class data_buffer(object):
     else:
       assert False, 'endian swap error: width %d' % self.width
 
+  def md5(self, mode):
+    """return an md5 hash of the buffer"""
+    x = self.copy()
+    x.convert8(mode)
+    m = hashlib.md5()
+    m.update(''.join([chr(b) for b in x.buf]))
+    return m.hexdigest()
+
   def ascii_str(self):
-    """return an ascii string respresenting an 8-bit buffer"""
+    """return an ascii string representing an 8-bit buffer"""
     assert self.width == 8, 'width must be 8 bits'
     return ''.join([('.', chr(b))[chr(b) in printable] for b in self.buf])
 

@@ -104,11 +104,12 @@ class flash(object):
     if filesize == 0:
       ui.put('%s has zero size\n' % name)
       return
+
     if n is None:
       n = filesize
     # make sure the user has pointed to flash
-    r = mem.region(None, adr, n)
-    if not self.driver.in_flash(r):
+    mr = mem.region(None, adr, n)
+    if not self.driver.in_flash(mr):
       ui.put('memory region is not within flash\n')
       return
     if n >= filesize:
@@ -118,7 +119,7 @@ class flash(object):
       ui.put('%s larger than target memory (%d > %d bytes) - truncating\n' % (name, filesize, n))
 
     ui.put('%s 0x%x %d\n' % (name, adr, n))
-    self.driver.write(None, None)
+    self.driver.write(mr, None)
 
 
   def cmd_info(self, ui,args):

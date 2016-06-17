@@ -49,18 +49,6 @@ class flash(object):
     self.io = self.device.NVMC
     self.init = False
 
-  def __flash1_pages(self):
-    """return a list of pages for the flash code 1 region"""
-    adr = self.device.flash1.address
-    number_of_pages = self.device.flash1.size / self.page_size
-    return [mem.region('flash1', adr + (i * self.page_size), self.page_size) for i in range(number_of_pages)]
-
-  def __uicr_pages(self):
-    """return a list of pages for the UICR region"""
-    adr = self.device.UICR.address
-    number_of_pages = self.device.UICR.size / self.page_size
-    return [mem.region('UICR', adr + (i * self.page_size), self.page_size) for i in range(number_of_pages)]
-
   def __hw_init(self):
     """initialise the hardware"""
     if self.init:
@@ -69,8 +57,8 @@ class flash(object):
     #self.number_of_pages = self.device.FICR.CODESIZE.rd()
     self.page_size = self.device.FICR.CODEPAGESIZE.rd()
     self.pages = []
-    self.pages.extend(self.__flash1_pages())
-    self.pages.extend(self.__uicr_pages())
+    self.pages.extend(mem.flash_pages(self.device, 'flash1', self.page_size))
+    self.pages.extend(mem.flash_pages(self.device, 'UICR', self.page_size))
     # build some memory regions to represent the flash memory
     self.code1 = mem.region(None, self.device.flash1.address, self.device.flash1.size)
     self.uicr = mem.region(None, self.device.UICR.address, self.device.UICR.size)
@@ -113,33 +101,35 @@ class flash(object):
     self.__wait4ready()
     return 0
 
-  def erase(self, p):
+  def erase(self, page):
     """erase a flash page - return non-zero for an error"""
     self.__hw_init()
     # erase enable
     self.io.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
     # erase the page
-    if p.name == 'flash1':
-      self.io.ERASEPAGE.wr(p.adr)
-    elif p.name == 'UICR':
-      self.io.ERASEUICR.wr(p.adr)
+    if page.name == 'flash1':
+      self.io.ERASEPAGE.wr(page.adr)
+    elif page.name == 'UICR':
+      self.io.ERASEUICR.wr(page.adr)
     else:
-      assert False, 'unrecognised flash page name %s' % p.name
+      assert False, 'unrecognised flash page name %s' % page.name
     self.__wait4ready()
     # back to read only
     self.io.CONFIG.wr(CONFIG_REN)
     self.__wait4ready()
     return 0
 
-  def wrbuf(self, adr, buf):
-    """write a buffer of 32 bit words to a 32 bit aligned memory adr"""
+  def write(self, mr, io):
+    """write memory region with data from an io buffer"""
+    assert mr.adr & 3 == 0, 'memory region address is not 32-bit aligned'
+    assert mr.size & 3 == 0, 'memory region size is not an integral multiple of 32 bits'
     self.__hw_init()
     # write enable
     self.io.CONFIG.wr(CONFIG_WEN)
     self.__wait4ready()
     # write the data
-    self.device.cpu.wr_buf(adr, buf)
+    self.device.cpu.wrmem32(mr.adr, mr.size/4, io)
     self.__wait4ready()
     # back to read only
     self.io.CONFIG.wr(CONFIG_REN)
