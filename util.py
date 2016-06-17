@@ -33,20 +33,10 @@ def memsize(s):
 # ----------------------------------------------------------------------------
 # endian conversions
 
-def identity(x):
-  """identity - no changes"""
-  return x
-
 def swap16(x):
   """swap endian 16 bits"""
   return ((x & 0xff00) >> 8) | \
          ((x & 0x00ff) << 8)
-
-def btol16(x):
-  return swap16(x)
-
-def ltob16(x):
-  return swap16(x)
 
 def swap32(x):
   """swap endian 32 bits"""
@@ -54,12 +44,6 @@ def swap32(x):
          ((x & 0x00ff0000) >> 8) | \
          ((x & 0x0000ff00) << 8) | \
          ((x & 0x000000ff) << 24)
-
-def btol32(x):
-  return swap32(x)
-
-def ltob32(x):
-  return swap32(x)
 
 # -----------------------------------------------------------------------------
 
@@ -192,12 +176,6 @@ def file_mem_args(ui, args, device):
   return (name, adr, size)
 
 # ----------------------------------------------------------------------------
-
-def parameter_str(parms):
-  """return a string with parameters and values"""
-  return '\n'.join(['%-23s: %s' % x for x in parms])
-
-# ----------------------------------------------------------------------------
 # bit field manipulation
 
 def maskshift(field):
@@ -216,22 +194,7 @@ def masked(val, field):
   """return the bits (masked only) from the value"""
   return val & maskshift(field)[0]
 
-def ls_bit(x):
-  """return the index of the least significant 1 bit"""
-  if x == 0:
-    return None
-  n = 0
-  while x & (1 << n) == 0:
-    n += 1
-  return n
-
 # ----------------------------------------------------------------------------
-
-def format_dec(val):
-  return '%d' % val
-
-def format_hex32(val):
-  return '%08x' % val
 
 def bitfield_v(val, fields, col=15):
   """
