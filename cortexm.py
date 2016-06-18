@@ -113,7 +113,7 @@ class cortexm(object):
 
   def rd(self, adr, n):
     """read from memory - n bits aligned"""
-    adr = util.align_adr(adr, n)
+    adr = util.align(adr, n)
     if n == 32:
       return self.jlink.rd32(adr)
     elif n == 16:
@@ -125,7 +125,7 @@ class cortexm(object):
 
   def wr(self, adr, val, n):
     """write to memory - n bits aligned"""
-    adr = util.align_adr(adr, n)
+    adr = util.align(adr, n)
     if n == 32:
       return self.jlink.wr32(adr, val)
     elif n == 16:
@@ -243,7 +243,7 @@ class cortexm(object):
       if n is None:
         return
     # align the address to 32 bits
-    adr = util.align_adr(adr, 32)
+    adr = util.align(adr, 32)
     # disassemble
     md = iobuf.arm_disassemble(ui, adr)
     self.rd_mem(adr, n, md)

@@ -70,14 +70,14 @@ class arm_disassemble:
 
 class write_file(object):
 
-  def __init__(self, ui, name, size, mode = 'le'):
+  def __init__(self, ui, msg, name, size, mode = 'le'):
     self.ui = ui
     self.f = open(name, 'wb')
     self.n = 0
     self.fmt16 = ('>H', '<H')[mode == 'le']
     self.fmt32 = ('>L', '<L')[mode == 'le']
     # display output
-    self.ui.put('writing to %s ' % name)
+    self.ui.put('%s ' % msg)
     self.progress = util.progress(ui, 8, size)
 
   def close(self):
@@ -104,14 +104,14 @@ class write_file(object):
 
 class read_file(object):
 
-  def __init__(self, ui, name, size, mode = 'le'):
+  def __init__(self, ui, msg, name, size, mode = 'le'):
     self.ui = ui
     self.f = open(name, 'rb')
     self.n = 0
     self.fmt16 = ('>H', '<H')[mode == 'le']
     self.fmt32 = ('>L', '<L')[mode == 'le']
     # display output
-    self.ui.put('reading from %s ' % name)
+    self.ui.put('%s ' % msg)
     self.progress = util.progress(ui, 8, size)
 
   def close(self):
@@ -137,7 +137,7 @@ class read_file(object):
     self.progress.update(self.n)
     return struct.unpack(self.fmt16, val)[0]
 
-  def rd8():
+  def rd8(self):
     val = self.file.read(1)
     n = len(val)
     if n == 0:

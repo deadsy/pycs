@@ -94,7 +94,7 @@ class mem(object):
     adr = util.sex_arg(ui, args[0], self.cpu.width)
     if adr == None:
       return
-    adr = util.align_adr(adr, n)
+    adr = util.align(adr, n)
     ui.put('[0x%08x] = ' % adr)
     ui.put('0x%%0%dx\n' % (n/4) % self.cpu.rd(adr, n))
 
@@ -117,7 +117,7 @@ class mem(object):
     adr = util.sex_arg(ui, args[0], self.cpu.width)
     if adr == None:
       return
-    adr = util.align_adr(adr, n)
+    adr = util.align(adr, n)
     val = 0
     if len(args) == 2:
       val = util.int_arg(ui, args[1], util.limit_32, 16)
@@ -150,10 +150,10 @@ class mem(object):
       ui.put('invalid length')
       return
     # adjust the address and length
-    adr = util.align_adr(adr, 32)
+    adr = util.align(adr, 32)
     n = util.nbytes_to_nwords(size, 32)
     # read memory, write to file object
-    mf = iobuf.write_file(ui, name, n * 4)
+    mf = iobuf.write_file(ui, 'writing to %s' % name, name, n * 4)
     self.cpu.rdmem32(adr, n, mf)
     mf.close()
 

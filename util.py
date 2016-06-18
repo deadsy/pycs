@@ -92,11 +92,15 @@ def dict_arg(ui, arg, d):
 # ----------------------------------------------------------------------------
 
 def file_arg(ui, name):
-  """return the size of a file or None if it does not exist"""
+  """return the size of a file or None"""
   if os.path.isfile(name) == False:
     ui.put('%s does not exist\n' % name)
     return None
-  return os.path.getsize(name)
+  size = os.path.getsize(name)
+  if size == 0:
+    ui.put('%s has zero size\n' % name)
+    return None
+  return size
 
 # ----------------------------------------------------------------------------
 
@@ -113,13 +117,18 @@ def sex_arg(ui, arg, width):
 
 # ----------------------------------------------------------------------------
 
-def align_adr(adr, width):
-  """align address to a width bits boundary"""
+def align(adr, width):
+  """round down address to a width bits boundary"""
   return adr & ~((width >> 3) - 1)
 
 def mask_val(val, width):
   """mask a value to width bits"""
   return val & ((1 << width) - 1)
+
+def roundup(val, width):
+  """roundup a value to N x width-bits"""
+  x = (width >> 3) - 1
+  return (val + x) & ~x
 
 # ----------------------------------------------------------------------------
 

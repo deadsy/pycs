@@ -8,6 +8,8 @@ Those drivers expose a common API used by this code.
 """
 #-----------------------------------------------------------------------------
 
+import time
+
 import util
 import mem
 import iobuf
@@ -100,30 +102,31 @@ class flash(object):
     # check the file
     filesize = util.file_arg(ui, name)
     if filesize is None:
-      # file does not exist
       return
-    if filesize == 0:
-      ui.put('%s has zero size\n' % name)
-      return
+    # round up the filesize - the io object will return 0xff for any bytes beyond EOF
+    filesize = util.roundup(filesize, 32)
     if n is None:
+      # no length on the command line - program the filesize
       n = filesize
     if n >= filesize:
-      # program the filesize
+      # region is bigger than the file - program the filesize
       n = filesize
     else:
-      ui.put('%s larger than target memory (%d > %d bytes) - truncating\n' % (name, filesize, n))
-    # adjust the address and length
-    adr = util.align_adr(adr, 32)
-    n = util.nbytes_to_nwords(n, 32)
-    # make sure the user has pointed to flash
-    mr = mem.region(None, adr, n * 4)
-    if not self.driver.in_flash(mr):
-      ui.put('memory region is not within flash\n')
+      # region is smaller than the file - truncate the file
+      ui.put('%s is larger than target memory: %d > %d bytes (truncating)\n' % (name, filesize, n))
+    # make sure the target region in flash is suitable
+    mr = mem.region(None, adr, n)
+    msg = self.driver.check_region(mr)
+    if msg is not None:
+      ui.put('%s\n' % msg)
       return
     # read from file, write to memory
-    mf = iobuf.read_file(ui, name, n * 4)
+    t_start = time.time()
+    mf = iobuf.read_file(ui, 'writing %s to flash' % name, name, n)
     self.driver.write(mr, mf)
     mf.close()
+    t_end = time.time()
+    ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
 
   def cmd_info(self, ui,args):
     """display flash information"""

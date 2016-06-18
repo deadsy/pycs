@@ -52,7 +52,7 @@ class flash(object):
 
   def __init__(self, device):
     self.device = device
-    self.io = self.device.Flash
+    self.hw = self.device.Flash
     self.flash_main = mem.region(None, self.device.flash_main.address, self.device.flash_main.size)
     self.page_size = 2 << 10
     self.pages = []
@@ -63,13 +63,13 @@ class flash(object):
     """wait for flash operation completion"""
     n = 0
     while n < POLL_MAX:
-      status = self.io.SR.rd()
+      status = self.hw.SR.rd()
       if status & SR_BSY == 0:
         break
       time.sleep(POLL_TIME)
       n += 1
     # clear status bits
-    self.io.SR.wr(status | SR_EOP | SR_WRPRT | SR_PGERR)
+    self.hw.SR.wr(status | SR_EOP | SR_WRPRT | SR_PGERR)
     # check for errors
     if n >= POLL_MAX:
       return 'timeout'
@@ -82,36 +82,56 @@ class flash(object):
 
   def __unlock(self):
     """unlock the flash"""
-    if self.io.CR.rd() & CR_LOCK == 0:
+    if self.hw.CR.rd() & CR_LOCK == 0:
       # already unlocked
       return
     # write the unlock sequence
-    self.io.KEYR.wr(0x45670123)
-    self.io.KEYR.wr(0xCDEF89AB)
+    self.hw.KEYR.wr(0x45670123)
+    self.hw.KEYR.wr(0xCDEF89AB)
+    # clear any set CR bits
+    self.hw.CR.wr(0)
 
   def __lock(self):
     """lock the flash"""
-    self.io.CR.set_bit(CR_LOCK)
+    self.hw.CR.set_bit(CR_LOCK)
 
   def __wr16(self, adr, val):
     """write 16 bits to flash"""
     # set the progam bit
-    self.io.CR.set_bit(CR_PG)
+    self.hw.CR.set_bit(CR_PG)
     self.device.cpu.wr(adr, val, 16)
-    errors = self.__wait4complete()
+    error = self.__wait4complete()
     # clear the progam bit
-    self.io.CR.clr_bit(CR_PG)
-    return errors
+    self.hw.CR.clr_bit(CR_PG)
+    return error
+
+  def __wr_slow(self, mr, io):
+    """write slow (0.69 KiB/sec) - correct"""
+    for adr in xrange(mr.adr, mr.end, 2):
+      self.__wr16(adr, io.rd16())
+
+  def __wr_fast(self, mr, io):
+    """write fast (6.40 KiB/sec) - muntzed"""
+    self.hw.CR.wr(CR_PG)
+    for adr in xrange(mr.adr, mr.end, 2):
+      self.device.cpu.wr(adr, io.rd16(), 16)
+    # clear the progam bit
+    self.hw.CR.clr_bit(CR_PG)
 
   def sector_list(self):
     """return a list of flash pages"""
     return self.pages
 
-  def in_flash(self, x):
-    """return True if x is contained within a flash region"""
+  def check_region(self, x):
+    """return None if region x meets the flash write requirements"""
+    if x.adr & 1:
+      return 'memory region is not 16-bit aligned'
+    if x.size & 1:
+      return 'memory region is not a multiple of 16-bits'
+    # check that we are within flash
     if self.flash_main.contains(x):
-      return True
-    return False
+      return None
+    return 'memory region is not within flash'
 
   def erase_all(self):
     """erase all - return non-zero for an error"""
@@ -120,13 +140,13 @@ class flash(object):
     # unlock the flash
     self.__unlock()
     # set the mass erase bit
-    self.io.CR.set_bit(CR_MER)
+    self.hw.CR.set_bit(CR_MER)
     # set the start bit
-    self.io.CR.set_bit(CR_STRT)
+    self.hw.CR.set_bit(CR_STRT)
     # wait for completion
     error = self.__wait4complete()
     # clear the mass erase bit
-    self.io.CR.clr_bit(CR_MER)
+    self.hw.CR.clr_bit(CR_MER)
     # lock the flash
     self.__lock()
     return (1,0)[error is None]
@@ -138,30 +158,28 @@ class flash(object):
     # unlock the flash
     self.__unlock()
     # set the page erase bit
-    self.io.CR.set_bit(CR_PER)
+    self.hw.CR.set_bit(CR_PER)
     # set the page address
-    self.io.AR.wr(page.adr)
+    self.hw.AR.wr(page.adr)
     # set the start bit
-    self.io.CR.set_bit(CR_STRT)
+    self.hw.CR.set_bit(CR_STRT)
     # wait for completion
     error = self.__wait4complete()
     # clear the page erase bit
-    self.io.CR.clr_bit(CR_PER)
+    self.hw.CR.clr_bit(CR_PER)
     # lock the flash
     self.__lock()
     return (1,0)[error is None]
 
   def write(self, mr, io):
     """write memory region with data from an io buffer"""
-    assert mr.adr & 2 == 0, 'memory region address is not 16-bit aligned'
-    assert mr.size & 2 == 0, 'memory region size is not an integral multiple of 16 bits'
     # make sure the flash is not busy
     self.__wait4complete()
     # unlock the flash
     self.__unlock()
-    # write the flash 16 bits at a time
-    for adr in xrange(mr.adr, mr.end, 2):
-      self.__wr16(adr, io.rd16())
+    # write the flash
+    self.__wr_fast(mr, io)
+    #self.__wr_slow(mr, io)
     # lock the flash
     self.__lock()
 
