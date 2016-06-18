@@ -62,7 +62,7 @@ class arm_disassemble:
     else:
       assert False
 
-  def write(self, data):
+  def wr32(self, data):
     self.emit16(data & 0xffff)
     self.emit16(data >> 16)
 

@@ -246,7 +246,7 @@ class cortexm(object):
     adr = util.align(adr, 32)
     # disassemble
     md = iobuf.arm_disassemble(ui, adr)
-    self.rd_mem(adr, n, md)
+    self.rdmem32(adr, n, md)
 
   def cmd_go(self, ui, args):
     """exit debug mode, run until breakpoint"""
