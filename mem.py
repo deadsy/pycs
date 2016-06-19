@@ -190,7 +190,7 @@ class mem(object):
     adr = util.align(adr, 32)
     n = util.nbytes_to_nwords(size, 32)
     # read memory, verify against file object
-    mf = iobuf.verify_file(ui, 'verifying :', name, n * 4)
+    mf = iobuf.verify_file(ui, 'verify %s:' % name, name, n * 4)
     self.cpu.rdmem32(adr, n, mf)
     mf.close()
 

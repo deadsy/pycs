@@ -9,6 +9,7 @@ import sys
 import string
 import struct
 import hashlib
+import time
 
 sys.path.append('./darm/darm-master')
 import darm
@@ -111,13 +112,19 @@ class read_file(object):
     self.fmt16 = ('>H', '<H')[mode == 'le']
     self.fmt32 = ('>L', '<L')[mode == 'le']
     # display output
+    self.t_start = time.time()
     self.ui.put('%s ' % msg)
     self.progress = util.progress(ui, 8, size)
 
-  def close(self):
+  def close(self, rate = False):
+    t_end = time.time()
     self.f.close()
     self.progress.erase()
-    self.ui.put('done\n')
+    if rate:
+      s = '%.2f KiB/sec' % (float(self.n)/((t_end - self.t_start) * 1024.0))
+      self.ui.put('done (%s)\n' % s)
+    else:
+      self.ui.put('done\n')
 
   def rd32(self):
     val = self.f.read(4)

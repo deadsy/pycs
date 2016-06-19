@@ -8,8 +8,6 @@ Those drivers expose a common API used by this code.
 """
 #-----------------------------------------------------------------------------
 
-import time
-
 import util
 import mem
 import iobuf
@@ -41,9 +39,10 @@ help_program = (
 
 class flash(object):
 
-  def __init__(self, driver, device):
+  def __init__(self, driver, device, mem):
     self.driver = driver
     self.device = device
+    self.mem = mem
     self.menu = (
       ('erase', self.cmd_erase, _help_erase),
       ('info', self.cmd_info),
@@ -54,7 +53,7 @@ class flash(object):
     """erase flash"""
     # check for erase all
     if len(args) == 1 and args[0] == '*':
-      ui.put('erase all : ')
+      ui.put('erase all: ')
       n_errors = self.driver.erase_all()
       ui.put('done (%d errors)\n' % n_errors)
       return
@@ -112,12 +111,9 @@ class flash(object):
       ui.put('%s\n' % msg)
       return
     # read from file, write to memory
-    t_start = time.time()
-    mf = iobuf.read_file(ui, 'writing %s to flash :' % name, name, n)
+    mf = iobuf.read_file(ui, 'writing %s:' % name, name, n)
     self.driver.write(mr, mf)
-    mf.close()
-    t_end = time.time()
-    ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
+    mf.close(rate = True)
 
   def cmd_info(self, ui,args):
     """display flash information"""
@@ -133,8 +129,9 @@ class flash(object):
     # erase all
     self.cmd_erase(ui, ('*',))
     # write to flash
-    self.cmd_write(ui, (args[0], '%s' % self.driver.code_flash()))
+    region_name = self.driver.firmware_region()
+    self.cmd_write(ui, (args[0], region_name))
     # verify against the file
-    # TODO
+    self.mem.cmd_verify(ui, (args[0], region_name))
 
 #-----------------------------------------------------------------------------

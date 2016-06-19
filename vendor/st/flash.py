@@ -138,8 +138,8 @@ class flash(object):
       return None
     return 'memory region is not within flash'
 
-  def code_flash(self):
-    """return the name of the flash region used for code"""
+  def firmware_region(self):
+    """return the name of the flash region used for firmware"""
     return 'flash_main'
 
   def erase_all(self):
