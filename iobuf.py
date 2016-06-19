@@ -148,6 +148,43 @@ class read_file(object):
 
 #-----------------------------------------------------------------------------
 
+class verify_file(object):
+
+  def __init__(self, ui, msg, name, size, mode = 'le'):
+    self.ui = ui
+    self.f = open(name, 'rb')
+    self.n = 0
+    self.diff = []
+    self.fmt16 = ('>H', '<H')[mode == 'le']
+    self.fmt32 = ('>L', '<L')[mode == 'le']
+    # display output
+    self.ui.put('%s ' % msg)
+    self.progress = util.progress(ui, 8, size)
+
+  def close(self):
+    self.f.close()
+    self.progress.erase()
+    if len(self.diff) == 0:
+      self.ui.put('same\n')
+    else:
+      self.ui.put('%d differences\n' % len(self.diff))
+
+  def file_rd32(self):
+    val = self.f.read(4)
+    n = len(val)
+    if n != 4:
+      val = ''.join([val, '\xff' * (4 - n)])
+    return struct.unpack(self.fmt32, val)[0]
+
+  def wr32(self, val):
+    x = self.file_rd32()
+    if val != x:
+      self.diff.append((self.n, val, x))
+    self.n += 4
+    self.progress.update(self.n)
+
+#-----------------------------------------------------------------------------
+
 class data_buffer(object):
 
   def __init__(self, width, data = None):

@@ -32,6 +32,11 @@ _help_write = (
   ('  len', 'length of memory region (hex) - defaults to file size'),
 )
 
+help_program = (
+  ('<filename>', 'write a firmware file to flash'),
+    ('  filename', 'name of file'),
+)
+
 #-----------------------------------------------------------------------------
 
 class flash(object):
@@ -44,20 +49,6 @@ class flash(object):
       ('info', self.cmd_info),
       ('write', self.cmd_write, _help_write),
     )
-
-  def wrbuf(self, adr, buf):
-    """write a buffer of 32 bit words to the 32 bit aligned memory adr"""
-    if len(buf) == 0:
-      # nothing to write
-      return 'no data to write'
-    # check for address alignment
-    if adr & 3 != 0:
-      return 'write address is not 32 bit aligned'
-    # the memory we want to write must be contained by one of the device flash regions
-    if not self.driver.in_flash(mem.region(None, adr, len(buf))):
-      return 'write is not to flash'
-    # write to flash
-    self.driver.wrbuf(adr, buf)
 
   def cmd_erase(self, ui, args):
     """erase flash"""
@@ -122,7 +113,7 @@ class flash(object):
       return
     # read from file, write to memory
     t_start = time.time()
-    mf = iobuf.read_file(ui, 'writing %s to flash' % name, name, n)
+    mf = iobuf.read_file(ui, 'writing %s to flash :' % name, name, n)
     self.driver.write(mr, mf)
     mf.close()
     t_end = time.time()
@@ -131,5 +122,19 @@ class flash(object):
   def cmd_info(self, ui,args):
     """display flash information"""
     ui.put('%s\n' % self.driver)
+
+  def cmd_program(self, ui, args):
+    """program firmware file to flash"""
+    if util.wrong_argc(ui, args, (1,)):
+      return None
+    x = util.file_arg(ui, args[0])
+    if x is None:
+      return
+    # erase all
+    self.cmd_erase(ui, ('*',))
+    # write to flash
+    self.cmd_write(ui, (args[0], '%s' % self.driver.code_flash()))
+    # verify against the file
+    # TODO
 
 #-----------------------------------------------------------------------------

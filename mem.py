@@ -10,12 +10,20 @@ import iobuf
 
 # -----------------------------------------------------------------------------
 
-_help_mem2file = (
-  ('<filename> <address/name> [len]', 'read memory - write to file'),
+_help_mem_2file = (
+  ('<filename> <address/name> [len]', 'read from memory, write to file'),
   ('  filename', 'name of file'),
   ('  address', 'address of memory (hex)'),
   ('  name', 'name of memory region - see "map" command'),
-  ('  len', 'length of memory region (hex) - defaults to file size'),
+  ('  len', 'length of memory region (hex)'),
+)
+
+_help_mem_verify = (
+  ('<filename> <address/name> [len]', 'read from file, verify against memory'),
+  ('  filename', 'name of file'),
+  ('  address', 'address of memory (hex)'),
+  ('  name', 'name of memory region - see "map" command'),
+  ('  len', 'length of memory region (hex) - defaults to filesize'),
 )
 
 _help_mem_region = (
@@ -76,12 +84,13 @@ class mem(object):
       ('d8', self.cmd_display8, _help_mem_region),
       ('d16', self.cmd_display16, _help_mem_region),
       ('d32', self.cmd_display32, _help_mem_region),
-      ('>file', self.cmd_mem2file, _help_mem2file),
+      ('>file', self.cmd_mem2file, _help_mem_2file),
       ('md5', self.cmd_md5, _help_mem_region),
       ('pic', self.cmd_pic, _help_mem_region),
       ('rd8', self.cmd_rd8, _help_mem_rd),
       ('rd16', self.cmd_rd16, _help_mem_rd),
       ('rd32', self.cmd_rd32, _help_mem_rd),
+      ('verify', self.cmd_verify, _help_mem_verify),
       ('wr8', self.cmd_wr8, _help_mem_wr),
       ('wr16', self.cmd_wr16, _help_mem_wr),
       ('wr32', self.cmd_wr32, _help_mem_wr),
@@ -154,6 +163,34 @@ class mem(object):
     n = util.nbytes_to_nwords(size, 32)
     # read memory, write to file object
     mf = iobuf.write_file(ui, 'writing to %s' % name, name, n * 4)
+    self.cpu.rdmem32(adr, n, mf)
+    mf.close()
+
+  def cmd_verify(self, ui, args):
+    """verify memory against file"""
+    x = util.file_mem_args(ui, args, self.cpu.device)
+    if x is None:
+      return
+    (name, adr, size) = x
+    # check the file
+    filesize = util.file_arg(ui, name)
+    if filesize is None:
+      return
+    # round up the filesize - the io object will return 0xff for any bytes beyond EOF
+    filesize = util.roundup(filesize, 32)
+    if size is None:
+      # no length on the command line - verify the filesize
+      size = filesize
+    if size > filesize:
+      ui.put('memory region is larger than file (%d > %d bytes): verifying file size\n' % (n, filesize))
+      size = filesize
+    if size < filesize:
+      ui.put('file is larger than memory region (%d > %d bytes): verifying region size\n' % (filesize, n))
+    # adjust the address and length
+    adr = util.align(adr, 32)
+    n = util.nbytes_to_nwords(size, 32)
+    # read memory, verify against file object
+    mf = iobuf.verify_file(ui, 'verifying :', name, n * 4)
     self.cpu.rdmem32(adr, n, mf)
     mf.close()
 

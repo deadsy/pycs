@@ -49,6 +49,7 @@ class target(object):
       ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
+      ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )
@@ -69,7 +70,7 @@ class target(object):
     self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
   def cmd_exit(self, ui, args):
-    """exit the application"""
+    """exit application"""
     self.jlink.jlink_close()
     ui.exit()
 

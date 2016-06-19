@@ -448,7 +448,7 @@ class device(object):
     return i_list
 
   def cmd_map(self, ui, args):
-    """display the memory map"""
+    """display memory map"""
     clist = []
     for p in self.peripheral_list():
       start = p.address

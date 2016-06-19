@@ -108,13 +108,18 @@ class flash(object):
   def __wr_slow(self, mr, io):
     """write slow (0.69 KiB/sec) - correct"""
     for adr in xrange(mr.adr, mr.end, 2):
-      self.__wr16(adr, io.rd16())
+      val = io.rd16()
+      if val != 0xffff:
+        self.__wr16(adr, val)
 
   def __wr_fast(self, mr, io):
     """write fast (6.40 KiB/sec) - muntzed"""
+    # set the progam bit
     self.hw.CR.wr(CR_PG)
     for adr in xrange(mr.adr, mr.end, 2):
-      self.device.cpu.wr(adr, io.rd16(), 16)
+      val = io.rd16()
+      if val != 0xffff:
+        self.device.cpu.wr(adr, val, 16)
     # clear the progam bit
     self.hw.CR.clr_bit(CR_PG)
 
@@ -132,6 +137,10 @@ class flash(object):
     if self.flash_main.contains(x):
       return None
     return 'memory region is not within flash'
+
+  def code_flash(self):
+    """return the name of the flash region used for code"""
+    return 'flash_main'
 
   def erase_all(self):
     """erase all - return non-zero for an error"""

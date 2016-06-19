@@ -310,11 +310,11 @@ class cortexm(object):
     self.measure_systick(ui, 'cpu', 1)
 
   def cmd_cpuid(self, ui, args):
-    """display the cpu identifier"""
+    """display cpu identifier"""
     ui.put('%s\n' % self.device.SCB.display('CPUID', fields = True))
 
   def cmd_vtable(self, ui, args):
-    """display the exceptions vector table"""
+    """display exceptions vector table"""
     s = []
     group = self.NVIC_GetPriorityGrouping()
     vtable = self.device.SCB.VTOR.rd()
