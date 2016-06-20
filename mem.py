@@ -182,15 +182,13 @@ class mem(object):
       # no length on the command line - verify the filesize
       size = filesize
     if size > filesize:
-      ui.put('memory region is larger than file (%d > %d bytes): verifying file size\n' % (size, filesize))
+      # region is larger than file - just verify the filesize
       size = filesize
-    if size < filesize:
-      ui.put('file is larger than memory region (%d > %d bytes): verifying region size\n' % (filesize, size))
     # adjust the address and length
     adr = util.align(adr, 32)
     n = util.nbytes_to_nwords(size, 32)
     # read memory, verify against file object
-    mf = iobuf.verify_file(ui, 'verify %s:' % name, name, n * 4)
+    mf = iobuf.verify_file(ui, 'verify %s (%d bytes):' % (name, n * 4), name, n * 4)
     self.cpu.rdmem32(adr, n, mf)
     mf.close()
 

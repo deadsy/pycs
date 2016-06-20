@@ -111,7 +111,7 @@ class flash(object):
       ui.put('%s\n' % msg)
       return
     # read from file, write to memory
-    mf = iobuf.read_file(ui, 'writing %s:' % name, name, n)
+    mf = iobuf.read_file(ui, 'writing %s (%d bytes):' % (name, n), name, n)
     self.driver.write(mr, mf)
     mf.close(rate = True)
 

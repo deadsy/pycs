@@ -12,18 +12,19 @@ at the actual flash storage is 1KiB, but we maintain the lie. It's not
 harmful- just be aware that you may not be able to use the whole region for
 storage.
 
-3) The UICR regions is not completely erasable/writeable. If you erase it
-certain Nordic reserved locations don't get erased. I suppose we are limited to
-locations marked as "customer reserved" in the SVD.
+3) The UICR region doesn't erase with a normal page erase, despite what you
+might think from reading the reference manual. The "erase all" can be used
+to clobber it.
 
 4) According to the datasheet we can't write a code0 region from the SWD debug
 interface. So - we don't bother with code 0 regions. I don't have one in this
-chip in any case (FICR.CLENR0 = 0xffffffff). It looks like the code 0 page is
-deprecated.
+chip in any case (FICR.CLENR0 = 0xffffffff). In general it looks like the code0
+page is deprecated.
 
-5) Checking for sane inputs is a common problem and is done in common code.
-The general assumption for the driver API is that inputs have been checked
-and the driver can just get on with the job. ie - dealing with the hardware.
+5) There are a couple of registers (FICR) that provide flash size and page size
+information. I don't read them at startup because I don't want the program to
+do any hardware access during initialisation. They should be checked for
+consistency with the hard coded page size and region size values.
 
 """
 #-----------------------------------------------------------------------------
@@ -46,28 +47,20 @@ class flash(object):
 
   def __init__(self, device):
     self.device = device
-    self.io = self.device.NVMC
+    self.hw = self.device.NVMC
     self.init = False
-
-  def __hw_init(self):
-    """initialise the hardware"""
-    if self.init:
-      return
-    # build a list of flash pages
-    #self.number_of_pages = self.device.FICR.CODESIZE.rd()
-    self.page_size = self.device.FICR.CODEPAGESIZE.rd()
+    self.page_size = 1 << 10 # Check FICR.CODEPAGESIZE
     self.pages = []
-    self.pages.extend(mem.flash_pages(self.device, 'flash1', self.page_size))
+    self.pages.extend(mem.flash_pages(self.device, 'flash1', self.page_size)) # Check FICR.CODESIZE
     self.pages.extend(mem.flash_pages(self.device, 'UICR', self.page_size))
     # build some memory regions to represent the flash memory
     self.code1 = mem.region(None, self.device.flash1.address, self.device.flash1.size)
     self.uicr = mem.region(None, self.device.UICR.address, self.device.UICR.size)
-    self.init = True
 
   def __wait4ready(self):
     """wait for flash operation completion"""
     for i in xrange(5):
-      if self.io.READY.rd() & 1:
+      if self.hw.READY.rd() & 1:
         # operation completed
         return
       time.sleep(0.1)
@@ -75,68 +68,68 @@ class flash(object):
 
   def sector_list(self):
     """return a list of flash pages"""
-    self.__hw_init()
     return self.pages
 
-  def in_flash(self, x):
-    """return True if x is contained within a flash region"""
-    self.__hw_init()
+  def check_region(self, x):
+    """return None if region x meets the flash write requirements"""
+    if x.adr & 3:
+      return 'memory region is not 32-bit aligned'
+    if x.size & 3:
+      return 'memory region is not a multiple of 32-bits'
     if self.code1.contains(x):
-      return True
+      return None
     if self.uicr.contains(x):
-      return True
-    return False
+      return None
+    return 'memory region is not within flash'
+
+  def firmware_region(self):
+    """return the name of the flash region used for firmware"""
+    return 'flash1'
 
   def erase_all(self):
     """erase all (code 1 and uicr) - return non-zero for an error"""
-    self.__hw_init()
     # erase enable
-    self.io.CONFIG.wr(CONFIG_EEN)
+    self.hw.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
     # erase all
-    self.io.ERASEALL.wr(1)
+    self.hw.ERASEALL.wr(1)
     self.__wait4ready()
     # back to read only
-    self.io.CONFIG.wr(CONFIG_REN)
+    self.hw.CONFIG.wr(CONFIG_REN)
     self.__wait4ready()
     return 0
 
   def erase(self, page):
     """erase a flash page - return non-zero for an error"""
-    self.__hw_init()
     # erase enable
-    self.io.CONFIG.wr(CONFIG_EEN)
+    self.hw.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
     # erase the page
     if page.name == 'flash1':
-      self.io.ERASEPAGE.wr(page.adr)
+      self.hw.ERASEPAGE.wr(page.adr)
     elif page.name == 'UICR':
-      self.io.ERASEUICR.wr(page.adr)
+      self.hw.ERASEUICR.wr(page.adr)
     else:
       assert False, 'unrecognised flash page name %s' % page.name
     self.__wait4ready()
     # back to read only
-    self.io.CONFIG.wr(CONFIG_REN)
+    self.hw.CONFIG.wr(CONFIG_REN)
     self.__wait4ready()
     return 0
 
   def write(self, mr, io):
     """write memory region with data from an io buffer"""
-    assert mr.adr & 3 == 0, 'memory region address is not 32-bit aligned'
-    assert mr.size & 3 == 0, 'memory region size is not an integral multiple of 32 bits'
-    self.__hw_init()
     # write enable
-    self.io.CONFIG.wr(CONFIG_WEN)
+    self.hw.CONFIG.wr(CONFIG_WEN)
     self.__wait4ready()
     # write the data
     self.device.cpu.wrmem32(mr.adr, mr.size >> 2, io)
     self.__wait4ready()
     # back to read only
-    self.io.CONFIG.wr(CONFIG_REN)
+    self.hw.CONFIG.wr(CONFIG_REN)
     self.__wait4ready()
 
   def __str__(self):
-    self.__hw_init()
     return util.display_cols([x.col_str() for x in self.pages])
 
 #-----------------------------------------------------------------------------

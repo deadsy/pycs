@@ -39,7 +39,7 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    self.flash = flash.flash(flash_driver.flash(self.device), self.device)
+    self.flash = flash.flash(flash_driver.flash(self.device), self.device, self.mem)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -52,6 +52,7 @@ class target(object):
       ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
+      ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )
@@ -72,7 +73,7 @@ class target(object):
     self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
   def cmd_exit(self, ui, args):
-    """exit the application"""
+    """exit application"""
     self.jlink.jlink_close()
     ui.exit()
 
