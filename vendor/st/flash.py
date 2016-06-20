@@ -47,7 +47,7 @@ CR_PG = 1 << 0                # Programming
 
 #-----------------------------------------------------------------------------
 
-class flash(object):
+class page_driver(object):
   """flash driver for STM32F3xxx page based devices"""
 
   def __init__(self, device):
@@ -194,5 +194,49 @@ class flash(object):
 
   def __str__(self):
     return util.display_cols([x.col_str() for x in self.pages])
+
+#-----------------------------------------------------------------------------
+
+class sector_driver(object):
+  """flash driver for STM32F3xxx sector based devices"""
+
+  def __init__(self, device):
+    self.device = device
+    self.hw = self.device.Flash
+    self.sectors = []
+
+  def sector_list(self):
+    """return a list of flash sectors"""
+    return self.sectors
+
+  def check_region(self, x):
+    """return None if region x meets the flash write requirements"""
+    if x.adr & 1:
+      return 'memory region is not 16-bit aligned'
+    if x.size & 1:
+      return 'memory region is not a multiple of 16-bits'
+    # check that we are within flash
+    #if self.flash_main.contains(x):
+    #  return None
+    return 'memory region is not within flash'
+
+  def firmware_region(self):
+    """return the name of the flash region used for firmware"""
+    return 'flash_main'
+
+  def erase_all(self):
+    """erase all - return non-zero for an error"""
+    pass
+
+  def erase(self, sector):
+    """erase a flash sector - return non-zero for an error"""
+    pass
+
+  def write(self, mr, io):
+    """write memory region with data from an io buffer"""
+    pass
+
+  def __str__(self):
+    return util.display_cols([x.col_str() for x in self.sectors])
 
 #-----------------------------------------------------------------------------

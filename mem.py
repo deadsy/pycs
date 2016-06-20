@@ -182,10 +182,10 @@ class mem(object):
       # no length on the command line - verify the filesize
       size = filesize
     if size > filesize:
-      ui.put('memory region is larger than file (%d > %d bytes): verifying file size\n' % (n, filesize))
+      ui.put('memory region is larger than file (%d > %d bytes): verifying file size\n' % (size, filesize))
       size = filesize
     if size < filesize:
-      ui.put('file is larger than memory region (%d > %d bytes): verifying region size\n' % (filesize, n))
+      ui.put('file is larger than memory region (%d > %d bytes): verifying region size\n' % (filesize, size))
     # adjust the address and length
     adr = util.align(adr, 32)
     n = util.nbytes_to_nwords(size, 32)
