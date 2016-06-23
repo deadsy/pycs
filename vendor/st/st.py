@@ -55,21 +55,20 @@ _dev_id_enumset = (
   ('STM32F303xD/E,STM32F398xE', 0x446, None),
 )
 
-def more_enumval_decodes(d):
-  f = d.DBGMCU.IDCODE.REV_ID
-  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
-  f = d.DBGMCU.IDCODE.DEV_ID
-  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
-
 #-----------------------------------------------------------------------------
 
 def STM32F407xx_fixup(d):
   d.soc_name = 'STM32F407xx'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 80
+  # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
-  d.remove(d.FPU)
-  more_enumval_decodes(d)
+  # More decode for the DBG registers
+  f = d.DBG.DBGMCU_IDCODE.REV_ID
+  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
+  f = d.DBG.DBGMCU_IDCODE.DEV_ID
+  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
   d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 30 << 10, None, 'flash system memory'))
@@ -91,9 +90,15 @@ def STM32F303xC_fixup(d):
   d.soc_name = 'STM32F303xC'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 84
+  # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
   d.remove(d.FPU)
-  more_enumval_decodes(d)
+  # More decode for the DBGMCU registers
+  f = d.DBGMCU.IDCODE.REV_ID
+  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
+  f = d.DBGMCU.IDCODE.DEV_ID
+  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 40 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
   d.insert(soc.make_peripheral('flash_system', 0x1fffd800, 8 << 10, None, 'flash system memory'))

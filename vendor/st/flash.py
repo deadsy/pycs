@@ -197,13 +197,22 @@ class page_driver(object):
 
 #-----------------------------------------------------------------------------
 
+# STM32F40x/STM32F41x
+STM32F40x_flash = (
+  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,
+    128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10)),
+  ('flash_system', (30<<10,)),
+  ('flash_otp', (528,)),
+  ('flash_option', (16,)),
+)
+
 class sector_driver(object):
   """flash driver for STM32F3xxx sector based devices"""
 
   def __init__(self, device):
     self.device = device
-    self.hw = self.device.Flash
-    self.sectors = []
+    self.hw = self.device.FLASH
+    self.sectors = mem.flash_sectors(self.device, STM32F40x_flash)
 
   def sector_list(self):
     """return a list of flash sectors"""

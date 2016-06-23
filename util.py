@@ -293,6 +293,8 @@ def display_cols(clist, csize = None):
     each element in clist is [col0_str, col1_str, col2_str, ...]
     csize is a list of column width minimums
   """
+  if len(clist) == 0:
+    return ''
   # how many columns?
   ncols = len(clist[0])
   # make sure we have a well formed csize
