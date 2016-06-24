@@ -9,8 +9,8 @@ We only access the hardware when the user wants to do something.
 
 2) Some ST devices talk of "flash pages" others of "flash sectors". Pages
 are small and uniform in size, sectors are larger and variable in size.
-No matter- this driver calls them all "sectors" and maintains a list of them.
-Each page/sector is an erase unit.
+There are two drivers here: one for page based flash, the other the other for
+sector based flash. Each page/sector is an erase unit.
 
 """
 #-----------------------------------------------------------------------------
@@ -18,6 +18,34 @@ Each page/sector is an erase unit.
 import time
 import util
 import mem
+
+#-----------------------------------------------------------------------------
+# Define the sectors/pages of flash memory for various devices
+
+# STM32F40x/STM32F41x
+STM32F40x_flash = (
+  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,
+    128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10)),
+  ('flash_system', (30<<10,)),
+  ('flash_otp', (528,)),
+  ('flash_option', (16,)),
+)
+
+#STM32F303xD/E: Up to 512KiB
+#STM32F303x6/8, STM32F328x8: up to 64 KiB
+
+#STM32F303xB/C, STM32F358xC: up to 256 KiB
+STM32F303xC_flash = (
+  ('flash_main', (2<<10,) * 128),
+  ('flash_system', (2<<10,) * 4),
+  ('flash_option', (16,)),
+)
+
+# map device.soc_name to the flash map
+flash_map = {
+  'STM32F303xC': STM32F303xC_flash,
+  'STM32F407xx': STM32F40x_flash,
+}
 
 #-----------------------------------------------------------------------------
 
@@ -197,22 +225,13 @@ class page_driver(object):
 
 #-----------------------------------------------------------------------------
 
-# STM32F40x/STM32F41x
-STM32F40x_flash = (
-  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,
-    128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10)),
-  ('flash_system', (30<<10,)),
-  ('flash_otp', (528,)),
-  ('flash_option', (16,)),
-)
-
 class sector_driver(object):
   """flash driver for STM32F3xxx sector based devices"""
 
   def __init__(self, device):
     self.device = device
     self.hw = self.device.FLASH
-    self.sectors = mem.flash_sectors(self.device, STM32F40x_flash)
+    self.sectors = mem.flash_regions(self.device, STM32F40x_flash)
 
   def sector_list(self):
     """return a list of flash sectors"""

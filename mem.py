@@ -73,16 +73,18 @@ def flash_pages(device, name, page_size):
   number_of_pages = size / page_size
   return [region(name, adr + (i * page_size), page_size) for i in range(number_of_pages)]
 
-def flash_sectors(device, sector_map):
-  """divide the named peripheral of a device into sector sized memory regions"""
-  sectors = []
-  for (name, sector_sizes) in sector_map:
-    adr = device.peripherals[name].address
-    size = device.peripherals[name].size
-    for s in sector_sizes:
-      sectors.append(region(name, adr, s))
+def flash_regions(device, region_map):
+  """divide the named memory into sized memory regions"""
+  regions = []
+  for (name, region_sizes) in region_map:
+    base_adr = device.peripherals[name].address
+    total_size = device.peripherals[name].size
+    adr = base_adr
+    for s in region_sizes:
+      regions.append(region(name, adr, s))
       adr += s
-  return sectors
+    assert base_adr + total_size == adr, "regions don't encompass all memory"
+  return regions
 
 # -----------------------------------------------------------------------------
 
