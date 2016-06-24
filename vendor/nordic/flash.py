@@ -35,6 +35,29 @@ import util
 import mem
 
 #-----------------------------------------------------------------------------
+# Define the pages of flash memory for various devices
+# Check FICR.CODEPAGESIZE for page size
+# Check FICR.CODESIZE for flash size
+
+# nRF51822
+nRF51822_flash = (
+  ('flash', (1<<10,) * 256),
+  ('UICR', (1<<10,) * 4),
+)
+
+# nRF52832
+nRF52832_flash = (
+  ('flash', (4<<10,) * 128),
+  ('UICR', (4<<10,) * 1),
+)
+
+# map device.soc_name to the flash map
+flash_map = {
+  'nRF51822': nRF51822_flash,
+  'nRF52832': nRF52832_flash,
+}
+
+#-----------------------------------------------------------------------------
 
 # NVMC.CONFIG bits
 CONFIG_REN = 0 # read enable
