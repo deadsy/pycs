@@ -71,14 +71,7 @@ class flash(object):
   def __init__(self, device):
     self.device = device
     self.hw = self.device.NVMC
-    self.init = False
-    self.page_size = 1 << 10 # Check FICR.CODEPAGESIZE
-    self.pages = []
-    self.pages.extend(mem.flash_pages(self.device, 'flash1', self.page_size)) # Check FICR.CODESIZE
-    self.pages.extend(mem.flash_pages(self.device, 'UICR', self.page_size))
-    # build some memory regions to represent the flash memory
-    self.code1 = mem.region(None, self.device.flash1.address, self.device.flash1.size)
-    self.uicr = mem.region(None, self.device.UICR.address, self.device.UICR.size)
+    self.pages = mem.flash_regions(self.device, flash_map[self.device.soc_name])
 
   def __wait4ready(self):
     """wait for flash operation completion"""
@@ -99,18 +92,19 @@ class flash(object):
       return 'memory region is not 32-bit aligned'
     if x.size & 3:
       return 'memory region is not a multiple of 32-bits'
-    if self.code1.contains(x):
+    # check this region against the recognised flash memory
+    if self.device.flash.contains(x):
       return None
-    if self.uicr.contains(x):
+    if self.device.UICR.contains(x):
       return None
     return 'memory region is not within flash'
 
   def firmware_region(self):
     """return the name of the flash region used for firmware"""
-    return 'flash1'
+    return 'flash'
 
   def erase_all(self):
-    """erase all (code 1 and uicr) - return non-zero for an error"""
+    """erase all (flash and uicr) - return non-zero for an error"""
     # erase enable
     self.hw.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
@@ -128,7 +122,7 @@ class flash(object):
     self.hw.CONFIG.wr(CONFIG_EEN)
     self.__wait4ready()
     # erase the page
-    if page.name == 'flash1':
+    if page.name == 'flash':
       self.hw.ERASEPAGE.wr(page.adr)
     elif page.name == 'UICR':
       self.hw.ERASEUICR.wr(page.adr)

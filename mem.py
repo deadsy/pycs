@@ -56,22 +56,11 @@ class region(object):
     """return True if this region and x overlap"""
     return max(self.adr, x.adr) <= min(self.end, x.end)
 
-  def contains(self, x):
-    """return True is x is entirely contained by this region"""
-    return (self.adr <= x.adr) and (self.end >= x.end)
-
   def col_str(self):
     """return a 3 string column for this region [name, range, size]"""
     return [self.name, ': %08x - %08x' % (self.adr, self.end), util.memsize(self.size)]
 
 # -----------------------------------------------------------------------------
-
-def flash_pages(device, name, page_size):
-  """divide the named peripheral of a device into page sized memory regions"""
-  adr = device.peripherals[name].address
-  size = device.peripherals[name].size
-  number_of_pages = size / page_size
-  return [region(name, adr + (i * page_size), page_size) for i in range(number_of_pages)]
 
 def flash_regions(device, region_map):
   """divide the named memory into sized memory regions"""

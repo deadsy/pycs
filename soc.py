@@ -337,6 +337,10 @@ class peripheral(object):
       for r in self.registers.values():
         r.bind_cpu(cpu)
 
+  def contains(self, x):
+    """return True if region x is entirely within the memory space of this peripheral"""
+    return (self.address <= x.adr) and ((self.address + self.size - 1) >= x.end)
+
   def register_list(self):
     """return an ordered register list"""
     # build a list of registers in address offset order
