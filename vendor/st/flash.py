@@ -54,38 +54,32 @@ POLL_TIME = 0.1
 
 #-----------------------------------------------------------------------------
 
-# Flash.SR bits
-SR_EOP = 1 << 5    # End of operation
-SR_WRPRT = 1 << 4  # Write protection error
-SR_PGERR = 1 << 2  # Programming error
-SR_BSY = 1 << 0    # Busy
-
-# Flash.CR bits
-CR_FORCE_OPTLOAD = 1 << 13    # Force option byte loading
-CR_EOPIE = 1 << 12            # End of operation interrupt enable
-CR_ERRIE = 1 << 10            # Error interrupt enable
-CR_OPTWRE = 1 << 9            # Option bytes write enable
-CR_LOCK = 1 << 7              # Lock
-CR_STRT = 1 << 6              # Start
-CR_OPTER = 1 << 5             # Option byte erase
-CR_OPTPG = 1 << 4             # Option byte programming
-CR_MER = 1 << 2               # Mass erase
-CR_PER = 1 << 1               # Page erase
-CR_PG = 1 << 0                # Programming
-
-#-----------------------------------------------------------------------------
-
-class page_driver(object):
+class pdrv(object):
   """flash driver for STM32F3xxx page based devices"""
+
+  # Flash.SR bits
+  SR_EOP = 1 << 5    # End of operation
+  SR_WRPRT = 1 << 4  # Write protection error
+  SR_PGERR = 1 << 2  # Programming error
+  SR_BSY = 1 << 0    # Busy
+
+  # Flash.CR bits
+  CR_FORCE_OPTLOAD = 1 << 13 # Force option byte loading
+  CR_EOPIE = 1 << 12         # End of operation interrupt enable
+  CR_ERRIE = 1 << 10         # Error interrupt enable
+  CR_OPTWRE = 1 << 9         # Option bytes write enable
+  CR_LOCK = 1 << 7           # Lock
+  CR_STRT = 1 << 6           # Start
+  CR_OPTER = 1 << 5          # Option byte erase
+  CR_OPTPG = 1 << 4          # Option byte programming
+  CR_MER = 1 << 2            # Mass erase
+  CR_PER = 1 << 1            # Page erase
+  CR_PG = 1 << 0             # Programming
 
   def __init__(self, device):
     self.device = device
     self.hw = self.device.Flash
-    self.flash_main = mem.region(None, self.device.flash_main.address, self.device.flash_main.size)
-    self.page_size = 2 << 10
-    self.pages = []
-    self.pages.extend(mem.flash_pages(self.device, 'flash_main', self.page_size))
-    #self.pages.extend(mem.flash_pages(self.device, 'flash_system', self.page_size))
+    self.pages = mem.flash_regions(self.device, flash_map[self.device.soc_name])
 
   def __wait4complete(self):
     """wait for flash operation completion"""
@@ -162,7 +156,7 @@ class page_driver(object):
     if x.size & 1:
       return 'memory region is not a multiple of 16-bits'
     # check that we are within flash
-    if self.flash_main.contains(x):
+    if self.device.flash_main.contains(x):
       return None
     return 'memory region is not within flash'
 
@@ -225,13 +219,135 @@ class page_driver(object):
 
 #-----------------------------------------------------------------------------
 
-class sector_driver(object):
+class sdrv(object):
   """flash driver for STM32F3xxx sector based devices"""
+
+  # FLASH.SR bits
+  SR_BSY    = 1 << 16 # Busy
+  SR_RDERR  = 1 << 8  # Read error
+  SR_PGSERR = 1 << 7  # Programming sequence error
+  SR_PGPERR = 1 << 6  # Programming parallelism error
+  SR_PGAERR = 1 << 5  # Programming alignment error
+  SR_WRPERR = 1 << 4  # Write protection error
+  SR_OPERR  = 1 << 1  # Operation error
+  SR_EOP    = 1 << 0  # End of operation
+
+  # FLASH.CR bits
+  CR_LOCK   = 1 << 31 # Lock
+  CR_ERRIE  = 1 << 25 # Error interrupt enable
+  CR_EOPIE  = 1 << 24 # End of operation interrupt enable
+  CR_STRT   = 1 << 16 # Start
+  CR_MER1   = 1 << 15 # Mass Erase (bank2)
+  #CR_SNB[7:3]      : 0                             Sector number
+  CR_MER    = 1 << 2  # Mass Erase (bank1)
+  CR_SER    = 1 << 1  # Sector Erase
+  CR_PG     = 1 << 0  # Programming
+  # FLASH.CR.CR_PSIZE voltage ranges
+  VOLTS_18_21     = 0 << 8 # 1.8V to 2.1V
+  VOLTS_21_27     = 1 << 8 # 2.1V to 2.7V
+  VOLTS_27_36     = 2 << 8 # 2.7V to 3.6V
+  VOLTS_27_36_VPP = 3 << 8 # 2.7V to 3.6V + External Vpp
+  # FLASH.CR.CR_PSIZE write size
+  PSIZE_BYTE        = 0 << 8 # 8 bits
+  PSIZE_HALF_WORD   = 1 << 8 # 16 bits
+  PSIZE_WORD        = 2 << 8 # 32 bits
+  PSIZE_DOUBLE_WORD = 3 << 8 # 64 bits
 
   def __init__(self, device):
     self.device = device
     self.hw = self.device.FLASH
-    self.sectors = mem.flash_regions(self.device, STM32F40x_flash)
+    self.sectors = mem.flash_regions(self.device, flash_map[self.device.soc_name])
+    # set an overall voltage to control the erase/write parrallelism
+    self.volts = self.VOLTS_27_36
+
+  def __wait4complete(self, timeout = POLL_MAX):
+    """wait for flash operation completion"""
+    n = 0
+    while n < timeout:
+      status = self.hw.SR.rd()
+      if status & self.SR_BSY == 0:
+        break
+      time.sleep(POLL_TIME)
+      n += 1
+    # clear status bits
+    clr = self.SR_RDERR | self.SR_PGSERR | self.SR_PGPERR | self.SR_PGAERR | self.SR_WRPERR | self.SR_OPERR | self.SR_EOP
+    self.hw.SR.wr(clr)
+    # check for errors
+    if n >= timeout:
+      return 'timeout'
+    if status & self.SR_RDERR:
+      return 'read error'
+    if status & self.SR_PGSERR:
+      return 'program sequence error'
+    if status & self.SR_PGPERR:
+      return 'program parallelism error'
+    if status & self.SR_PGAERR:
+      return 'program alignment error'
+    if status & self.SR_WRPERR:
+      return 'write protect error'
+    if status & self.SR_OPERR:
+      return 'operation error'
+    # done
+    return None
+
+  def __unlock(self):
+    """unlock the flash"""
+    if self.hw.CR.rd() & self.CR_LOCK == 0:
+      # already unlocked
+      return
+    # write the unlock sequence
+    self.hw.KEYR.wr(0x45670123)
+    self.hw.KEYR.wr(0xCDEF89AB)
+    # clear any set CR bits
+    self.hw.CR.wr(0)
+
+  def __lock(self):
+    """lock the flash"""
+    self.hw.CR.set_bit(self.CR_LOCK)
+
+  def __mass_erase(self, banks = 1):
+    """setup CR for the mass erase"""
+    cr = 0
+    # set the banks to erase
+    if banks & 1:
+      cr |= self.CR_MER
+    if banks & 2:
+      cr |= self.CR_MER1
+    # set the parallelism based on voltage range
+    cr |= self.volts
+    self.hw.CR.wr(cr)
+
+  def __sector_erase(self, sector):
+    """setup CR for the sector erase"""
+    cr = 0
+    cr |= self.CR_SER
+    cr |= self.volts
+    # Need to add offset of 4 when sector higher than 11
+    if sector > 11:
+      sector += 4
+    cr |= sector << 3
+    self.hw.CR.wr(cr)
+
+  def __wr8(self, adr, val):
+    """write 8 bits to flash"""
+    self.hw.CR.wr(self.CR_PG | self.PSIZE_BYTE)
+    self.device.cpu.wr(adr, val, 8)
+
+  def __wr16(self, adr, val):
+    """write 16 bits to flash"""
+    self.hw.CR.wr(self.CR_PG | self.PSIZE_HALF_WORD)
+    self.device.cpu.wr(adr, val, 16)
+
+  def __wr32(self, adr, val):
+    """write 32 bits to flash"""
+    self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
+    self.device.cpu.wr(adr, val, 32)
+
+  def __wr64(self, adr, val):
+    """write 64 bits to flash"""
+    self.hw.CR.wr(self.CR_PG | self.PSIZE_DOUBLE_WORD)
+    self.device.cpu.wr(adr, val & 0xffffffff, 32)
+    self.device.cpu.wr(adr + 4, val >> 32, 32)
 
   def sector_list(self):
     """return a list of flash sectors"""
@@ -254,7 +370,21 @@ class sector_driver(object):
 
   def erase_all(self):
     """erase all - return non-zero for an error"""
-    pass
+    # make sure the flash is not busy
+    self.__wait4complete()
+    # unlock the flash
+    self.__unlock()
+    # setup the mass erase
+    self.__mass_erase()
+    # set the start bit
+    self.hw.CR.set_bit(self.CR_STRT)
+    # wait for completion
+    error = self.__wait4complete(100)
+    # clear any set CR bits
+    self.hw.CR.wr(0)
+    # lock the flash
+    self.__lock()
+    return (1,0)[error is None]
 
   def erase(self, sector):
     """erase a flash sector - return non-zero for an error"""

@@ -36,7 +36,7 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    self.flash = flash.flash(flash_driver.page_driver(self.device), self.device, self.mem)
+    self.flash = flash.flash(flash_driver.pdrv(self.device), self.device, self.mem)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
