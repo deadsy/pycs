@@ -65,7 +65,8 @@ class region(object):
 def flash_regions(device, region_map):
   """divide the named memory into sized memory regions"""
   regions = []
-  for (name, region_sizes) in region_map:
+  for (name, region_sizes, meta) in region_map:
+    assert len(region_sizes) == len(meta), 'need meta information for each flash region'
     base_adr = device.peripherals[name].address
     total_size = device.peripherals[name].size
     adr = base_adr

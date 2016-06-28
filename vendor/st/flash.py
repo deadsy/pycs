@@ -24,11 +24,10 @@ import mem
 
 # STM32F40x/STM32F41x
 STM32F40x_flash = (
-  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,
-    128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10)),
-  ('flash_system', (30<<10,)),
-  ('flash_otp', (528,)),
-  ('flash_option', (16,)),
+  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10), range(12)),
+  ('flash_system', (30<<10,), (None,)),
+  ('flash_otp', (528,), (None,)),
+  ('flash_option', (16,), (None,)),
 )
 
 #STM32F303xD/E: Up to 512KiB
@@ -36,9 +35,9 @@ STM32F40x_flash = (
 
 #STM32F303xB/C, STM32F358xC: up to 256 KiB
 STM32F303xC_flash = (
-  ('flash_main', (2<<10,) * 128),
-  ('flash_system', (2<<10,) * 4),
-  ('flash_option', (16,)),
+  ('flash_main', (2<<10,) * 128, (None,) * 128),
+  ('flash_system', (2<<10,) * 4, (None,) * 4),
+  ('flash_option', (16,), (None,)),
 )
 
 # map device.soc_name to the flash map
@@ -307,47 +306,51 @@ class sdrv(object):
 
   def __mass_erase(self, banks = 1):
     """setup CR for the mass erase"""
-    cr = 0
+    # set the parallelism based on voltage range
+    cr = self.volts
     # set the banks to erase
     if banks & 1:
       cr |= self.CR_MER
     if banks & 2:
       cr |= self.CR_MER1
-    # set the parallelism based on voltage range
-    cr |= self.volts
     self.hw.CR.wr(cr)
 
   def __sector_erase(self, sector):
     """setup CR for the sector erase"""
-    cr = 0
-    cr |= self.CR_SER
-    cr |= self.volts
+    cr = self.CR_SER | self.volts
     # Need to add offset of 4 when sector higher than 11
     if sector > 11:
       sector += 4
     cr |= sector << 3
     self.hw.CR.wr(cr)
 
-  def __wr8(self, adr, val):
-    """write 8 bits to flash"""
-    self.hw.CR.wr(self.CR_PG | self.PSIZE_BYTE)
-    self.device.cpu.wr(adr, val, 8)
-
-  def __wr16(self, adr, val):
-    """write 16 bits to flash"""
-    self.hw.CR.wr(self.CR_PG | self.PSIZE_HALF_WORD)
-    self.device.cpu.wr(adr, val, 16)
-
   def __wr32(self, adr, val):
     """write 32 bits to flash"""
+    # set the progam bit and write size
     self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
     self.device.cpu.wr(adr, val, 32)
+    error = self.__wait4complete()
+    # clear the progam bit
+    self.hw.CR.clr_bit(self.CR_PG)
+    return error
 
-  def __wr64(self, adr, val):
-    """write 64 bits to flash"""
-    self.hw.CR.wr(self.CR_PG | self.PSIZE_DOUBLE_WORD)
-    self.device.cpu.wr(adr, val & 0xffffffff, 32)
-    self.device.cpu.wr(adr + 4, val >> 32, 32)
+  def __wr_slow(self, mr, io):
+    """write slow (1.95 KiB/sec) - correct"""
+    for adr in xrange(mr.adr, mr.end, 4):
+      val = io.rd32()
+      if val != 0xffffffff:
+        self.__wr32(adr, val)
+
+  def __wr_fast(self, mr, io):
+    """write fast (11.89 KiB/sec) - muntzed"""
+    # set the progam bit and write size
+    self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
+    for adr in xrange(mr.adr, mr.end, 4):
+      val = io.rd32()
+      if val != 0xffffffff:
+        self.device.cpu.wr(adr, val, 32)
+    # clear the progam bit
+    self.hw.CR.clr_bit(self.CR_PG)
 
   def sector_list(self):
     """return a list of flash sectors"""
@@ -355,13 +358,13 @@ class sdrv(object):
 
   def check_region(self, x):
     """return None if region x meets the flash write requirements"""
-    if x.adr & 1:
-      return 'memory region is not 16-bit aligned'
-    if x.size & 1:
-      return 'memory region is not a multiple of 16-bits'
+    if x.adr & 3:
+      return 'memory region is not 32-bit aligned'
+    if x.size & 3:
+      return 'memory region is not a multiple of 32-bits'
     # check that we are within flash
-    #if self.flash_main.contains(x):
-    #  return None
+    if self.device.flash_main.contains(x):
+      return None
     return 'memory region is not within flash'
 
   def firmware_region(self):
@@ -392,7 +395,15 @@ class sdrv(object):
 
   def write(self, mr, io):
     """write memory region with data from an io buffer"""
-    pass
+    # make sure the flash is not busy
+    self.__wait4complete()
+    # unlock the flash
+    self.__unlock()
+    # write the flash
+    self.__wr_fast(mr, io)
+    #self.__wr_slow(mr, io)
+    # lock the flash
+    self.__lock()
 
   def __str__(self):
     return util.display_cols([x.col_str() for x in self.sectors])
