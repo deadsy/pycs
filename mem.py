@@ -46,11 +46,16 @@ _help_mem_wr = (
 
 class region(object):
   """class to represent a memory region"""
-  def __init__(self, name, adr, size):
+
+  # note: The meta data is used to store device specific region information
+  # e.g. a flash sector/bank number used in a flash erase routine
+
+  def __init__(self, name, adr, size, meta = None):
     self.name = name
     self.adr = adr
     self.size = size
     self.end = self.adr + self.size - 1
+    self.meta = meta
 
   def overlap(self, x):
     """return True if this region and x overlap"""
@@ -65,14 +70,25 @@ class region(object):
 def flash_regions(device, region_map):
   """divide the named memory into sized memory regions"""
   regions = []
-  for (name, region_sizes, meta) in region_map:
-    assert len(region_sizes) == len(meta), 'need meta information for each flash region'
+  for x in region_map:
+    if len(x) == 2:
+      # no meta information: set it all to None
+      (name, region_sizes) = x
+      meta = (None,) * len(region_sizes)
+    elif len(x) == 3:
+      # provided meta information - make sure it's per region
+      (name, region_sizes, meta) = x
+      assert len(region_sizes) == len(meta), 'need meta information for each flash region'
+    else:
+      assert False, 'bad flash region specification'
+    # the regions are based on the peripheral memory space
     base_adr = device.peripherals[name].address
     total_size = device.peripherals[name].size
     adr = base_adr
-    for s in region_sizes:
-      regions.append(region(name, adr, s))
+    for (s, m) in zip(region_sizes, meta):
+      regions.append(region(name, adr, s, m))
       adr += s
+    # make sure the regions cover the entire memory space of the peripheral
     assert base_adr + total_size == adr, "regions don't encompass all memory"
   return regions
 

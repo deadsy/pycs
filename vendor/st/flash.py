@@ -25,9 +25,9 @@ import mem
 # STM32F40x/STM32F41x
 STM32F40x_flash = (
   ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10), range(12)),
-  ('flash_system', (30<<10,), (None,)),
-  ('flash_otp', (528,), (None,)),
-  ('flash_option', (16,), (None,)),
+  ('flash_system', (30<<10,)),
+  ('flash_otp', (528,)),
+  ('flash_option', (16,)),
 )
 
 #STM32F303xD/E: Up to 512KiB
@@ -35,9 +35,9 @@ STM32F40x_flash = (
 
 #STM32F303xB/C, STM32F358xC: up to 256 KiB
 STM32F303xC_flash = (
-  ('flash_main', (2<<10,) * 128, (None,) * 128),
-  ('flash_system', (2<<10,) * 4, (None,) * 4),
-  ('flash_option', (16,), (None,)),
+  ('flash_main', (2<<10,) * 128),
+  ('flash_system', (2<<10,) * 4),
+  ('flash_option', (16,)),
 )
 
 # map device.soc_name to the flash map
