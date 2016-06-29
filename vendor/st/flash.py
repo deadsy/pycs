@@ -22,9 +22,23 @@ import mem
 #-----------------------------------------------------------------------------
 # Define the sectors/pages of flash memory for various devices
 
+class meta(object):
+  """bank and sector numbering"""
+
+  def __init__(self, sector, bank = None):
+    self.sector = sector
+    self.bank = bank
+
+  def __str__(self):
+    if self.bank is None:
+      return 'sector%d' % self.sector
+    else:
+      return 'bank%d sector%d' % (self.bank, self.sector)
+
 # STM32F40x/STM32F41x
 STM32F40x_flash = (
-  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10), range(12)),
+  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10),
+    (meta(0), meta(1),meta(2),meta(3),meta(4),meta(5),meta(6),meta(7),meta(8),meta(9),meta(10),meta(11))),
   ('flash_system', (30<<10,)),
   ('flash_otp', (528,)),
   ('flash_option', (16,)),

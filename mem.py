@@ -62,8 +62,9 @@ class region(object):
     return max(self.adr, x.adr) <= min(self.end, x.end)
 
   def col_str(self):
-    """return a 3 string column for this region [name, range, size]"""
-    return [self.name, ': %08x - %08x' % (self.adr, self.end), util.memsize(self.size)]
+    """return a 4 string column for this region [name, range, size, meta]"""
+    meta_str = (str(self.meta), '')[self.meta is None]
+    return [self.name, ': %08x %08x' % (self.adr, self.end), util.memsize(self.size), meta_str]
 
 # -----------------------------------------------------------------------------
 
