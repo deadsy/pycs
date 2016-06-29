@@ -381,6 +381,15 @@ class peripheral(object):
     s.append('peripherals[%s] = p\n' % attribute_string(self.name))
     return '\n'.join(s)
 
+  def cstr(self):
+    """return c code for the peripheral"""
+    s = []
+    s.append('// %s' % self.description)
+    s.append('struct %s {' % self.name)
+    s.append('};')
+    s.append('')
+    return '\n'.join(s)
+
 # -----------------------------------------------------------------------------
 
 class cpu_info(object):
@@ -511,6 +520,13 @@ class device(object):
     # inception!
     s.append('')
     s.append("print('%s') % device")
+    return '\n'.join(s)
+
+  def cstr(self):
+    """return c code for the device"""
+    s = []
+    for p in self.peripheral_list():
+      s.append('%s' % p.cstr())
     return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
