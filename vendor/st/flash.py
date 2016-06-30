@@ -132,11 +132,11 @@ class pdrv(object):
 
   def __wr16(self, adr, val):
     """write 16 bits to flash"""
-    # set the progam bit
+    # set the program bit
     self.hw.CR.set_bit(CR_PG)
     self.device.cpu.wr(adr, val, 16)
     error = self.__wait4complete()
-    # clear the progam bit
+    # clear the program bit
     self.hw.CR.clr_bit(CR_PG)
     return error
 
@@ -149,13 +149,13 @@ class pdrv(object):
 
   def __wr_fast(self, mr, io):
     """write fast (6.40 KiB/sec) - muntzed"""
-    # set the progam bit
+    # set the program bit
     self.hw.CR.wr(CR_PG)
     for adr in xrange(mr.adr, mr.end, 2):
       val = io.rd16()
       if val != 0xffff:
         self.device.cpu.wr(adr, val, 16)
-    # clear the progam bit
+    # clear the program bit
     self.hw.CR.clr_bit(CR_PG)
 
   def sector_list(self):
@@ -332,19 +332,21 @@ class sdrv(object):
   def __sector_erase(self, sector):
     """setup CR for the sector erase"""
     cr = self.CR_SER | self.volts
+    # sector number
+    n = sector.meta.sector
     # Need to add offset of 4 when sector higher than 11
-    if sector > 11:
-      sector += 4
-    cr |= sector << 3
+    if n > 11:
+      n += 4
+    cr |= n << 3
     self.hw.CR.wr(cr)
 
   def __wr32(self, adr, val):
     """write 32 bits to flash"""
-    # set the progam bit and write size
+    # set the program bit and write size
     self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
     self.device.cpu.wr(adr, val, 32)
     error = self.__wait4complete()
-    # clear the progam bit
+    # clear the program bit
     self.hw.CR.clr_bit(self.CR_PG)
     return error
 
@@ -357,13 +359,13 @@ class sdrv(object):
 
   def __wr_fast(self, mr, io):
     """write fast (11.89 KiB/sec) - muntzed"""
-    # set the progam bit and write size
+    # set the program bit and write size
     self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
     for adr in xrange(mr.adr, mr.end, 4):
       val = io.rd32()
       if val != 0xffffffff:
         self.device.cpu.wr(adr, val, 32)
-    # clear the progam bit
+    # clear the program bit
     self.hw.CR.clr_bit(self.CR_PG)
 
   def sector_list(self):
@@ -405,7 +407,21 @@ class sdrv(object):
 
   def erase(self, sector):
     """erase a flash sector - return non-zero for an error"""
-    pass
+    # make sure the flash is not busy
+    self.__wait4complete()
+    # unlock the flash
+    self.__unlock()
+    # setup the sector erase
+    self.__sector_erase(sector)
+    # set the start bit
+    self.hw.CR.set_bit(self.CR_STRT)
+    # wait for completion
+    error = self.__wait4complete(100)
+    # clear any set CR bits
+    self.hw.CR.wr(0)
+    # lock the flash
+    self.__lock()
+    return (1,0)[error is None]
 
   def write(self, mr, io):
     """write memory region with data from an io buffer"""

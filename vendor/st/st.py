@@ -77,6 +77,9 @@ def STM32F407xx_fixup(d):
   d.insert(soc.make_peripheral('flash_otp', 0x1fff7800, 528, None, 'flash otp memory'))
   d.insert(soc.make_peripheral('UID', 0x1fff7a10, 12, _uuid_regset, 'Unique Device ID'))
   d.insert(soc.make_peripheral('FLASH_SIZE', 0x1fff7a22, 2, _flash_size_regset, 'Flash Size'))
+  # the size of these peripherals seems wrong
+  d.OTG_HS_GLOBAL.size = 1 << 10
+  d.OTG_HS_PWRCLK.size = 1 << 10
 
 s = soc_info()
 s.name = 'STM32F407xx'
