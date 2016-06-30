@@ -13,8 +13,11 @@ import cli
 import jlink
 import cortexm
 import mem
-import vendor.atmel.atmel as atmel
 import soc
+import flash
+
+import vendor.atmel.atmel as atmel
+import vendor.atmel.flash as flash_driver
 
 # -----------------------------------------------------------------------------
 
@@ -33,17 +36,20 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
+    self.flash = flash.flash(flash_driver.flash(self.device), self.device, self.mem)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('exit', self.cmd_exit),
+      ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
       ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
+      ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )
