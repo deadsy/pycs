@@ -7,6 +7,9 @@ Notes:
 1) Instantiating this driver does not touch the hardware. No reads or writes.
 We only access the hardware when the user wants to do something.
 
+2) The erase unit is a row. The write unit is a page. There are 4 pages per row.
+Each page is 64 bytes.
+
 """
 #-----------------------------------------------------------------------------
 
@@ -16,10 +19,10 @@ import util
 import mem
 
 #-----------------------------------------------------------------------------
-# Define the pages of flash memory for various devices
+# Define the rows of flash memory for various devices
 
 ATSAML21J18B_flash = (
-  ('flash', (64,) * 4096),
+  ('flash', (256,) * 1024),
 )
 
 # map device.soc_name to the flash map
@@ -34,11 +37,11 @@ class flash(object):
   def __init__(self, device):
     self.device = device
     self.hw = self.device.NVMCTRL
-    self.pages = mem.flash_regions(self.device, flash_map[self.device.soc_name])
+    self.rows = mem.flash_regions(self.device, flash_map[self.device.soc_name])
 
   def sector_list(self):
-    """return a list of flash pages"""
-    return self.pages
+    """return a list of flash rows"""
+    return self.rows
 
   def check_region(self, x):
     """return None if region x meets the flash write requirements"""
@@ -61,6 +64,6 @@ class flash(object):
     pass
 
   def __str__(self):
-    return util.display_cols([x.col_str() for x in self.pages])
+    return util.display_cols([x.col_str() for x in self.rows])
 
 #-----------------------------------------------------------------------------
