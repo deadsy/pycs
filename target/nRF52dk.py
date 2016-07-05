@@ -23,6 +23,56 @@ soc_name = 'nRF52832'
 prompt = 'nRF52dk'
 
 # -----------------------------------------------------------------------------
+"""
+
+Notes:
+
+1) The GPIO pin usage depends on if a shield is plugged in.
+If there is no shield the GPIOs are used directly for LEDs and buttons.
+If there is a shield the GPIOs are used for the headers (ala arduino), and
+the LEDs and buttons are accessed via an I2C port expander.
+
+2) The UART pins aren't specified by the target hardware, but for convenience
+I'm setting them per the default pin selects in the SDK.
+
+"""
+
+gpio_cfg = {
+
+#  'P0.01': ('',),
+#  'P0.02': ('',),
+#  'P0.03': ('',),
+#  'P0.04': ('',),
+  'P0.05': ('UART_RTS',),
+  'P0.06': ('UART_TX',),
+  'P0.07': ('UART_CTS',),
+  'P0.08': ('UART_RX',),
+#  'P0.09': ('',),
+#  'P0.10': ('',),
+#  'P0.11': ('',),
+#  'P0.12': ('',),
+  'P0.13': ('BUTTON_1 (no shield)',),
+  'P0.14': ('BUTTON_2 (no shield)',),
+  'P0.15': ('BUTTON_3 (no shield)',),
+  'P0.16': ('BUTTON_4 (no shield)',),
+  'P0.17': ('LED_1 (no shield) INT_EXT (shield)',),
+  'P0.18': ('LED_2 (no shield)',),
+  'P0.19': ('LED_3 (no shield)',),
+  'P0.20': ('LED_4 (no shield)',),
+#  'P0.21': ('',),
+#  'P0.22': ('',),
+#  'P0.23': ('',),
+#  'P0.24': ('',),
+#  'P0.25': ('',),
+  'P0.26': ('SDA_EXT (shield)',),
+  'P0.27': ('SCL_EXT (shield)',),
+#  'P0.28': ('',),
+#  'P0.29': ('',),
+#  'P0.30': ('',),
+#  'P0.31': ('',),
+}
+
+# -----------------------------------------------------------------------------
 
 class target(object):
   """nRF52dk- Nordic nRF52 Developer's Kit"""
