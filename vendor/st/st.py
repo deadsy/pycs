@@ -55,7 +55,55 @@ _dev_id_enumset = (
   ('STM32F303xD/E,STM32F398xE', 0x446, None),
 )
 
+# GPIOx.MODER
+_gpio_moder_enumset = (
+  ('input', 0, None),
+  ('output', 1, None),
+  ('altfunc', 2, None),
+  ('analog', 3, None),
+)
+
+# GPIOx.OTYPER
+_gpio_otyper_enumset = (
+  ('push pull', 0, None),
+  ('open drain', 1, None),
+)
+
+# GPIOx.OSPEEDR
+_gpio_ospeedr_enumset = (
+  ('low speed', 0, None),
+  ('medium speed', 1, None),
+  ('fast speed', 2, None),
+  ('high speed', 3, None),
+)
+
+# GPIOx.PUPDR
+_gpio_pupdr_enumset = (
+  ('no pu/pd', 0, None),
+  ('pull up', 1, None),
+  ('pull down', 2, None),
+)
+
 #-----------------------------------------------------------------------------
+
+_STM32F407xx_gpio_altfunc_pa0 = (
+  ('TIM2_CH1_ETR', 1, None),
+  ('TIM5_CH1', 2, None),
+  ('TIM8_ETR', 3, None),
+  ('USART2_CTS', 7, None),
+  ('UART4_TX', 8, None),
+  ('ETH_MII_CRS', 11, None),
+  ('EVENTOUT', 15, None),
+)
+
+_STM32F407xx_gpio_altfunc_pa8 = (
+  ('MCO1', 0, None),
+  ('TIM1_CH1', 1, None),
+  ('I2C3_SCL', 4, None),
+  ('USART1_CK', 7, None),
+  ('OTG_FS_SOF', 10, None),
+  ('EVENTOUT', 15, None),
+)
 
 def STM32F407xx_fixup(d):
   d.soc_name = 'STM32F407xx'
@@ -63,11 +111,27 @@ def STM32F407xx_fixup(d):
   d.cpu_info.deviceNumInterrupts = 80
   # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
-  # More decode for the DBG registers
+  # more decode for the DBG registers
   f = d.DBG.DBGMCU_IDCODE.REV_ID
   f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # more decode for the GPIO registers
+  for gpio in ('GPIOA','GPIOB','GPIOC','GPIOD','GPIOE','GPIOF','GPIOG','GPIOH','GPIOI',):
+    for i in range(16):
+      f = d.peripherals[gpio].MODER.fields['MODER%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_moder_enumset)
+      f = d.peripherals[gpio].OTYPER.fields['OT%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_otyper_enumset)
+      f = d.peripherals[gpio].OSPEEDR.fields['OSPEEDR%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_ospeedr_enumset)
+      f = d.peripherals[gpio].PUPDR.fields['PUPDR%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_pupdr_enumset)
+  # partial decoding of alternate functions for gpio pins
+  f = d.GPIOA.AFRL.AFRL0
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa0)
+  f = d.GPIOA.AFRH.AFRH8
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa8)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
