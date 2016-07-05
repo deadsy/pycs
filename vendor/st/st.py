@@ -4,7 +4,7 @@
 SoC file for stm32 devices
 
 Read in the SVD file for a named SoC.
-Run fixup functions to correct any SVD inadequecies.
+Run fixup functions to correct any SVD inadequacies.
 
 """
 #-----------------------------------------------------------------------------
@@ -85,7 +85,10 @@ _gpio_pupdr_enumset = (
 )
 
 #-----------------------------------------------------------------------------
+# Alternate Function Decodes
+# ST doesn't put these in the SVD file :-(
 
+# GPIOA
 _STM32F407xx_gpio_altfunc_pa0 = (
   ('TIM2_CH1_ETR', 1, None),
   ('TIM5_CH1', 2, None),
@@ -95,7 +98,23 @@ _STM32F407xx_gpio_altfunc_pa0 = (
   ('ETH_MII_CRS', 11, None),
   ('EVENTOUT', 15, None),
 )
-
+_STM32F407xx_gpio_altfunc_pa2 = (
+  ('TIM2_CH3', 1, None),
+  ('TIM5_CH3', 2, None),
+  ('TIM9_CH1', 3, None),
+  ('USART2_TX', 7, None),
+  ('ETH_MDIO', 11, None),
+  ('EVENTOUT', 15, None),
+)
+_STM32F407xx_gpio_altfunc_pa3 = (
+  ('TIM2_CH4', 1, None),
+  ('TIM5_CH4', 2, None),
+  ('TIM9_CH2', 3, None),
+  ('USART2_RX', 7, None),
+  ('OTG_HS_ULPI_D0', 10, None),
+  ('ETH_MII_COL', 11, None),
+  ('EVENTOUT', 15, None),
+)
 _STM32F407xx_gpio_altfunc_pa8 = (
   ('MCO1', 0, None),
   ('TIM1_CH1', 1, None),
@@ -104,6 +123,36 @@ _STM32F407xx_gpio_altfunc_pa8 = (
   ('OTG_FS_SOF', 10, None),
   ('EVENTOUT', 15, None),
 )
+_STM32F407xx_gpio_altfunc_pa13 = (
+  ('JTMS-SWDIO', 0, None),
+  ('EVENTOUT', 15, None),
+)
+_STM32F407xx_gpio_altfunc_pa14 = (
+  ('JTCK-SWCLK', 0, None),
+  ('EVENTOUT', 15, None),
+)
+
+# GPIOB
+_STM32F407xx_gpio_altfunc_pb2 = (
+  ('EVENTOUT', 15, None),
+)
+_STM32F407xx_gpio_altfunc_pb3 = (
+  ('JTDO/TRACESWO', 0, None),
+  ('TIM2_CH2', 1, None),
+  ('SPI1_SCK', 5, None),
+  ('SPI3_SCK/I2S3_CK', 6, None),
+  ('EVENTOUT', 15, None),
+)
+_STM32F407xx_gpio_altfunc_pb7 = (
+  ('TIM4_CH2', 2, None),
+  ('I2C1_SDA', 4, None),
+  ('USART1_RX', 7, None),
+  ('FSMC_NL', 12, None),
+  ('DCMI_VSYNC', 13, None),
+  ('EVENTOUT', 15, None),
+)
+
+#-----------------------------------------------------------------------------
 
 def STM32F407xx_fixup(d):
   d.soc_name = 'STM32F407xx'
@@ -127,11 +176,28 @@ def STM32F407xx_fixup(d):
       f.enumvals = soc.make_enumvals(f, _gpio_ospeedr_enumset)
       f = d.peripherals[gpio].PUPDR.fields['PUPDR%d' % i]
       f.enumvals = soc.make_enumvals(f, _gpio_pupdr_enumset)
-  # partial decoding of alternate functions for gpio pins
+
+  # GPIOA alternate functions
   f = d.GPIOA.AFRL.AFRL0
   f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa0)
+  f = d.GPIOA.AFRL.AFRL2
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa2)
+  f = d.GPIOA.AFRL.AFRL3
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa3)
   f = d.GPIOA.AFRH.AFRH8
   f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa8)
+  f = d.GPIOA.AFRH.AFRH13
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa13)
+  f = d.GPIOA.AFRH.AFRH14
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa14)
+  # GPIOB alternate functions
+  f = d.GPIOB.AFRL.AFRL2
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb2)
+  f = d.GPIOB.AFRL.AFRL3
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb3)
+  f = d.GPIOB.AFRL.AFRL7
+  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb7)
+
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
