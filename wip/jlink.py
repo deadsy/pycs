@@ -15,7 +15,7 @@ import usb.util
 import tap
 import bits
 from array import array as Array
-from usbtools import UsbTools
+from usbtools.usbtools import UsbTools
 
 #------------------------------------------------------------------------------
 
@@ -30,7 +30,8 @@ _FREQ = 12.0 * _MHz
 # usb vendor:product IDs
 
 _jlink_vps = (
-    (0x1366, 0x0101), # J-Link Base
+#    (0x1366, 0x0101), # J-Link Base
+    (0x1366, 0x1015), # As seen on Nordic nRF52DK 
 )
 
 #------------------------------------------------------------------------------
