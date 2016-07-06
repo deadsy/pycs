@@ -51,16 +51,20 @@ It has an interactive CLI.
  * display system control registers
  * display peripheral registers
  * halt/go the cpu
+ * program flash
  * measure counter frequencies
  * etc. etc.
 
 ## Current Targets
- * frdm_k64f (NXP Kinetis K64 Board)
- * mb1035b (STM32F3 Discovery Board)
- * mb997c (STM32F4 Discovery Board)
- * nRF51822 (Adafruit BLE USB Dongle) 
- * saml21 (Atmel SAM L21 Xplained Pro Board)
 
+    $ ./pycs -l
+    supported targets:
+      frdm_k64f : FRDM-K64F Kinetis Development Board (MK64FN1M0VLL12)       
+      mb1035b   : STM32F3 Discovery Board (STM32F303xC)                      
+      mb997c    : STM32F4 Discovery Board (STM32F407xx)                      
+      nRF51822  : Adafruit BLE USB dongle (nRF51822)                         
+      nRF52dk   : Nordic nRF52DK Development Board (nRF52832)                
+      saml21    : Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B) 
 
 ## Other Documents
 

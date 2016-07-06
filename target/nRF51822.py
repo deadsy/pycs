@@ -1,9 +1,9 @@
 # -----------------------------------------------------------------------------
 """
 
-Target file for nRF51822
+Adafruit BLE USB dongle (nRF51822)
 
-Used with the Adafruit nRF51822 USB dongle. https://www.adafruit.com/products/2267
+See: https://www.adafruit.com/products/2267
 
 That's pretty much just the SoC on a board, so you could use this target as a
 starting point for other nRF51822 based targets.

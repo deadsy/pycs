@@ -12,6 +12,7 @@ import importlib
 
 import conio
 import cli
+import util
 
 # -----------------------------------------------------------------------------
 
@@ -21,13 +22,22 @@ _target = ''
 
 # -----------------------------------------------------------------------------
 
+def target_description(target):
+    module = importlib.import_module('target.%s' % target)
+    doc = module.__doc__
+    lines = doc.split('\n')
+    # find the first non-null line
+    for l in lines:
+      if len(l):
+        return l
+
 def supported_targets():
   """return a list of supported targets"""
   targets = []
   for f in os.listdir('target'):
     name = f.split('.')
     if name[1] == 'py' and name[0] != '__init__':
-      targets.append(name[0])
+      targets.append(['  %s' % name[0], ': %s' % target_description(name[0])])
   return sorted(targets)
 
 # -----------------------------------------------------------------------------
@@ -68,7 +78,7 @@ def Process_Options(argv):
   targets = supported_targets()
 
   if list_targets:
-    error('supported targets:\n%s' % '\n'.join(targets))
+    error('supported targets:\n%s' % util.display_cols(targets))
 
   if _target == '':
     error('must specify a target', True)
@@ -76,8 +86,8 @@ def Process_Options(argv):
   if not _usb_number in range(16):
     error('usb number out of range')
 
-  if not _target in targets:
-    error('supported targets:\n%s' % '\n'.join(targets))
+  if not _target in [t[0].strip() for t in targets]:
+    error('supported targets:\n%s' % util.display_cols(targets))
 
 # -----------------------------------------------------------------------------
 

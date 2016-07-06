@@ -1,9 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Target file for Atmel SAM L21 Xplained Pro Evaluation Board
-
-ATSAML21J18B SoC
+Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B)
 
 """
 # -----------------------------------------------------------------------------

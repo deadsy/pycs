@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Target file for FRDM-K64F
+FRDM-K64F Kinetis Development Board (MK64FN1M0VLL12)
 
 NXP development board for Kinetis Chips
 
