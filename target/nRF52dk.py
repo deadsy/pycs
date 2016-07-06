@@ -33,7 +33,7 @@ If there is a shield the GPIOs are used for the headers (ala arduino), and
 the LEDs and buttons are accessed via an I2C port expander.
 
 2) The UART pins aren't specified by the target hardware, but for convenience
-I'm setting them per the default pin selects in the SDK.
+I'm setting them per the default pin selects in the SDK (used for logging).
 
 """
 
