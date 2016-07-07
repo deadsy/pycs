@@ -55,6 +55,9 @@ _dev_id_enumset = (
   ('STM32F303xD/E,STM32F398xE', 0x446, None),
 )
 
+#-----------------------------------------------------------------------------
+# more gpio decoding
+
 # GPIOx.MODER
 _gpio_moder_enumset = (
   ('input', 0, None),
@@ -84,73 +87,69 @@ _gpio_pupdr_enumset = (
   ('pull down', 2, None),
 )
 
-#-----------------------------------------------------------------------------
 # Alternate Function Decodes
 # ST doesn't put these in the SVD file :-(
 
-# GPIOA
-_STM32F407xx_gpio_altfunc_pa0 = (
-  ('TIM2_CH1_ETR', 1, None),
-  ('TIM5_CH1', 2, None),
-  ('TIM8_ETR', 3, None),
-  ('USART2_CTS', 7, None),
-  ('UART4_TX', 8, None),
-  ('ETH_MII_CRS', 11, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pa2 = (
-  ('TIM2_CH3', 1, None),
-  ('TIM5_CH3', 2, None),
-  ('TIM9_CH1', 3, None),
-  ('USART2_TX', 7, None),
-  ('ETH_MDIO', 11, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pa3 = (
-  ('TIM2_CH4', 1, None),
-  ('TIM5_CH4', 2, None),
-  ('TIM9_CH2', 3, None),
-  ('USART2_RX', 7, None),
-  ('OTG_HS_ULPI_D0', 10, None),
-  ('ETH_MII_COL', 11, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pa8 = (
-  ('MCO1', 0, None),
-  ('TIM1_CH1', 1, None),
-  ('I2C3_SCL', 4, None),
-  ('USART1_CK', 7, None),
-  ('OTG_FS_SOF', 10, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pa13 = (
-  ('JTMS-SWDIO', 0, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pa14 = (
-  ('JTCK-SWCLK', 0, None),
-  ('EVENTOUT', 15, None),
+# (port, pin, af, name)
+_STM32F407xx_altfunc = (
+  # this is a partial list
+  ('A', 0, 1, 'TIM2_CH1_ETR'),
+  ('A', 0, 2, 'TIM5_CH1'),
+  ('A', 0, 3, 'TIM8_ETR'),
+  ('A', 0, 7, 'USART2_CTS'),
+  ('A', 0, 8, 'UART4_TX'),
+  ('A', 0, 11, 'ETH_MII_CRS'),
+  ('A', 0, 15, 'EVENTOUT'),
+  ('A', 2, 1, 'TIM2_CH3'),
+  ('A', 2, 2, 'TIM5_CH3'),
+  ('A', 2, 3, 'TIM9_CH1'),
+  ('A', 2, 7, 'USART2_TX'),
+  ('A', 2, 11, 'ETH_MDIO'),
+  ('A', 2, 15, 'EVENTOUT'),
+  ('A', 3, 1, 'TIM2_CH4'),
+  ('A', 3, 2, 'TIM5_CH4'),
+  ('A', 3, 3, 'TIM9_CH2'),
+  ('A', 3, 7, 'USART2_RX'),
+  ('A', 3, 10, 'OTG_HS_ULPI_D0'),
+  ('A', 3, 11, 'ETH_MII_COL'),
+  ('A', 3, 15, 'EVENTOUT'),
+  ('A', 8, 0, 'MCO1'),
+  ('A', 8, 1, 'TIM1_CH1'),
+  ('A', 8, 4, 'I2C3_SCL'),
+  ('A', 8, 7, 'USART1_CK'),
+  ('A', 8, 10, 'OTG_FS_SOF'),
+  ('A', 8, 15, 'EVENTOUT'),
+  ('A', 13, 0, 'JTMS-SWDIO'),
+  ('A', 13, 15, 'EVENTOUT'),
+  ('A', 14, 0, 'JTCK-SWCLK'),
+  ('A', 14, 15, 'EVENTOUT'),
+  ('B', 2, 15, 'EVENTOUT'),
+  ('B', 3, 0, 'JTDO/TRACESWO'),
+  ('B', 3, 1, 'TIM2_CH2'),
+  ('B', 3, 5, 'SPI1_SCK'),
+  ('B', 3, 6, 'SPI3_SCK/I2S3_CK'),
+  ('B', 3, 15, 'EVENTOUT'),
+  ('B', 4, 0, 'NJTRST'),
+  ('B', 4, 2, 'TIM3_CH1'),
+  ('B', 4, 5, 'SPI1_MISO'),
+  ('B', 4, 6, 'SPI3_MISO'),
+  ('B', 4, 7, 'I2S3ext_SD'),
+  ('B', 4, 15, 'EVENTOUT'),
+  ('B', 7, 2, 'TIM4_CH2'),
+  ('B', 7, 4, 'I2C1_SDA'),
+  ('B', 7, 7, 'USART1_RX'),
+  ('B', 7, 12, 'FSMC_NL'),
+  ('B', 7, 13, 'DCMI_VSYNC'),
+  ('B', 7, 15, 'EVENTOUT'),
 )
 
-# GPIOB
-_STM32F407xx_gpio_altfunc_pb2 = (
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pb3 = (
-  ('JTDO/TRACESWO', 0, None),
-  ('TIM2_CH2', 1, None),
-  ('SPI1_SCK', 5, None),
-  ('SPI3_SCK/I2S3_CK', 6, None),
-  ('EVENTOUT', 15, None),
-)
-_STM32F407xx_gpio_altfunc_pb7 = (
-  ('TIM4_CH2', 2, None),
-  ('I2C1_SDA', 4, None),
-  ('USART1_RX', 7, None),
-  ('FSMC_NL', 12, None),
-  ('DCMI_VSYNC', 13, None),
-  ('EVENTOUT', 15, None),
-)
+def gpio_altfunc_enums(port, pin, altfunc):
+  """return an enumeration set for the given port and pin"""
+  enums = []
+  for (portx, pinx, af, name) in altfunc:
+    if port == portx and pin == pinx:
+      enums.append((name, af, None))
+  return enums
 
 #-----------------------------------------------------------------------------
 
@@ -166,38 +165,22 @@ def STM32F407xx_fixup(d):
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  for gpio in ('GPIOA','GPIOB','GPIOC','GPIOD','GPIOE','GPIOF','GPIOG','GPIOH','GPIOI',):
+  for port in ('A','B','C','D','E','F','G','H','I'):
+    gpio = d.peripherals['GPIO%s' % port]
     for i in range(16):
-      f = d.peripherals[gpio].MODER.fields['MODER%d' % i]
+      f = gpio.MODER.fields['MODER%d' % i]
       f.enumvals = soc.make_enumvals(f, _gpio_moder_enumset)
-      f = d.peripherals[gpio].OTYPER.fields['OT%d' % i]
+      f = gpio.OTYPER.fields['OT%d' % i]
       f.enumvals = soc.make_enumvals(f, _gpio_otyper_enumset)
-      f = d.peripherals[gpio].OSPEEDR.fields['OSPEEDR%d' % i]
+      f = gpio.OSPEEDR.fields['OSPEEDR%d' % i]
       f.enumvals = soc.make_enumvals(f, _gpio_ospeedr_enumset)
-      f = d.peripherals[gpio].PUPDR.fields['PUPDR%d' % i]
+      f = gpio.PUPDR.fields['PUPDR%d' % i]
       f.enumvals = soc.make_enumvals(f, _gpio_pupdr_enumset)
-
-  # GPIOA alternate functions
-  f = d.GPIOA.AFRL.AFRL0
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa0)
-  f = d.GPIOA.AFRL.AFRL2
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa2)
-  f = d.GPIOA.AFRL.AFRL3
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa3)
-  f = d.GPIOA.AFRH.AFRH8
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa8)
-  f = d.GPIOA.AFRH.AFRH13
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa13)
-  f = d.GPIOA.AFRH.AFRH14
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pa14)
-  # GPIOB alternate functions
-  f = d.GPIOB.AFRL.AFRL2
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb2)
-  f = d.GPIOB.AFRL.AFRL3
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb3)
-  f = d.GPIOB.AFRL.AFRL7
-  f.enumvals = soc.make_enumvals(f, _STM32F407xx_gpio_altfunc_pb7)
-
+      if i < 8:
+        f = gpio.AFRL.fields['AFRL%d' % i]
+      else:
+        f = gpio.AFRH.fields['AFRH%d' % i]
+      f.enumvals = soc.make_enumvals(f, gpio_altfunc_enums(port, i, _STM32F407xx_altfunc))
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
