@@ -48,6 +48,8 @@ class drv(object):
     s = []
     (name, prefix) = port
     hw = self.device.peripherals[name]
+    mode_val =  hw.MODER.rd()
+
     for i in range(16):
       # standard driver name
       std_name = '%s%d' % (prefix, i)
@@ -55,7 +57,8 @@ class drv(object):
       tgt_name = ''
       if self.cfg.has_key(std_name):
         tgt_name = self.cfg[std_name][0]
-      s.append([std_name, tgt_name,])
+      mode_name = hw.MODER.fields['MODER%d' % i].field_name(mode_val)
+      s.append([std_name, mode_name, tgt_name,])
     return s
 
   def __str__(self):

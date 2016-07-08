@@ -189,6 +189,23 @@ class field(object):
     self.fmt = None
     self.cached_val = None
 
+  def field_name(self, val):
+    """return the name for the field value"""
+    mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
+    val = (val & mask) >> self.lsb
+    val_name = ''
+    if callable(self.fmt):
+      val_name = self.fmt(val)
+    else:
+      if self.enumvals is not None and len(self.enumvals) >= 1:
+        # find the enumvals with usage 'read', or just find one
+        for e in self.enumvals:
+          if e.usage == 'read':
+            break
+        if e.enumval.has_key(val):
+          val_name = e.enumval[val].name
+    return val_name
+
   def display(self, val):
     """return display columns (name, val, '', descr) for this field"""
     mask = ((1 << (self.msb - self.lsb + 1)) - 1) << self.lsb
