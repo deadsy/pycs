@@ -8,13 +8,15 @@ Those drivers expose a common API used by this code.
 """
 #-----------------------------------------------------------------------------
 
-
+import util
 
 #-----------------------------------------------------------------------------
 
 _help_gpio = (
-    ('[name]', 'gpio name (see status)'),
+    ('[name]', 'gpio name (see "gpio info")'),
 )
+
+_invalid_gpio_name = 'invalid gpio name (see "gpio info")'
 
 #-----------------------------------------------------------------------------
 
@@ -30,11 +32,23 @@ class gpio(object):
 
   def cmd_clr(self, ui, args):
     """clear gpio (0)"""
-    pass
+    if util.wrong_argc(ui, args, (1,)):
+      return None
+    x = self.driver.name_arg(args[0])
+    if x is None:
+      ui.put(_invalid_gpio_name)
+      return
+    self.driver.clr_bit(x[0], x[1])
 
   def cmd_set(self, ui, args):
     """set gpio (1)"""
-    pass
+    if util.wrong_argc(ui, args, (1,)):
+      return None
+    x = self.driver.name_arg(args[0])
+    if x is None:
+      ui.put(_invalid_gpio_name)
+      return
+    self.driver.set_bit(x[0], x[1])
 
   def cmd_info(self, ui, args):
     """display gpio information"""
