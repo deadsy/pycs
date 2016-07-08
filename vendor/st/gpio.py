@@ -83,6 +83,26 @@ class drv(object):
     hw = self.device.peripherals[port]
     hw.BSRR.wr(1 << ((bit & 15) + 16))
 
+  def set_mode(self, port, bit, mode):
+    """set the pin mode"""
+    hw = self.device.peripherals[port].MODER
+    mode = {'i':0,'o':1,'f':2,'a':3}[mode]
+    shift = (bit & 15) << 1
+    val = hw.rd()
+    val &= ~(3 << shift)
+    val |= mode << shift
+    hw.wr(val)
+
+  def set_pupd(self, port, bit, mode):
+    """set the pull-up/pull-down mode"""
+    hw = self.device.peripherals[port].PUPDR
+    mode = {'pu':1,'pd':2}.get(mode, 0)
+    shift = (bit & 15) << 1
+    val = hw.rd()
+    val &= ~(3 << shift)
+    val |= mode << shift
+    hw.wr(val)
+
   def status(self, port):
     """return a status string for the named gpio port"""
     s = []

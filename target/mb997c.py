@@ -14,6 +14,7 @@ import mem
 import soc
 import flash
 import gpio
+import i2c
 
 import vendor.st.st as vendor
 import vendor.st.flash as flash_driver
@@ -78,7 +79,9 @@ class target(object):
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
     self.flash = flash.flash(flash_driver.sdrv(self.device), self.device, self.mem)
-    self.gpio = gpio.gpio(gpio_driver.drv(self.device, gpio_cfg))
+    gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
+    self.gpio = gpio.gpio(gpio_drv)
+    self.i2c = i2c.i2c(i2c_io(gpio_drv))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -89,6 +92,7 @@ class target(object):
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
+      ('i2c', self.i2c.menu, 'i2c functions'),
       ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
@@ -116,5 +120,60 @@ class target(object):
     """exit application"""
     self.jlink.jlink_close()
     ui.exit()
+
+# -----------------------------------------------------------------------------
+# mb997c Specific I2C Bus Access Routines
+# Note: The scl/sda lines are pulled up.
+# 1 -> gpio as input, line is pulled high
+# 0 -> gpio as 0 output, line is driven low
+
+class i2c_io(object):
+
+  def __init__(self, gpio):
+    self.gpio = gpio
+    self.i2c_port = 'GPIOB'
+    self.i2c_scl = 6
+    self.i2c_sda = 9
+    self.hw_init = False
+
+  def cmd_init(self, ui, args):
+    """initialise i2c hardware"""
+    if self.hw_init:
+      return
+    # scl and sda are inputs
+    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'i')
+    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'i')
+    # pull ups for scl and sda
+    self.gpio.set_pupd(self.i2c_port, self.i2c_scl, 'pu')
+    self.gpio.set_pupd(self.i2c_port, self.i2c_sda, 'pu')
+    # set the outputs to low
+    self.gpio.clr_bit(self.i2c_port, self.i2c_scl)
+    self.gpio.clr_bit(self.i2c_port, self.i2c_sda)
+    # mark as done
+    self.hw_init = True
+
+  def sda_lo(self):
+    """drive sda low"""
+    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'o')
+
+  def sda_rel(self):
+    """release sda"""
+    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'i')
+
+  def sda_rd(self):
+    """sda read"""
+    return self.gpio.rd_input(self.i2c_port, self.i2c_sda)
+
+  def scl_lo(self):
+    """drive scl low"""
+    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'o')
+
+  def scl_rel(self):
+    """release scl"""
+    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'i')
+
+  def scl_rd(self):
+    """scl read"""
+    return self.gpio.rd_input(self.i2c_port, self.i2c_scl)
 
 # -----------------------------------------------------------------------------
