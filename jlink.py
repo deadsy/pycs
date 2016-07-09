@@ -336,7 +336,7 @@ class JLink(object):
     return fn(ctypes.c_int(reg))
 
   def rd_pc(self):
-    return self.rdreg(REG_R15_PC)
+    return self.rdreg(REG_R15)
 
   def cp15_is_present(self):
     # int JLINKARM_CP15_IsPresent(void);

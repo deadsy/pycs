@@ -27,44 +27,53 @@ prompt = 'mb997c'
 
 # -----------------------------------------------------------------------------
 
-gpio_cfg = {
+# pin, mode, pupd, otype, ospeed, name
 
-  'PA0': ('SW_PUSH',),
-  'PA1': ('system_reset',),
-  'PA4': ('I2S3_WS',),
-  'PA5': ('SPI1_SCK',),
-  'PA6': ('SPI1_MISO',),
-  'PA7': ('SPI1_MOSI',),
-  'PA9': ('VBUS_FS',),
-  'PA10': ('OTG_FS_ID',),
-  'PA11': ('OTG_FS_DM',),
-  'PA12': ('OTG_FS_DP',),
-  'PA13': ('SWDIO',),
-  'PA14': ('SWCLK',),
-  'PB3': ('SWO',),
-  'PB6': ('Audio_SCL',),
-  'PB9': ('Audio_SDA',),
-  'PB10': ('CLK_IN',),
-  'PC0': ('OTG_FS_PowerSwitchOn',),
-  'PC3': ('PDM_OUT',),
-  'PC4': ('codec',),
-  'PC7': ('I2S3_MCK',),
-  'PC10': ('I2S3_SCK',),
-  'PC12': ('I2S3_SD',),
-  'PC14': ('osc_in',),
-  'PC15': ('osc_out',),
-  'PD4': ('Audio_RST',),
-  'PD5': ('OTG_FS_OverCurrent',),
-  'PD12': ('LED4',),
-  'PD13': ('LED3',),
-  'PD14': ('LED5',),
-  'PD15': ('LED6',),
-  'PE0': ('MEMS_INT1',),
-  'PE1': ('MEMS_INT2',),
-  'PE3': ('CS_I2C/SPI',),
-  'PH0': ('ph0_osc_in',),
-  'PH1': ('ph1_osc_out',),
-}
+gpio_cfg = (
+  ('PA0', 'i', None, None, None, 'SW_PUSH'),
+
+  #('PA1': ('system_reset',),
+  #('PA4': ('I2S3_WS',),
+  #('PA5': ('SPI1_SCK',),
+  #('PA6': ('SPI1_MISO',),
+  #('PA7': ('SPI1_MOSI',),
+  #('PA9': ('VBUS_FS',),
+  #('PA10': ('OTG_FS_ID',),
+  #('PA11': ('OTG_FS_DM',),
+  #('PA12': ('OTG_FS_DP',),
+
+  ('PA13', 'af0', None, None, None, 'SWDIO'),
+  ('PA14', 'af0', None, None, None, 'SWCLK'),
+  ('PB3', 'af0', None, None, None, 'SWO'),
+
+  ('PB6', 'i', 'pu', 'od', 'f', 'Audio_SCL'),
+  ('PB9', 'i', 'pu', 'od', 'f', 'Audio_SDA'),
+
+  #('PB10': ('CLK_IN',),
+  #('PC0': ('OTG_FS_PowerSwitchOn',),
+  #('PC3': ('PDM_OUT',),
+  #('PC4': ('codec',),
+  #('PC7': ('I2S3_MCK',),
+  #('PC10': ('I2S3_SCK',),
+  #('PC12': ('I2S3_SD',),
+  #('PC14': ('osc_in',),
+  #('PC15': ('osc_out',),
+
+  ('PD4', '1', None, 'pp', 'f', 'Audio_RST'),
+
+  #('PD5': ('OTG_FS_OverCurrent',),
+
+  ('PD12', '0', None, 'pp', 'f', 'LED4'),
+  ('PD13', '0', None, 'pp', 'f', 'LED3'),
+  ('PD14', '0', None, 'pp', 'f', 'LED5'),
+  ('PD15', '0', None, 'pp', 'f', 'LED6'),
+
+  #('PE0': ('MEMS_INT1',),
+  #('PE1': ('MEMS_INT2',),
+  #('PE3': ('CS_I2C/SPI',),
+  #('PH0': ('ph0_osc_in',),
+  #('PH1': ('ph1_osc_out',),
+)
 
 # -----------------------------------------------------------------------------
 
@@ -140,12 +149,23 @@ class i2c_io(object):
     """initialise i2c hardware"""
     if self.hw_init:
       return
+
+
+
+    # turn on the port
+    self.gpio.enable(self.i2c_port)
     # scl and sda are inputs
     self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'i')
     self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'i')
     # pull ups for scl and sda
     self.gpio.set_pupd(self.i2c_port, self.i2c_scl, 'pu')
     self.gpio.set_pupd(self.i2c_port, self.i2c_sda, 'pu')
+    # set the outputs to open drain
+    self.gpio.set_otype(self.i2c_port, self.i2c_scl, 'od')
+    self.gpio.set_otype(self.i2c_port, self.i2c_sda, 'od')
+    # set the outputs to fast
+    self.gpio.set_ospeed(self.i2c_port, self.i2c_scl, 'f')
+    self.gpio.set_ospeed(self.i2c_port, self.i2c_sda, 'f')
     # set the outputs to low
     self.gpio.clr_bit(self.i2c_port, self.i2c_scl)
     self.gpio.clr_bit(self.i2c_port, self.i2c_sda)

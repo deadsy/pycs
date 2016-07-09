@@ -26,8 +26,9 @@ class gpio(object):
     self.driver = driver
     self.menu = (
       ('clr', self.cmd_clr, _help_gpio),
-      ('info', self.cmd_info),
+      ('init', self.driver.cmd_init),
       ('set', self.cmd_set, _help_gpio),
+      ('status', self.cmd_status),
     )
 
   def cmd_clr(self, ui, args):
@@ -50,8 +51,8 @@ class gpio(object):
       return
     self.driver.set_bit(x[0], x[1])
 
-  def cmd_info(self, ui, args):
-    """display gpio information"""
+  def cmd_status(self, ui, args):
+    """display gpio status"""
     ui.put('%s\n' % self.driver)
 
 #-----------------------------------------------------------------------------

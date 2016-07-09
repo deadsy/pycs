@@ -29,13 +29,60 @@ class drv(object):
     self.device = device
     self.cfg = cfg
     self.ports = ['GPIO%s' % x for x in gpio_set[self.device.soc_name]]
+    # work out the pin to name mapping from the configuration
+    self.pin2name = {}
+    for (pin, mode, pupd, otype, ospeed, name) in self.cfg:
+      self.pin2name[pin] = name
 
-  def __name(self, port, bit):
-    """return the standard name for the port/pin"""
-    return 'P%s%d' % (port[4:], (bit & 15))
+  def __status(self, port):
+    """return a status string for the named gpio port"""
+    s = []
+    hw = self.device.peripherals[port]
+    mode_val =  hw.MODER.rd()
+    for i in range(16):
+      # standard pin name
+      pin_name = 'P%s%d' % (port[4:], i)
+      # target name
+      tgt_name = self.pin2name.get(pin_name, None)
+      # mode for this pin
+      mode_name = hw.MODER.fields['MODER%d' % i].field_name(mode_val)
+      val_name = ''
+      af_name = None
+      if mode_name == 'analog':
+        mode_name = 'a'
+      if mode_name == 'altfunc':
+        mode_name = 'f'
+        if i < 8:
+          af_name = hw.AFRL.fields['AFRL%d' % i].field_name(hw.AFRL.rd())
+        else:
+          af_name = hw.AFRH.fields['AFRH%d' % i].field_name(hw.AFRH.rd())
+      elif mode_name == 'output':
+        mode_name = 'o'
+        val_name = '%d' % self.rd_output(port, i)
+      elif mode_name == 'input':
+        mode_name = 'i'
+        val_name = '%d' % self.rd_input(port, i)
+      # combine the target and alternate function name
+      if tgt_name:
+        if af_name:
+          tgt_name += ' (%s)' % af_name
+      else:
+        tgt_name = (af_name, '')[af_name is None]
+      s.append([pin_name, mode_name, val_name, tgt_name])
+    return s
 
-  def name_arg(self, name):
-    """convert a standard name into a port/bit tuple or None"""
+  # The following functions are the common API
+
+  def cmd_init(self, ui, args):
+    """initialise gpio hardware"""
+    for (pin, mode, pupd, otype, ospeed, name) in self.cfg:
+      x = self.pin_arg(pin)
+      assert x is not None, 'bad gpio pin name'
+      (port, bit) = x
+      ui.put('%s %d\n' % (port, bit))
+
+  def pin_arg(self, name):
+    """convert a standard pin name into a port/bit tuple or None"""
     if len(name) > 4:
       return None
     name = name.upper()
@@ -83,69 +130,63 @@ class drv(object):
     hw = self.device.peripherals[port]
     hw.BSRR.wr(1 << ((bit & 15) + 16))
 
-  def set_mode(self, port, bit, mode):
-    """set the pin mode"""
-    hw = self.device.peripherals[port].MODER
-    mode = {'i':0,'o':1,'f':2,'a':3}[mode]
-    shift = (bit & 15) << 1
-    val = hw.rd()
-    val &= ~(3 << shift)
-    val |= mode << shift
-    hw.wr(val)
-
-  def set_pupd(self, port, bit, mode):
-    """set the pull-up/pull-down mode"""
-    hw = self.device.peripherals[port].PUPDR
-    mode = {'pu':1,'pd':2}.get(mode, 0)
-    shift = (bit & 15) << 1
-    val = hw.rd()
-    val &= ~(3 << shift)
-    val |= mode << shift
-    hw.wr(val)
-
-  def status(self, port):
-    """return a status string for the named gpio port"""
-    s = []
-    hw = self.device.peripherals[port]
-    mode_val =  hw.MODER.rd()
-    for i in range(16):
-      # standard driver name
-      std_name = self.__name(port, i)
-      # target name
-      tgt_name = None
-      if self.cfg.has_key(std_name):
-        tgt_name = self.cfg[std_name][0]
-      # mode for this pin
-      mode_name = hw.MODER.fields['MODER%d' % i].field_name(mode_val)
-      val_name = ''
-      af_name = None
-      if mode_name == 'analog':
-        mode_name = 'a'
-      if mode_name == 'altfunc':
-        mode_name = 'f'
-        if i < 8:
-          af_name = hw.AFRL.fields['AFRL%d' % i].field_name(hw.AFRL.rd())
-        else:
-          af_name = hw.AFRH.fields['AFRH%d' % i].field_name(hw.AFRH.rd())
-      elif mode_name == 'output':
-        mode_name = 'o'
-        val_name = '%d' % self.rd_output(port, i)
-      elif mode_name == 'input':
-        mode_name = 'i'
-        val_name = '%d' % self.rd_input(port, i)
-      # combine the target and alternate function name
-      if tgt_name:
-        if af_name:
-          tgt_name += ' (%s)' % af_name
-      else:
-        tgt_name = (af_name, '')[af_name is None]
-      s.append([std_name, mode_name, val_name, tgt_name])
-    return s
-
   def __str__(self):
     s = []
     for p in self.ports:
-      s.extend(self.status(p))
+      s.extend(self.__status(p))
     return util.display_cols(s)
+
+  # The following function are ST specific
+  # They can be called from target code - but not from generic drivers.
+
+  def enable(self, port):
+    """enable the gpio port"""
+    assert port in self.ports, 'bad port name'
+    port = ord(port[4:]) - ord('A')
+    hw = self.device.RCC.AHB1ENR
+    val = hw.rd()
+    val &= ~(1 << port)
+    val |= 1 << port
+    hw.wr(val)
+
+  def set_mode(self, port, bit, x):
+    """set the pin mode"""
+    hw = self.device.peripherals[port].MODER
+    mode = {'i':0,'o':1,'f':2,'a':3}.get(x, 0)
+    shift = (bit & 15) << 1
+    val = hw.rd()
+    val &= ~(3 << shift)
+    val |= mode << shift
+    hw.wr(val)
+
+  def set_pupd(self, port, bit, x):
+    """set the pull-up/pull-down mode"""
+    hw = self.device.peripherals[port].PUPDR
+    mode = {'pu':1,'pd':2}.get(x, 0)
+    shift = (bit & 15) << 1
+    val = hw.rd()
+    val &= ~(3 << shift)
+    val |= mode << shift
+    hw.wr(val)
+
+  def set_otype(self, port, bit, x):
+    """set the output type"""
+    hw = self.device.peripherals[port].OTYPER
+    mode = {'pp':0,'od':1}.get(x, 0)
+    bit &= 15
+    val = hw.rd()
+    val &= ~(1 << bit)
+    val |= mode << bit
+    hw.wr(val)
+
+  def set_ospeed(self, port, bit, x):
+    """set the output speed"""
+    hw = self.device.peripherals[port].OSPEEDR
+    mode = {'l':0,'m':1,'f':2,'h':3}.get(x, 0)
+    shift = (bit & 15) << 1
+    val = hw.rd()
+    val &= ~(3 << shift)
+    val |= mode << shift
+    hw.wr(val)
 
 #-----------------------------------------------------------------------------
