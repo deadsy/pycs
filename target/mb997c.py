@@ -19,6 +19,7 @@ import i2c
 import vendor.st.st as vendor
 import vendor.st.flash as flash_driver
 import vendor.st.gpio as gpio_driver
+import vendor.st.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
 
@@ -26,53 +27,50 @@ soc_name = 'STM32F407xx'
 prompt = 'mb997c'
 
 # -----------------------------------------------------------------------------
+# gpio configuration
 
 # pin, mode, pupd, otype, ospeed, name
-
 gpio_cfg = (
   ('PA0', 'i', None, None, None, 'SW_PUSH'),
-
-  #('PA1': ('system_reset',),
-  #('PA4': ('I2S3_WS',),
-  #('PA5': ('SPI1_SCK',),
-  #('PA6': ('SPI1_MISO',),
-  #('PA7': ('SPI1_MOSI',),
-  #('PA9': ('VBUS_FS',),
-  #('PA10': ('OTG_FS_ID',),
-  #('PA11': ('OTG_FS_DM',),
-  #('PA12': ('OTG_FS_DP',),
-
+  ('PA1', 'i', None, None, None, 'system_reset'),
+  ('PA4', 'i', None, None, None, 'I2S3_WS'),
+  ('PA5', 'i', None, None, None, 'SPI1_SCK'),
+  ('PA6', 'i', None, None, None, 'SPI1_MISO'),
+  ('PA7', 'i', None, None, None, 'SPI1_MOSI'),
+  ('PA9', 'i', None, None, None, 'VBUS_FS'),
+  ('PA10', 'i', None, None, None, 'OTG_FS_ID'),
+  ('PA11', 'i', None, None, None, 'OTG_FS_DM'),
+  ('PA12', 'i', None, None, None, 'OTG_FS_DP'),
   ('PA13', 'af0', None, None, None, 'SWDIO'),
   ('PA14', 'af0', None, None, None, 'SWCLK'),
+
   ('PB3', 'af0', None, None, None, 'SWO'),
+  ('PB6', 'i', 'pu', 'pp', 'f', 'Audio_SCL'),
+  ('PB9', 'i', 'pu', 'pp', 'f', 'Audio_SDA'),
+  ('PB10', 'i', None, None, None, 'CLK_IN'),
 
-  ('PB6', 'i', 'pu', 'od', 'f', 'Audio_SCL'),
-  ('PB9', 'i', 'pu', 'od', 'f', 'Audio_SDA'),
-
-  #('PB10': ('CLK_IN',),
-  #('PC0': ('OTG_FS_PowerSwitchOn',),
-  #('PC3': ('PDM_OUT',),
-  #('PC4': ('codec',),
-  #('PC7': ('I2S3_MCK',),
-  #('PC10': ('I2S3_SCK',),
-  #('PC12': ('I2S3_SD',),
-  #('PC14': ('osc_in',),
-  #('PC15': ('osc_out',),
+  ('PC0', 'i', None, None, None, 'OTG_FS_PowerSwitchOn'),
+  ('PC3', 'i', None, None, None, 'PDM_OUT'),
+  ('PC4', 'i', None, None, None, 'codec'),
+  ('PC7', 'i', None, None, None, 'I2S3_MCK'),
+  ('PC10', 'i', None, None, None, 'I2S3_SCK'),
+  ('PC12', 'i', None, None, None, 'I2S3_SD'),
+  ('PC14', 'i', None, None, None, 'osc_in'),
+  ('PC15', 'i', None, None, None, 'osc_out'),
 
   ('PD4', '1', None, 'pp', 'f', 'Audio_RST'),
-
-  #('PD5': ('OTG_FS_OverCurrent',),
-
+  ('PD5', 'i', None, None, None, 'OTG_FS_OverCurrent'),
   ('PD12', '0', None, 'pp', 'f', 'LED4'),
   ('PD13', '0', None, 'pp', 'f', 'LED3'),
   ('PD14', '0', None, 'pp', 'f', 'LED5'),
   ('PD15', '0', None, 'pp', 'f', 'LED6'),
 
-  #('PE0': ('MEMS_INT1',),
-  #('PE1': ('MEMS_INT2',),
-  #('PE3': ('CS_I2C/SPI',),
-  #('PH0': ('ph0_osc_in',),
-  #('PH1': ('ph1_osc_out',),
+  ('PE0', 'i', None, None, None, 'MEMS_INT1'),
+  ('PE1', 'i', None, None, None, 'MEMS_INT2'),
+  ('PE3', 'i', None, None, None, 'CS_I2C/SPI'),
+
+  ('PH0', 'i', None, None, None, 'ph0_osc_in'),
+  ('PH1', 'i', None, None, None, 'ph1_osc_out'),
 )
 
 # -----------------------------------------------------------------------------
@@ -90,7 +88,7 @@ class target(object):
     self.flash = flash.flash(flash_driver.sdrv(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
-    self.i2c = i2c.i2c(i2c_io(gpio_drv))
+    self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB9'))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -129,71 +127,5 @@ class target(object):
     """exit application"""
     self.jlink.jlink_close()
     ui.exit()
-
-# -----------------------------------------------------------------------------
-# mb997c Specific I2C Bus Access Routines
-# Note: The scl/sda lines are pulled up.
-# 1 -> gpio as input, line is pulled high
-# 0 -> gpio as 0 output, line is driven low
-
-class i2c_io(object):
-
-  def __init__(self, gpio):
-    self.gpio = gpio
-    self.i2c_port = 'GPIOB'
-    self.i2c_scl = 6
-    self.i2c_sda = 9
-    self.hw_init = False
-
-  def cmd_init(self, ui, args):
-    """initialise i2c hardware"""
-    if self.hw_init:
-      return
-
-
-
-    # turn on the port
-    self.gpio.enable(self.i2c_port)
-    # scl and sda are inputs
-    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'i')
-    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'i')
-    # pull ups for scl and sda
-    self.gpio.set_pupd(self.i2c_port, self.i2c_scl, 'pu')
-    self.gpio.set_pupd(self.i2c_port, self.i2c_sda, 'pu')
-    # set the outputs to open drain
-    self.gpio.set_otype(self.i2c_port, self.i2c_scl, 'od')
-    self.gpio.set_otype(self.i2c_port, self.i2c_sda, 'od')
-    # set the outputs to fast
-    self.gpio.set_ospeed(self.i2c_port, self.i2c_scl, 'f')
-    self.gpio.set_ospeed(self.i2c_port, self.i2c_sda, 'f')
-    # set the outputs to low
-    self.gpio.clr_bit(self.i2c_port, self.i2c_scl)
-    self.gpio.clr_bit(self.i2c_port, self.i2c_sda)
-    # mark as done
-    self.hw_init = True
-
-  def sda_lo(self):
-    """drive sda low"""
-    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'o')
-
-  def sda_rel(self):
-    """release sda"""
-    self.gpio.set_mode(self.i2c_port, self.i2c_sda, 'i')
-
-  def sda_rd(self):
-    """sda read"""
-    return self.gpio.rd_input(self.i2c_port, self.i2c_sda)
-
-  def scl_lo(self):
-    """drive scl low"""
-    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'o')
-
-  def scl_rel(self):
-    """release scl"""
-    self.gpio.set_mode(self.i2c_port, self.i2c_scl, 'i')
-
-  def scl_rd(self):
-    """scl read"""
-    return self.gpio.rd_input(self.i2c_port, self.i2c_scl)
 
 # -----------------------------------------------------------------------------

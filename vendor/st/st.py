@@ -90,7 +90,7 @@ _gpio_pupdr_enumset = (
 # Alternate Function Decodes
 # ST doesn't put these in the SVD file :-(
 
-# (port, pin, af, name)
+# port, pin, af, name
 _STM32F407xx_altfunc = (
   # this is a partial list
   ('A', 0, 1, 'TIM2_CH1_ETR'),
@@ -187,6 +187,21 @@ _STM32F407xx_altfunc = (
   ('C', 12, 15, 'EVENTOUT'),
 )
 
+# port, pin, af, name
+_STM32F303xC_altfunc = (
+  # this is a partial list
+
+  #('A', 11, 0, ''),
+  #('A', 12, 0, ''),
+  #('A', 13, 0, ''),
+  #('A', 14, 0, ''),
+  #('A', 15, 0, ''),
+
+  #('B', 3, 0, ''),
+  #('B', 4, 0, ''),
+
+)
+
 def gpio_altfunc_enums(port, pin, altfunc):
   """return an enumeration set for the given port and pin"""
   enums = []
@@ -194,6 +209,25 @@ def gpio_altfunc_enums(port, pin, altfunc):
     if port == portx and pin == pinx:
       enums.append((name, af, None))
   return enums
+
+def gpio_decodes(d, ports, altfunc):
+  """setup additional gpio field decodes not in the svd file"""
+  for p in ports:
+    gpio = d.peripherals['GPIO%s' % p]
+    for i in range(16):
+      f = gpio.MODER.fields['MODER%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_moder_enumset)
+      f = gpio.OTYPER.fields['OT%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_otyper_enumset)
+      f = gpio.OSPEEDR.fields['OSPEEDR%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_ospeedr_enumset)
+      f = gpio.PUPDR.fields['PUPDR%d' % i]
+      f.enumvals = soc.make_enumvals(f, _gpio_pupdr_enumset)
+      if i < 8:
+        f = gpio.AFRL.fields['AFRL%d' % i]
+      else:
+        f = gpio.AFRH.fields['AFRH%d' % i]
+      f.enumvals = soc.make_enumvals(f, gpio_altfunc_enums(p, i, altfunc))
 
 #-----------------------------------------------------------------------------
 
@@ -209,22 +243,7 @@ def STM32F407xx_fixup(d):
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  for port in ('A','B','C','D','E','F','G','H','I'):
-    gpio = d.peripherals['GPIO%s' % port]
-    for i in range(16):
-      f = gpio.MODER.fields['MODER%d' % i]
-      f.enumvals = soc.make_enumvals(f, _gpio_moder_enumset)
-      f = gpio.OTYPER.fields['OT%d' % i]
-      f.enumvals = soc.make_enumvals(f, _gpio_otyper_enumset)
-      f = gpio.OSPEEDR.fields['OSPEEDR%d' % i]
-      f.enumvals = soc.make_enumvals(f, _gpio_ospeedr_enumset)
-      f = gpio.PUPDR.fields['PUPDR%d' % i]
-      f.enumvals = soc.make_enumvals(f, _gpio_pupdr_enumset)
-      if i < 8:
-        f = gpio.AFRL.fields['AFRL%d' % i]
-      else:
-        f = gpio.AFRH.fields['AFRH%d' % i]
-      f.enumvals = soc.make_enumvals(f, gpio_altfunc_enums(port, i, _STM32F407xx_altfunc))
+  gpio_decodes(d, ('A','B','C','D','E','F','G','H','I'), _STM32F407xx_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
@@ -258,6 +277,8 @@ def STM32F303xC_fixup(d):
   f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
   f = d.DBGMCU.IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # more decode for the GPIO registers
+  gpio_decodes(d, ('A','B','C','D','E','F'), _STM32F303xC_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 40 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))

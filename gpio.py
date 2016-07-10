@@ -35,21 +35,23 @@ class gpio(object):
     """clear gpio (0)"""
     if util.wrong_argc(ui, args, (1,)):
       return None
-    x = self.driver.name_arg(args[0])
+    x = self.driver.pin_arg(args[0])
     if x is None:
       ui.put(_invalid_gpio_name)
       return
-    self.driver.clr_bit(x[0], x[1])
+    (port, bit) = x
+    self.driver.clr_bit(port, bit)
 
   def cmd_set(self, ui, args):
     """set gpio (1)"""
     if util.wrong_argc(ui, args, (1,)):
       return None
-    x = self.driver.name_arg(args[0])
+    x = self.driver.pin_arg(args[0])
     if x is None:
       ui.put(_invalid_gpio_name)
       return
-    self.driver.set_bit(x[0], x[1])
+    (port, bit) = x
+    self.driver.set_bit(port, bit)
 
   def cmd_status(self, ui, args):
     """display gpio status"""

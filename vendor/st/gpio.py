@@ -16,7 +16,7 @@ import util
 
 # map device.soc_name to the set of GPIOs
 gpio_set = {
-  #'STM32F303xC': STM32F303xC_gpio,
+  'STM32F303xC': ('A','B','C','D','E','F'),
   'STM32F407xx': ('A','B','C','D','E','F','G','H','I'),
 }
 
@@ -29,6 +29,7 @@ class drv(object):
     self.device = device
     self.cfg = cfg
     self.ports = ['GPIO%s' % x for x in gpio_set[self.device.soc_name]]
+    self.hw_init = False
     # work out the pin to name mapping from the configuration
     self.pin2name = {}
     for (pin, mode, pupd, otype, ospeed, name) in self.cfg:
@@ -75,11 +76,50 @@ class drv(object):
 
   def cmd_init(self, ui, args):
     """initialise gpio hardware"""
+    if self.hw_init:
+      return
+    # enable each gpio port in the configuration set
+    ports = {}
     for (pin, mode, pupd, otype, ospeed, name) in self.cfg:
       x = self.pin_arg(pin)
       assert x is not None, 'bad gpio pin name'
       (port, bit) = x
-      ui.put('%s %d\n' % (port, bit))
+      ports[port] = True
+    [self.enable(p) for p in ports]
+    # setup each pin in the configuration set
+    for (pin, mode, pupd, otype, ospeed, name) in self.cfg:
+      (port, bit) = self.pin_arg(pin)
+      # set the pin mode
+      if mode == 'i':
+        # input
+        self.set_mode(port, bit, 'i')
+      elif mode == '0':
+        # output set to 0
+        self.set_mode(port, bit, 'o')
+        self.clr_bit(port, bit)
+      elif mode == '1':
+        # output set to 1
+        self.set_mode(port, bit, 'o')
+        self.set_bit(port, bit)
+      elif mode == 'an':
+        # analog
+        self.set_mode(port, bit, 'a')
+      elif mode.startswith('af'):
+        # alternate function AFx
+        self.set_mode(port, bit, 'f')
+        af = int(mode[2:])
+        assert af < 16, 'bad alternate function number'
+        self.set_altfunc(port, bit, af)
+      else:
+        assert False, 'bad gpio pin mode'
+      # set the pull-up/pull-down
+      self.set_pupd(port, bit, pupd)
+      # set the output type
+      self.set_otype(port, bit, otype)
+      # set the output speed
+      self.set_ospeed(port, bit, ospeed)
+    self.hw_init = True
+    ui.put('gpio init: ok\n')
 
   def pin_arg(self, name):
     """convert a standard pin name into a port/bit tuple or None"""
@@ -136,14 +176,22 @@ class drv(object):
       s.extend(self.__status(p))
     return util.display_cols(s)
 
-  # The following function are ST specific
+  # The following functions are ST specific
   # They can be called from target code - but not from generic drivers.
 
   def enable(self, port):
     """enable the gpio port"""
     assert port in self.ports, 'bad port name'
     port = ord(port[4:]) - ord('A')
-    hw = self.device.RCC.AHB1ENR
+    if self.device.soc_name in ('STM32F407xx',):
+      hw = self.device.RCC.AHB1ENR
+      # bits 0..
+    elif self.device.soc_name in ('STM32F303xC',):
+      hw = self.device.RCC.AHBENR
+      # bits 17..22
+      port += 17
+    else:
+      assert False, 'unknown soc name'
     val = hw.rd()
     val &= ~(1 << port)
     val |= 1 << port
@@ -187,6 +235,20 @@ class drv(object):
     val = hw.rd()
     val &= ~(3 << shift)
     val |= mode << shift
+    hw.wr(val)
+
+  def set_altfunc(self, port, bit, af):
+    """set the alternate function number"""
+    bit &= 15
+    if bit < 8:
+      hw = self.device.peripherals[port].AFRL
+    else:
+      hw = self.device.peripherals[port].AFRH
+      bit -= 8
+    shift = bit << 2
+    val = hw.rd()
+    val &= ~(15 << shift)
+    val |= af << shift
     hw.wr(val)
 
 #-----------------------------------------------------------------------------
