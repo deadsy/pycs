@@ -31,21 +31,35 @@ prompt = 'mb1035b'
 
 # pin, mode, pupd, otype, ospeed, name
 gpio_cfg = (
-
-  ('PA0', 'i', None, None, None, 'SW_PUSH'),
-
-  ('PB6', 'i', 'pu', 'pp', 'f', 'SCL compass/accelerometer'),
-  ('PB7', 'i', 'pu', 'pp', 'f', 'SDA compass/accelerometer'),
-
-  ('PE8', '0', None, 'pp', 'f', 'LD4'),
-  ('PE9', '0', None, 'pp', 'f', 'LD3'),
-  ('PE10', '0', None, 'pp', 'f', 'LD5'),
-  ('PE11', '0', None, 'pp', 'f', 'LD7'),
-  ('PE12', '0', None, 'pp', 'f', 'LD9'),
-  ('PE13', '0', None, 'pp', 'f', 'LD10'),
-  ('PE14', '0', None, 'pp', 'f', 'LD8'),
-  ('PE15', '0', None, 'pp', 'f', 'LD6'),
-
+  ('PA0', 'i', None, None, None, 'pushbutton SW_PUSH'),
+  ('PA5', 'i', None, None, None, 'gyro SPI1_SCK'),
+  ('PA6', 'i', None, None, None, 'gyro SPI1_MOSI'),
+  ('PA7', 'i', None, None, None, 'gyro SPI1_MISO'),
+  ('PA11', 'af14', None, None, None, 'USB_DM'),
+  ('PA12', 'af14', None, None, None, 'USB_DP'),
+  ('PA13', 'af0', None, None, None, 'TMS/SWDIO'),
+  ('PA14', 'af0', None, None, None, 'TCK/SCLK'),
+  ('PA15', 'af0', None, None, None, 'TDI'),
+  ('PB6', 'i', 'pu', 'pp', 'f', 'compass/accelerometer SCL'),
+  ('PB7', 'i', 'pu', 'pp', 'f', 'compass/accelerometer SDA'),
+  ('PC14', 'i', None, None, None, 'PC14-OSC32_IN'),
+  ('PC15', 'i', None, None, None, 'PC14-OSC32_OUT'),
+  ('PE0', 'i', None, None, None, 'gyro MEMS_INT1'),
+  ('PE1', 'i', None, None, None, 'gyro MEM_INT2'),
+  ('PE2', 'i', None, None, None, 'compass/accelerometer DRDY'),
+  ('PE3', 'i', None, None, None, 'gyro CS_I2C/SPI'),
+  ('PE4', 'i', None, None, None, 'compass/accelerometer INT1'),
+  ('PE5', 'i', None, None, None, 'compass/accelerometer INT2'),
+  ('PE8', '0', None, 'pp', 'f', 'LD4 blue'),
+  ('PE9', '0', None, 'pp', 'f', 'LD3 red'),
+  ('PE10', '0', None, 'pp', 'f', 'LD5 orange'),
+  ('PE11', '0', None, 'pp', 'f', 'LD7 green'),
+  ('PE12', '0', None, 'pp', 'f', 'LD9 blue'),
+  ('PE13', '0', None, 'pp', 'f', 'LD10 red'),
+  ('PE14', '0', None, 'pp', 'f', 'LD8 orange'),
+  ('PE15', '0', None, 'pp', 'f', 'LD6 green'),
+  ('PF0', 'i', None, None, None, 'PF0-OSC_IN'),
+  ('PF1', 'i', None, None, None, 'PF1-OSC_OUT'),
 )
 
 # -----------------------------------------------------------------------------
