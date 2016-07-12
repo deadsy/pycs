@@ -30,102 +30,102 @@ prompt = 'tepo'
 # gpio configuration: see -http://hackingthepo.weebly.com/
 
 gpio_cfg = (
-  # PA0 lcd seg 13
-  # PA1 led col 3
-  # PA2 lcd seg 15
-  # PA3 led col 2
-  # PA4 lcd seg 17
-  # PA5 led row 1
-  # PA6 led col 1
-  # PA7 lcd seg 35
-  # PA8 lcd seg 36
-  # PA9 lcd seg 37
-  # PA10 lcd seg 38
-  # PA11 lcd seg 39
-  # PA12
-  # PA13
-  # PA14
-  # PA15 lcd seg 12
-  # PB0 lcd seg 32
-  # PB1 led col 0
-  # PB2 lcd seg 34
-  # PB3 led row 2
-  # PB4 lcd seg 21
-  # PB5 lcd seg 22
-  # PB6 lcd seg 23
+  # PA0 lcd (lcd_seg13)
+  # PA1 led_col3 (gpio)
+  # PA2 lcd (lcd_seg15)
+  # PA3 led_col2 (gpio)
+  # PA4 lcd (lcd_seg17)
+  # PA5 led_row1 (gpio)
+  # PA6 led_col1 (gpio)
+  # PA7 lcd (lcd_seg35)
+  # PA8 lcd (lcd_seg36)
+  # PA9 lcd (lcd_seg37)
+  # PA10 lcd (lcd_seg38)
+  # PA11 lcd (lcd_seg39)
+  # PA12 lcd (LCD_BCAP_P) unconnected?
+  # PA13 lcd (LCD_BCAP_N) unconnected?
+  # PA14 lcd (LCD_BEXT) unconnected?
+  # PA15 lcd (lcd_seg12)
+  # PB0 lcd (lcd_seg32)
+  # PB1 led_col0 (gpio)
+  # PB2 lcd (lcd_seg34)
+  # PB3 led_row2 (gpio)
+  # PB4 lcd (lcd_seg21)
+  # PB5 lcd (lcd_seg22)
+  # PB6 lcd (lcd_seg23)
   # PB7
   # PB8
-  # PB9 key 15
-  # PB10 key 11
-  # PB11 key 6
-  # PB12 key 14
+  # PB9 key_15 (gpio)
+  # PB10 key_11 (gpio)
+  # PB11 key_6 (gpio)
+  # PB12 key_14 (gpio)
   # PB13
   # PB14
-  # PB15 led row 3
-  # PC0 led row 0
-  # PC1 key sound
-  # PC2 key 1
-  # PC3 key 5
-  # PC4 key 9
-  # PC5 key 13
-  # PC6 key 16
-  # PC7 key 4
-  # PC8 key 12
-  # PC9 key play
-  # PC10 key 8
-  # PC11 key style
-  # PC12 key oo
+  # PB15 led_row3 (gpio)
+  # PC0 led_row0 (gpio)
+  # PC1 key_sound (gpio)
+  # PC2 key_1 (gpio)
+  # PC3 key_5 (gpio)
+  # PC4 key_9 (gpio)
+  # PC5 key_13 (gpio)
+  # PC6 key_16 (gpio)
+  # PC7 key_4 (gpio)
+  # PC8 key_12 (gpio)
+  # PC9 key_play (gpio)
+  # PC10 key_8 (gpio)
+  # PC11 key_style (gpio)
+  # PC12 key_oo (gpio)
   # PC13 codec reset
-  # PC14 input common
+  # PC14 input common (gpio)
   # PC15
-  # PD0 codec sdin (us1_tx_1)
-  # PD1 codec sdout (us1_rx_1)
-  # PD2 codec sclk (us1_clk_1)
-  # PD3 codec lrck (us1_cs_1)
+  # PD0 codec sdin (us1_tx, 1)
+  # PD1 codec sdout (us1_rx, 1)
+  # PD2 codec sclk (us1_clk, 1)
+  # PD3 codec lrck (us1_cs, 1)
   # PD4 right pot (adc0_ch4)
   # PD5 left pot (adc0_ch5)
-  # PD6 codec sda (i2c0_sda_1)
-  # PD7 codec scl (i2c0_scl_1)
-  # PD8 key 7
-  # PD9 lcd seg 28
-  # PD10 lcd seg 29
-  # PD11 lcd seg 30
-  # PD12 lcd seg 31
-  # PD13 key 10
-  # PD14 key pattern
-  # PD15 key 2
-  # PE0 key 3
-  # PE1 key bpm
-  # PE2 codec mclk (tim3_cc2_1)
-  # PE3 key write
-  # PE4 lcd com 0
-  # PE5 lcd com 1
-  # PE6 lcd com 2
-  # PE7 lcd com 3
-  # PE8 lcd seg 4
-  # PE9 lcd seg 5
-  # PE10 lcd seg 6
-  # PE11 lcd seg 7
-  # PE12 lcd seg 8
-  # PE13 lcd seg 9
-  # PE14 lcd seg 10
-  # PE15 lcd seg 11
-  # PF0
-  # PF1
-  # PF2 lcd seg 0
-  # PF3 lcd seg 1
-  # PF4 lcd seg 2
-  # PF5 lcd seg 3
-  # PF6 lcd seg 24
-  # PF7 lcd seg 25
-  # PF8 lcd seg 26
-  # PF9 lcd seg 27
-  # PF10
-  # PF11
-  # PF12
-  # PF13
-  # PF14
-  # PF15
+  # PD6 codec sda (i2c0_sda, 1)
+  # PD7 codec scl (i2c0_scl, 1)
+  # PD8 key_7 (gpio)
+  # PD9 lcd (lcd_seg28)
+  # PD10 lcd (lcd_seg29)
+  # PD11 lcd (lcd_seg30)
+  # PD12 lcd (lcd_seg31)
+  # PD13 key_10 (gpio)
+  # PD14 key_pattern (gpio)
+  # PD15 key_2 (gpio)
+  # PE0 key_3 (gpio)
+  # PE1 key_bpm (gpio)
+  # PE2 codec mclk (tim3_cc2, 1)
+  # PE3 key_write (gpio)
+  # PE4 lcd (lcd_com0)
+  # PE5 lcd (lcd_com1)
+  # PE6 lcd (lcd_com2)
+  # PE7 lcd (lcd_com3)
+  # PE8 lcd (lcd_seg4)
+  # PE9 lcd (lcd_seg5)
+  # PE10 lcd (lcd_seg6)
+  # PE11 lcd (lcd_seg7)
+  # PE12 lcd (lcd_seg8)
+  # PE13 lcd (lcd_seg9)
+  # PE14 lcd (lcd_seg10)
+  # PE15 lcd (lcd_seg11)
+  # PF0 (DBG_SWCLK)
+  # PF1 (DBG_SWDIO)
+  # PF2 lcd (lcd_seg0)
+  # PF3 lcd (lcd_seg1)
+  # PF4 lcd (lcd_seg2)
+  # PF5 lcd (lcd_seg3)
+  # PF6 lcd (lcd_seg24)
+  # PF7 lcd (lcd_seg25)
+  # PF8 lcd (lcd_seg26)
+  # PF9 lcd (lcd_seg27)
+  # PF10 not available
+  # PF11 not available
+  # PF12 not available
+  # PF13 not available
+  # PF14 not available
+  # PF15 not available
 )
 
 # -----------------------------------------------------------------------------

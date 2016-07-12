@@ -25,8 +25,8 @@ soc_db = {}
 
 def EFM32LG890F128_fixup(d):
   d.soc_name = 'EFM32LG890F128'
-  #d.cpu_info.nvicPrioBits = 4
-  #d.cpu_info.deviceNumInterrupts = 80
+  d.cpu_info.nvicPrioBits = 3
+  d.cpu_info.deviceNumInterrupts = 40
 
 s = soc_info()
 s.name = 'EFM32LG890F128'
