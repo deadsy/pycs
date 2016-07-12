@@ -13,9 +13,13 @@ import cortexm
 import mem
 import soc
 import flash
+import gpio
+import i2c
 
 import vendor.nordic.nordic as vendor
 import vendor.nordic.flash as flash_driver
+import vendor.nordic.gpio as gpio_driver
+import vendor.nordic.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
 
@@ -37,40 +41,40 @@ I'm setting them per the default pin selects in the SDK (used for logging).
 
 """
 
-gpio_cfg = {
-
-#  'P0.01': ('',),
-#  'P0.02': ('',),
-#  'P0.03': ('',),
-#  'P0.04': ('',),
-  'P0.05': ('UART_RTS',),
-  'P0.06': ('UART_TX',),
-  'P0.07': ('UART_CTS',),
-  'P0.08': ('UART_RX',),
-#  'P0.09': ('',),
-#  'P0.10': ('',),
-#  'P0.11': ('',),
-#  'P0.12': ('',),
-  'P0.13': ('BUTTON_1 (no shield)',),
-  'P0.14': ('BUTTON_2 (no shield)',),
-  'P0.15': ('BUTTON_3 (no shield)',),
-  'P0.16': ('BUTTON_4 (no shield)',),
-  'P0.17': ('LED_1 (no shield) INT_EXT (shield)',),
-  'P0.18': ('LED_2 (no shield)',),
-  'P0.19': ('LED_3 (no shield)',),
-  'P0.20': ('LED_4 (no shield)',),
-#  'P0.21': ('',),
-#  'P0.22': ('',),
-#  'P0.23': ('',),
-#  'P0.24': ('',),
-#  'P0.25': ('',),
-  'P0.26': ('SDA_EXT (shield)',),
-  'P0.27': ('SCL_EXT (shield)',),
-#  'P0.28': ('',),
-#  'P0.29': ('',),
-#  'P0.30': ('',),
-#  'P0.31': ('',),
-}
+# pin, sense, drive, pupd, in_enable, dirn, name
+gpio_cfg = (
+  #('P0.1', None, None, None, None, None, '',),
+  #('P0.2', None, None, None, None, None, '',),
+  #('P0.3', None, None, None, None, None, '',),
+  #('P0.4', '',),
+  ('P0.5', None, None, None, None, None, 'UART_RTS',),
+  ('P0.6', None, None, None, None, None, 'UART_TX',),
+  ('P0.7', None, None, None, None, None, 'UART_CTS',),
+  ('P0.8', None, None, None, None, None, 'UART_RX',),
+  #('P0.9', None, None, None, None, None, '',),
+  #('P0.10', None, None, None, None, None, '',),
+  #('P0.11', None, None, None, None, None, '',),
+  #('P0.12', None, None, None, None, None, '',),
+  ('P0.13', None, None, None, True, 'i', 'BUTTON_1 (no shield)',),
+  ('P0.14', None, None, None, True, 'i', 'BUTTON_2 (no shield)',),
+  ('P0.15', None, None, None, True, 'i', 'BUTTON_3 (no shield)',),
+  ('P0.16', None, None, None, True, 'i', 'BUTTON_4 (no shield)',),
+  ('P0.17', None, None, None, None, None, 'LED_1 (no shield) INT_EXT (shield)',),
+  ('P0.18', None, None, None, None, None, 'LED_2 (no shield)',),
+  ('P0.19', None, None, None, None, None, 'LED_3 (no shield)',),
+  ('P0.20', None, None, None, None, None, 'LED_4 (no shield)',),
+  #('P0.21', None, None, None, None, None, '',),
+  #('P0.22', None, None, None, None, None, '',),
+  #('P0.23', None, None, None, None, None, '',),
+  #('P0.24', None, None, None, None, None, '',),
+  #('P0.25', None, None, None, None, None, '',),
+  ('P0.26', None, None, None, None, None, 'SDA_EXT (shield)',),
+  ('P0.27', None, None, None, None, None, 'SCL_EXT (shield)',),
+  #('P0.28', None, None, None, None, None, '',),
+  #('P0.29', None, None, None, None, None, '',),
+  #('P0.30', None, None, None, None, None, '',),
+  #('P0.31', None, None, None, None, None, '',),
+)
 
 # -----------------------------------------------------------------------------
 
@@ -85,6 +89,9 @@ class target(object):
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
     self.flash = flash.flash(flash_driver.flash(self.device), self.device, self.mem)
+    gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
+    self.gpio = gpio.gpio(gpio_drv)
+    self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'P0.27', 'P0.26'))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -92,8 +99,10 @@ class target(object):
       ('exit', self.cmd_exit),
       ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
+      ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
+      ('i2c', self.i2c.menu, 'i2c functions'),
       ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
