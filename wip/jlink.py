@@ -1,10 +1,17 @@
 #------------------------------------------------------------------------------
 """
+
 Segger J-Link Driver
 
+Sources:
+Segger: RM08001_JLinkUSBProtocol.pdf
+openocd: src/jtag/drivers/jlink.c
+
 Notes:
-Tested with J-Link Base/EDU
-J-Link EDU == J-Link Base (so far as I can tell)
+
+1) Tested with J-Link Base/EDU
+   J-Link EDU == J-Link Base (so far as I can tell)
+
 """
 #------------------------------------------------------------------------------
 
@@ -19,9 +26,6 @@ from usbtools.usbtools import UsbTools
 
 #------------------------------------------------------------------------------
 
-_TRST_TIME = 0.01
-_SRST_TIME = 0.01
-
 _MHz = 1000000.0
 _KHz = 1000.0
 _FREQ = 12.0 * _MHz
@@ -30,8 +34,12 @@ _FREQ = 12.0 * _MHz
 # usb vendor:product IDs
 
 _jlink_vps = (
-#    (0x1366, 0x0101), # J-Link Base
-    (0x1366, 0x1015), # As seen on Nordic nRF52DK 
+    (0x1366, 0x0101), # J-Link Base
+    (0x1366, 0x0102), # ?
+    (0x1366, 0x0103), # ?
+    (0x1366, 0x0104), # ?
+    (0x1366, 0x0105), # ?
+    (0x1366, 0x1015), # As seen on Nordic nRF52DK
 )
 
 #------------------------------------------------------------------------------
@@ -511,7 +519,97 @@ class JLink(object):
 
 #------------------------------------------------------------------------------
 
-class jtag:
+class swd(object):
+
+  # enumerations for pre-canned swd sequences
+  LINE_RESET = 0
+  JTAG_TO_SWD = 1
+  SWD_TO_JTAG = 2
+  SWD_TO_DORMANT = 3
+  DORMANT_TO_SWD = 4
+
+  sequences = {
+    # Line reset: at least 50 SWCLK cycles with SWDIO driven high,
+    # followed by at least one idle (low) cycle.
+    LINE_RESET: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03), 51)
+
+    # JTAG-to-SWD sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
+    # high, putting either interface logic into reset state, followed by a
+    # specific 16-bit sequence and finally a line reset in case the SWJ-DP was
+    # already in SWD mode.
+    JTAG_TO_SWD: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7b, 0x9e,
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f), 118)
+
+    # SWD-to-JTAG sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
+    # high, putting either interface logic into reset state, followed by a
+    # specific 16-bit sequence and finally at least 5 TCK cycles to put the
+    # JTAG TAP in TLR.
+    SWD_TO_JTAG: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x9c,
+      0xff), 71)
+
+    # SWD-to-dormant sequence: at least 50 SWCLK cycles with SWDIO high to
+    # put the interface in reset state, followed by a specific 16-bit sequence.
+    SWD_TO_DORMANT: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x8e,
+      0x03), 66)
+
+    # Dormant-to-SWD sequence: at least 8 TCK/SWCLK cycles with TMS/SWDIO high
+    # to abort any ongoing selection alert sequence, followed by a specific 128-bit
+    # selection alert sequence, followed by 4 TCK/SWCLK cycles with TMS/SWDIO low,
+    # followed by a specific protocol-dependent activation code. For SWD the activation
+    # code is an 8-bit sequence. The sequence ends with a line reset.
+    DORMANT_TO_SWD: ((0xff, 0x92, 0xf3, 0x09, 0x62, 0x95, 0x2d, 0x85,
+      0x86, 0xe9, 0xaf, 0xdd, 0xe3, 0xa2, 0x0e, 0xbc,
+      0x19, 0x10, 0xfa, 0xff, 0xff, 0xff, 0xff, 0xff,
+      0x3f), 199)
+  }
+
+  def __init__(self, sn = None):
+    devices = UsbTools.find_all(_jlink_vps)
+    if sn is not None:
+        # filter based on device serial number
+        devices = [dev for dev in devices if dev[2] == sn]
+    if len(devices) == 0:
+        raise IOError("No such device")
+    self.vid = devices[0][0]
+    self.pid = devices[0][1]
+    self.sn = devices[0][2]
+    self.jlink = JLink()
+    self.jlink.open(self.vid, self.pid, serial = self.sn)
+    state = self.jlink.get_state()
+    # check VREF and SRST
+    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
+    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
+    self.jlink.select_interface(JLink.TIF_SWD)
+    # set the swd clock frequency
+    self.jlink.set_frequency(_FREQ)
+
+  def switch(self, x):
+    # jlink_queue_data_out(s, s_len);
+    pass
+
+  def run(self):
+    """run the queued swd transactions"""
+    pass
+
+  def wr(self, reg, val):
+    """write a register"""
+    pass
+
+  def rd(self, reg):
+    """read a register"""
+    pass
+
+  def __str__(self):
+    s = []
+    s.append('Segger J-Link usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
+    return ', '.join(s)
+
+#------------------------------------------------------------------------------
+
+class jtag(object):
+
+  TRST_TIME = 0.01
+  SRST_TIME = 0.01
 
   def __init__(self, sn = None):
     devices = UsbTools.find_all(_jlink_vps)
@@ -581,14 +679,14 @@ class jtag:
   def trst(self):
     """pulse the test reset line"""
     self.jlink.trst(0)
-    time.sleep(_TRST_TIME)
+    time.sleep(jtag.TRST_TIME)
     self.jlink.trst(1)
     self.state_reset()
 
   def srst(self):
     """pulse the system reset line"""
     self.jlink.srst(0)
-    time.sleep(_SRST_TIME)
+    time.sleep(jtag.SRST_TIME)
     self.jlink.srst(1)
 
   def __str__(self):
