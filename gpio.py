@@ -31,6 +31,15 @@ class gpio(object):
       ('status', self.cmd_status),
     )
 
+  def wr_bit(self, port, bit, x):
+    """set a gpio bit to a value"""
+    if x == 1:
+      self.driver.set_bit(port, bit)
+    elif x == 0:
+      self.driver.clr_bit(port, bit)
+    else:
+      assert False
+
   def cmd_clr(self, ui, args):
     """clear gpio (0)"""
     if util.wrong_argc(ui, args, (1,)):

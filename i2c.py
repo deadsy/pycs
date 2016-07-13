@@ -9,7 +9,6 @@ import util
 #-----------------------------------------------------------------------------
 # I2C Exceptions
 
-
 class Error(Exception):
   pass
 
@@ -21,17 +20,16 @@ _I2C_ERR_SLV = 'no slave data'
 #-----------------------------------------------------------------------------
 
 _help_read = (
-    ('<adr> [n]', 'device address (hex)'),
-    ('', 'n bytes to read (hex) - default is 1'),
+  ('<adr> [n]', 'device address (hex)'),
+  ('', 'n bytes to read (hex) - default is 1'),
 )
 
 _help_write = (
-    ('<adr> <bytes>', 'device address (hex)'),
-    ('', 'bytes to write (hex)'),
+  ('<adr> <bytes>', 'device address (hex)'),
+  ('', 'bytes to write (hex)'),
 )
 
 #-----------------------------------------------------------------------------
-
 
 class i2c:
   """Generic I2C Bit-Bang Driver"""

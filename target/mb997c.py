@@ -21,6 +21,8 @@ import vendor.st.flash as flash_driver
 import vendor.st.gpio as gpio_driver
 import vendor.st.i2c as i2c_driver
 
+import drivers.cs4x as dac
+
 # -----------------------------------------------------------------------------
 
 soc_name = 'STM32F407xx'
@@ -89,10 +91,12 @@ class target(object):
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
     self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB9'))
+    self.dac = dac.cs43l22(self.i2c, 0x94, self.dac_reset)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
+      ('dac', self.dac.menu, 'dac functions'),
       ('exit', self.cmd_exit),
       ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
@@ -127,5 +131,9 @@ class target(object):
     """exit application"""
     self.jlink.jlink_close()
     ui.exit()
+
+  def dac_reset(self, x):
+    """control the dac reset line"""
+    self.gpio.wr_bit('GPIOD', 4, x)
 
 # -----------------------------------------------------------------------------
