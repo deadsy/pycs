@@ -1,11 +1,18 @@
 #-----------------------------------------------------------------------------
 """
-Bit Buffer Operations
+
+Bit Buffers
 
 Notes:
-Represents bit buffers with Python's arbitrary length integers.
-The least signifcant bit of the internal value is transmitted first.
-That is: the transmit order is right to left (as printed)
+
+1) Represents bit buffers with Python's arbitrary length integers.
+
+2) The least signifcant bit of the internal value is transmitted first.
+   That is: the transmit order is right to left (as printed)
+
+3) The byte interface presents the bytes in transit order. ie: the least
+   significant bit of byte[0] is transmitted first.
+
 """
 #-----------------------------------------------------------------------------
 
@@ -13,7 +20,71 @@ import array
 
 #-----------------------------------------------------------------------------
 
-class bits:
+class bits(object):
+
+  def __init__(self, n = 0, data = None):
+    """initialise the n-bit buffer from byte values"""
+    self.val = 0
+    self.n = n
+    if data is not None:
+      for i in xrange(len(data) - 1, -1, -1):
+        self.val <<= 8
+        self.val |= data[i]
+      self.val &= ((1 << self.n) - 1)
+
+  def prepend(self, x):
+    """pre-append bit buffer x"""
+    self.val = (self.val << x.n) | x.val
+    self.n += x.n
+
+  def postpend(self, x):
+    """post-append bit buffer x"""
+    self.val |= (x.val << self.n)
+    self.n += x.n
+
+  def get_bytes(self):
+    """return a byte array of the bits"""
+    a = array.array('B')
+    n = self.n
+    val = self.val
+    while n > 0:
+      if n > 8:
+        a.append(val & 255)
+        val >>= 8
+        n -= 8
+      else:
+        val &= (1 << n) - 1
+        a.append(val)
+        break
+    return a
+
+  def bit_str(self):
+    """return a 0/1 string"""
+    s = []
+    for i in xrange(self.n - 1, -1, -1):
+      s.append(('0', '1')[(self.val >> i) & 1])
+    return ''.join(s)
+
+  def __str__(self):
+    """return a tuple representation of the bit buffer"""
+    s = []
+    n = self.n
+    val = self.val
+    s.append('(%d,(' % self.n)
+    s.extend(['0x%02x,' % x for x in self.get_bytes()])
+    s.append('))')
+    return ''.join(s)
+
+#-----------------------------------------------------------------------------
+
+if __name__ == '__main__':
+  a = bits(24, (1,2,3))
+  print a
+  print a.get_bytes()
+
+#-----------------------------------------------------------------------------
+
+class bits_old:
 
   def __init__(self, n = 0, val = 0):
     val &= ((1 << n) - 1)
