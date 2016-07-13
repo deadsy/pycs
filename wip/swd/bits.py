@@ -32,15 +32,45 @@ class bits(object):
         self.val |= data[i]
       self.val &= ((1 << self.n) - 1)
 
+  def copy(self):
+    """return a copy of the bit buffer"""
+    x = bits()
+    x.n = self.n
+    x.val = self.val
+    return x
+
+  def ones(self, n):
+    """set n bits to 1"""
+    self.n = n
+    self.val = (1 << n) - 1
+
   def prepend(self, x):
     """pre-append bit buffer x"""
     self.val = (self.val << x.n) | x.val
     self.n += x.n
 
-  def postpend(self, x):
-    """post-append bit buffer x"""
+  def append(self, x):
+    """append bit buffer x"""
     self.val |= (x.val << self.n)
     self.n += x.n
+
+  def rm_head(self, n):
+    """remove the first n bits"""
+    if n < self.n:
+      self.val >>= n
+      self.n -= n
+    else:
+      self.n = 0
+      self.val = 0
+
+  def rm_tail(self, n):
+    """remove the last n bits"""
+    if n < self.n:
+      self.n -= n
+      self.val &= ((1 << self.n) - 1)
+    else:
+      self.n = 0
+      self.val = 0
 
   def get_bytes(self):
     """return a byte array of the bits"""
@@ -58,13 +88,6 @@ class bits(object):
         break
     return a
 
-  def bit_str(self):
-    """return a 0/1 string"""
-    s = []
-    for i in xrange(self.n - 1, -1, -1):
-      s.append(('0', '1')[(self.val >> i) & 1])
-    return ''.join(s)
-
   def __str__(self):
     """return a tuple representation of the bit buffer"""
     s = []
@@ -75,12 +98,11 @@ class bits(object):
     s.append('))')
     return ''.join(s)
 
-#-----------------------------------------------------------------------------
+  def __eq__(self, x):
+    return (self.n == x.n) and (self.val == x.val)
 
-if __name__ == '__main__':
-  a = bits(24, (1,2,3))
-  print a
-  print a.get_bytes()
+  def __ne__(self, x):
+    return not ((self.n == x.n) and (self.val == x.val))
 
 #-----------------------------------------------------------------------------
 

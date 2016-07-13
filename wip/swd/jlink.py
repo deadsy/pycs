@@ -520,43 +520,6 @@ class JLink(object):
 
 class swd(object):
 
-  # enumerations for pre-canned swd sequences
-  LINE_RESET = 0
-  JTAG_TO_SWD = 1
-  SWD_TO_JTAG = 2
-  SWD_TO_DORMANT = 3
-  DORMANT_TO_SWD = 4
-
-  sequences = {
-    # Line reset: at least 50 SWCLK cycles with SWDIO driven high,
-    # followed by at least one idle (low) cycle.
-    LINE_RESET: Bits(51,(0xff,0xff,0xff,0xff,0xff,0xff,0x03)),
-
-    # JTAG-to-SWD sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
-    # high, putting either interface logic into reset state, followed by a
-    # specific 16-bit sequence and finally a line reset in case the SWJ-DP was
-    # already in SWD mode.
-    JTAG_TO_SWD: Bits(118,(0xff,0xff,0xff,0xff,0xff,0xff,0x7b,0x9e,0xff,0xff,0xff,0xff,0xff,0xff,0x0f)),
-
-    # SWD-to-JTAG sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
-    # high, putting either interface logic into reset state, followed by a
-    # specific 16-bit sequence and finally at least 5 TCK cycles to put the
-    # JTAG TAP in TLR.
-    SWD_TO_JTAG: Bits(71,(0xff,0xff,0xff,0xff,0xff,0xff,0xf3,0x9c,0xff)),
-
-    # SWD-to-dormant sequence: at least 50 SWCLK cycles with SWDIO high to
-    # put the interface in reset state, followed by a specific 16-bit sequence.
-    SWD_TO_DORMANT: Bits(66,(0xff,0xff,0xff,0xff,0xff,0xff,0xf3,0x8e,0x03)),
-
-    # Dormant-to-SWD sequence: at least 8 TCK/SWCLK cycles with TMS/SWDIO high
-    # to abort any ongoing selection alert sequence, followed by a specific 128-bit
-    # selection alert sequence, followed by 4 TCK/SWCLK cycles with TMS/SWDIO low,
-    # followed by a specific protocol-dependent activation code. For SWD the activation
-    # code is an 8-bit sequence. The sequence ends with a line reset.
-    DORMANT_TO_SWD: Bits(199,(0xff,0x92,0xf3,0x09,0x62,0x95,0x2d,0x85,0x86,0xe9,0xaf,0xdd,0xe3,0xa2,0x0e,0xbc,
-      0x19,0x10,0xfa,0xff,0xff,0xff,0xff,0xff,0x3f)),
-  }
-
   def __init__(self, sn = None):
     devices = UsbTools.find_all(_jlink_vps)
     if sn is not None:
