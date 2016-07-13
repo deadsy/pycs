@@ -4,8 +4,8 @@ import jlink
 
 def main():
 
-  jtag_driver = jlink.jtag(sn = None)
-  print jtag_driver
+  swd_driver = jlink.swd(sn = None)
+  print swd_driver
 
 
 main()

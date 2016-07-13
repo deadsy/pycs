@@ -19,7 +19,6 @@ import struct
 import time
 import usb.core
 import usb.util
-import tap
 import bits
 from array import array as Array
 from usbtools.usbtools import UsbTools
@@ -531,26 +530,26 @@ class swd(object):
   sequences = {
     # Line reset: at least 50 SWCLK cycles with SWDIO driven high,
     # followed by at least one idle (low) cycle.
-    LINE_RESET: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03), 51)
+    LINE_RESET: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03), 51),
 
     # JTAG-to-SWD sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
     # high, putting either interface logic into reset state, followed by a
     # specific 16-bit sequence and finally a line reset in case the SWJ-DP was
     # already in SWD mode.
     JTAG_TO_SWD: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7b, 0x9e,
-      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f), 118)
+      0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0f), 118),
 
     # SWD-to-JTAG sequence: at least 50 TCK/SWCLK cycles with TMS/SWDIO
     # high, putting either interface logic into reset state, followed by a
     # specific 16-bit sequence and finally at least 5 TCK cycles to put the
     # JTAG TAP in TLR.
     SWD_TO_JTAG: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x9c,
-      0xff), 71)
+      0xff), 71),
 
     # SWD-to-dormant sequence: at least 50 SWCLK cycles with SWDIO high to
     # put the interface in reset state, followed by a specific 16-bit sequence.
     SWD_TO_DORMANT: ((0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf3, 0x8e,
-      0x03), 66)
+      0x03), 66),
 
     # Dormant-to-SWD sequence: at least 8 TCK/SWCLK cycles with TMS/SWDIO high
     # to abort any ongoing selection alert sequence, followed by a specific 128-bit
@@ -560,7 +559,7 @@ class swd(object):
     DORMANT_TO_SWD: ((0xff, 0x92, 0xf3, 0x09, 0x62, 0x95, 0x2d, 0x85,
       0x86, 0xe9, 0xaf, 0xdd, 0xe3, 0xa2, 0x0e, 0xbc,
       0x19, 0x10, 0xfa, 0xff, 0xff, 0xff, 0xff, 0xff,
-      0x3f), 199)
+      0x3f), 199),
   }
 
   def __init__(self, sn = None):
@@ -598,96 +597,6 @@ class swd(object):
   def rd(self, reg):
     """read a register"""
     pass
-
-  def __str__(self):
-    s = []
-    s.append('Segger J-Link usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
-    return ', '.join(s)
-
-#------------------------------------------------------------------------------
-
-class jtag(object):
-
-  TRST_TIME = 0.01
-  SRST_TIME = 0.01
-
-  def __init__(self, sn = None):
-    devices = UsbTools.find_all(_jlink_vps)
-    if sn is not None:
-        # filter based on device serial number
-        devices = [dev for dev in devices if dev[2] == sn]
-    if len(devices) == 0:
-        raise IOError("No such device")
-    self.vid = devices[0][0]
-    self.pid = devices[0][1]
-    self.sn = devices[0][2]
-    self.jlink = JLink()
-    self.jlink.open(self.vid, self.pid, serial = self.sn)
-    state = self.jlink.get_state()
-    # check VREF and SRST
-    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
-    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
-    self.jlink.select_interface(JLink.TIF_JTAG)
-    # set ~trst and ~srst high
-    self.jlink.trst(1)
-    self.jlink.srst(1)
-    # set the jtag clock frequency
-    self.jlink.set_frequency(_FREQ)
-    # reset the JTAG state machine
-    self.state_reset()
-    self.sir_end_state = 'IDLE'
-    self.sdr_end_state = 'IDLE'
-
-  def __del__(self):
-    if self.jlink:
-      self.jlink.close()
-
-  def state_x(self, dst):
-    """change the TAP state from self.state to dst"""
-    if self.state == dst:
-      return
-    tms = bits.bits()
-    tms.append_tuple_reverse(tap.lookup(self.state, dst))
-    # send the sequence
-    self.jlink.hw_jtag_write(tms, bits.bits(len(tms)))
-    self.state = dst
-
-  def shift_data(self, tdi, tdo):
-    n = len(tdi)
-    tms = bits.bits(n, 1 << (n-1))
-    self.jlink.hw_jtag_write(tms, tdi, tdo)
-
-  def state_reset(self):
-    """from *any* state go to the reset state"""
-    self.state = '*'
-    self.state_x('RESET')
-
-  def scan_ir(self, tdi, tdo = None):
-    """write (and possibly read) a bit stream through the IR in the JTAG chain"""
-    self.state_x('IRSHIFT')
-    self.shift_data(tdi, tdo)
-    self.state = 'IREXIT1'
-    self.state_x(self.sir_end_state)
-
-  def scan_dr(self, tdi, tdo = None):
-    """write (and possibly read) a bit stream through the DR in the JTAG chain"""
-    self.state_x('DRSHIFT')
-    self.shift_data(tdi, tdo)
-    self.state = 'DREXIT1'
-    self.state_x(self.sdr_end_state)
-
-  def trst(self):
-    """pulse the test reset line"""
-    self.jlink.trst(0)
-    time.sleep(jtag.TRST_TIME)
-    self.jlink.trst(1)
-    self.state_reset()
-
-  def srst(self):
-    """pulse the system reset line"""
-    self.jlink.srst(0)
-    time.sleep(jtag.SRST_TIME)
-    self.jlink.srst(1)
 
   def __str__(self):
     s = []
