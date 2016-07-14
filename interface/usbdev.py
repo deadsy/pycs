@@ -9,8 +9,7 @@ A generic class for dealing with reading/writing to USB devices.
 #------------------------------------------------------------------------------
 
 import usb.core
-import array
-
+from array import array as Array
 from usbtools.usbtools import UsbTools
 
 #------------------------------------------------------------------------------
@@ -22,17 +21,17 @@ class usbdev(object):
   """generic USB device driver with read/write interface"""
 
   def __init__(self):
-    self.usb_dev = None                   # usb device handle
-    self.usb_read_timeout = 5000          # read timeout in ms
-    self.usb_write_timeout = 5000         # write timeout in ms
-    self.readbuffer = array.array('B')    # local read buffer
-    self.readoffset = 0                   # current offset into local read buffer
-    self.readbuffer_chunksize = 4 << 10   # 4KiB
-    self.writebuffer_chunksize = 4 << 10  # 4KiB
-    self.interface = None                 # selected interface within usb device
+    self.usb_dev = None
+    self.usb_rd_timeout = 5000
+    self.usb_wr_timeout = 5000
+    self.rdbuf = Array('B')
+    self.rdofs = 0
+    self.rdbuf_chunksize = 4 << 10
+    self.wrbuf_chunksize = 4 << 10
+    self.itf = None
     self.index = None
-    self.in_ep = None                     # device endpoint for writing
-    self.out_ep = None                    # device endpoint for reading
+    self.in_ep = None
+    self.out_ep = None
     self._wrap_api()
 
   # public functions
@@ -45,7 +44,6 @@ class usbdev(object):
     if interface > config.bNumInterfaces:
       raise usbdev_error('invalid interface: %d' % interface)
     self._set_interface(config, interface)
-    self.max_packet_size = self._get_max_packet_size()
 
   def close(self):
     """close the interface"""
@@ -58,7 +56,7 @@ class usbdev(object):
     try:
       while ofs < size:
         # how many bytes should we write?
-        wr_size = self.writebuffer_chunksize
+        wr_size = self.wrbuf_chunksize
         if wr_size > size - ofs:
           # reduce the write size
           wr_size = size - ofs
@@ -72,95 +70,55 @@ class usbdev(object):
     except usb.core.USBError, e:
       raise usbdev_error('usbdev_error: %s' % str(e))
 
-  def read_data(self, size, attempt=1):
+  def read_data(self, size, attempts = 1):
     """read size bytes of data from the device"""
+    data = Array('B')
 
-    # check max_packet_size
-    if not self.max_packet_size:
-      raise usbdev_error("max_packet_size is not set")
-
-    # initial condition to enter the usb_read loop
-    packet_size = self.max_packet_size
-    length = 1
-    data = array.array('B')
-
-    # do we have size bytes in the readbuffer?
-    if size <= len(self.readbuffer) - self.readoffset:
-      data = self.readbuffer[self.readoffset : self.readoffset + size]
-      self.readoffset += size
+    # do we have all of the data in the read buffer?
+    if size <= len(self.rdbuf) - self.rdofs:
+      data = self.rdbuf[self.rdofs : self.rdofs + size]
+      self.rdofs += size
       return data
 
-    # do we have some data in the readbuffer?
-    if len(self.readbuffer) - self.readoffset != 0:
-      data = self.readbuffer[self.readoffset:]
-      # end of readbuffer reached
-      self.readoffset = len(self.readbuffer)
+    # do we have some of the data in the read buffer?
+    if len(self.rdbuf) - self.rdofs > 0:
+      data = self.rdbuf[self.rdofs:]
       # do a usb read to get the rest...
 
-    # read from USB, filling in the local cache as it is empty
+    # read from the usb device
     try:
-      while (len(data) < size) and (length > 0):
-
-
-
-
+      bytes_to_rd = size - len(data)
+      while bytes_to_rd > 0:
+        # read from the usb device
         while True:
-          tempbuf = self._read()
-          attempt -= 1
-          length = len(tempbuf)
-          if length > 0:
-            # skip the status bytes
-            chunks = (length + packet_size - 1) // packet_size
-            count = packet_size
-            self.readbuffer = array.array('B')
-            self.readoffset = 0
-            srcoff = 0
-            for i in xrange(chunks):
-              self.readbuffer += tempbuf[srcoff : srcoff + count]
-              srcoff += packet_size
-            length = len(self.readbuffer)
+          self.rdbuf = self._read()
+          self.rdofs = 0
+          if len(self.rdbuf) > 0:
             break
           else:
-            # no data received, may be late, try again
-            if attempt > 0:
+            # no data received
+            attempts -= 1
+            if attempts > 0:
+              # try again
               continue
-            # no actual data
-            self.readbuffer = array.array('B')
-            self.readoffset = 0
-            # no more data to read?
-            return data
-
-
-
-        if length > 0:
-          # data still fits in buf?
-          if (len(data) + length) <= size:
-            data += self.readbuffer[self.readoffset : self.readoffset + length]
-            self.readoffset += length
-            # did we read exactly the right amount of bytes?
-            if len(data) == size:
+              # return what we have
               return data
-          else:
-            # partial copy, not enough bytes in the local cache to fulfill the request
-            part_size = min(size-len(data), len(self.readbuffer)-self.readoffset)
-            if part_size < 0:
-              raise AssertionError("internal error")
-            data += self.readbuffer[self.readoffset:self.readoffset+part_size]
-            self.readoffset += part_size
-            return data
-
-
+        # copy the read buffer into the returned data
+        n = len(self.rdbuf)
+        if n >= bytes_to_rd:
+          # copy a partial read buffer
+          data += self.rdbuf[:bytes_to_rd]
+          self.rdofs = bytes_to_rd
+          return data
+        else:
+          # copy all of the read buffer
+          data += self.rdbuf
+          bytes_to_rd -= n
+          # read more data...
     except usb.core.USBError, e:
       raise usbdev_error('usbdev_error: %s' % str(e))
     # never reached
     raise usbdev_error("internal error")
-
-
-
-
-
-
-
 
   # private functions
 
@@ -180,7 +138,7 @@ class usbdev(object):
     if ifnum == 0:
       ifnum = 1
     if ifnum-1 not in xrange(config.bNumInterfaces):
-      raise ValueError("No such interface for this device")
+      raise ValueError("invalid interface for this device")
     self.index = ifnum
     self.interface = config[(ifnum-1, 0)]
     endpoints = sorted([ep.bEndpointAddress for ep in self.interface])
@@ -188,27 +146,19 @@ class usbdev(object):
 
   def _write_v1(self, data):
     """Write using the deprecated API"""
-    return self.usb_dev.write(self.in_ep, data, self.interface, self.usb_write_timeout)
+    return self.usb_dev.write(self.in_ep, data, self.interface, self.usb_wr_timeout)
 
   def _read_v1(self):
     """Read using the deprecated API"""
-    return self.usb_dev.read(self.out_ep, self.readbuffer_chunksize, self.interface, self.usb_read_timeout)
+    return self.usb_dev.read(self.out_ep, self.rdbuf_chunksize, self.interface, self.usb_rd_timeout)
 
   def _write_v2(self, data):
     """Write using the API introduced with pyusb 1.0.0b2"""
-    return self.usb_dev.write(self.in_ep, data, self.usb_write_timeout)
+    return self.usb_dev.write(self.in_ep, data, self.usb_wr_timeout)
 
   def _read_v2(self):
     """Read using the API introduced with pyusb 1.0.0b2"""
-    return self.usb_dev.read(self.out_ep, self.readbuffer_chunksize, self.usb_read_timeout)
-
-  def _get_max_packet_size(self):
-    """get the maximum length of a data packet"""
-    if not self.usb_dev:
-      raise AssertionError("device is not known")
-    if not self.interface:
-      raise AssertionError("interface is not known")
-    return self.interface[0].wMaxPacketSize
+    return self.usb_dev.read(self.out_ep, self.rdbuf_chunksize, self.usb_rd_timeout)
 
 #------------------------------------------------------------------------------
 
