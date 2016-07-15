@@ -17,8 +17,8 @@ import util
 # -----------------------------------------------------------------------------
 
 _version_str = 'pycs: ARM CoreSight Tool 1.0\n'
-_usb_number = 0
-_target = ''
+_vidpid = None
+_target = None
 
 # -----------------------------------------------------------------------------
 
@@ -41,13 +41,41 @@ def supported_targets():
   return sorted(targets)
 
 # -----------------------------------------------------------------------------
+# command line argument processing
+
+def int_arg(arg, limits, base):
+  """convert a number string to an integer - or None"""
+  try:
+    val = int(arg, base)
+  except ValueError:
+    return None
+  if (val < limits[0]) or (val > limits[1]):
+    return None
+  return val
+
+def vid_pid_arg(arg):
+  """convert a usb 'vid:pid' string into a (vid, pid) tuple"""
+  x = arg.split(':')
+  if len(x) != 2:
+    return None
+  # convert and check the vid
+  vid = int_arg(x[0], (0,0xffff), 16)
+  if vid is None:
+    return None
+  # convert and check the pid
+  pid = int_arg(x[1], (0,0xffff), 16)
+  if pid is None:
+    return None
+  return (vid, pid)
+
+# -----------------------------------------------------------------------------
 
 def Print_Usage(argv):
   print 'Usage: %s [options]' % argv[0]
   print 'Options:'
   print '%-15s%s' % ('-l', 'list supported targets')
   print '%-15s%s' % ('-t <target>', 'target name')
-  print '%-15s%s' % ('-u <number>', 'usb number of JLINK device to use')
+  print '%-15s%s' % ('-d <vid:pid>', 'vid:pid of usb device')
 
 def error(msg, usage=False):
   print msg
@@ -57,18 +85,20 @@ def error(msg, usage=False):
 
 def Process_Options(argv):
   """process command line options"""
-  list_targets = False
-  global _usb_number
+  global _vidpid
   global _target
 
+  list_targets = False
+  vp_arg = None
+
   try:
-    (opts, args) = getopt.getopt(sys.argv[1:], "t:u:l")
+    (opts, args) = getopt.getopt(sys.argv[1:], "t:d:l")
   except getopt.GetoptError, err:
     error(str(err), True)
   # process options
   for (opt, val) in opts:
-    if opt == '-u':
-      _usb_number = int(val)
+    if opt == '-d':
+      vp_arg = val
     elif opt == '-t':
       _target = val
     elif opt == '-l':
@@ -80,14 +110,17 @@ def Process_Options(argv):
   if list_targets:
     error('supported targets:\n%s' % util.display_cols(targets))
 
-  if _target == '':
+  if _target is None:
     error('must specify a target', True)
-
-  if not _usb_number in range(16):
-    error('usb number out of range')
 
   if not _target in [t[0].strip() for t in targets]:
     error('supported targets:\n%s' % util.display_cols(targets))
+
+  if vp_arg is not None:
+    x = vid_pid_arg(vp_arg)
+    if x is None:
+      error('invalid vid:pid argument')
+    _vidpid = x
 
 # -----------------------------------------------------------------------------
 
@@ -100,7 +133,7 @@ class user_interface(object):
   def find_target(self, target):
     """find and select a target"""
     module = importlib.import_module('target.%s' % target)
-    module.target(self, _usb_number)
+    module.target(self, 0)
 
   def exit(self):
     self.cli.exit()
