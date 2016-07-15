@@ -27,16 +27,24 @@ _KHz = 1000.0
 _FREQ = 12.0 * _MHz
 
 #------------------------------------------------------------------------------
-# usb vendor:product IDs
+# supported devices
 
-_jlink_vps = (
-    (0x1366, 0x0101), # J-Link Base
-    (0x1366, 0x0102), # ?
-    (0x1366, 0x0103), # ?
-    (0x1366, 0x0104), # ?
-    (0x1366, 0x0105), # ?
-    (0x1366, 0x1015), # As seen on Nordic nRF52DK
-)
+# vid, pid, itf
+jlink_devices = (
+    (0x1366, 0x0101, 1), # J-Link Base
+    #(0x1366, 0x0102, None), # ?
+    #(0x1366, 0x0103, None), # ?
+    #(0x1366, 0x0104, None), # ?
+    (0x1366, 0x0105, 3), # E.g. Nordic PCA10000/PCA10001
+    (0x1366, 0x1015, 3), # E.g. Nordic PCA10040
+  )
+
+def itf_lookup(vid, pid):
+  """return the interface to use for a given device"""
+  for (v, p, i) in jlink_devices:
+    if (v == vid) and (p == pid):
+      return i
+  return None
 
 #------------------------------------------------------------------------------
 # Commands
@@ -201,20 +209,53 @@ MAX_SPEED = 12000
 
 #------------------------------------------------------------------------------
 
+def find(vps = None, sn = None):
+  """lookup a jlink device based on vid, pid and serial number"""
+  if vps is None:
+    # look for any jlink device
+    vps = [(vid, pid) for (vid,pid,itf) in jlink_devices]
+  devices = UsbTools.find_all(vps)
+  # do we have any devices?
+  if len(devices) == 0:
+    return None, 'no device found'
+  if sn is not None:
+    # filter using the serial number
+    devices_sn = [d for d in devices if d[2] == sn]
+    if len(devices_sn) == 0:
+      # we have devices, but none with this serial number
+      s = []
+      s.append('no device with this serial number')
+      s.append('devices found:')
+      for d in devices:
+        s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
+      return None, '\n'.join(s)
+    else:
+      devices = device_sn
+  # no devices
+  if len(devices) == 0:
+    return None, 'no device found'
+  # 1 device
+  if len(devices) == 1:
+    return devices[0], None
+  # multiple devices found
+  s = []
+  s.append('multiple devices')
+  s.append('devices found:')
+  for d in devices:
+    s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
+  return None, '\n'.join(s)
+
+#------------------------------------------------------------------------------
+
 class jlink(object):
 
-  def __init__(self, sn = None):
-    devices = UsbTools.find_all(_jlink_vps)
-    if sn is not None:
-        # filter based on device serial number
-        devices = [dev for dev in devices if dev[2] == sn]
-    if len(devices) == 0:
-        raise IOError("No such device")
-    self.vid = devices[0][0]
-    self.pid = devices[0][1]
-    self.sn = devices[0][2]
+  def __init__(self, dev):
+    self.vid = dev[0]
+    self.pid = dev[1]
+    self.sn = dev[2]
+    itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
-    self.usb.open(self.vid, self.pid, serial = self.sn)
+    self.usb.open(self.vid, self.pid, interface = itf, serial = self.sn)
     self.caps = self.get_capabilities()
     # work out which HW_JTAG command to used
     ver = self.get_hw_version()
@@ -353,8 +394,8 @@ class jlink(object):
 
 class swd(object):
 
-  def __init__(self, sn = None):
-    self.jlink = jlink(sn)
+  def __init__(self, dev):
+    self.jlink = jlink(dev)
     state = self.jlink.get_state()
     # check VREF
     assert state['vref'] > 1500, 'Vref is too low. Check target power.'
@@ -365,7 +406,7 @@ class swd(object):
 
   def __str__(self):
     s = []
-    #s.append(self.jlink.details_str())
+    s.append(self.jlink.details_str())
     s.append(str(self.jlink))
     return '\n'.join(s)
 
@@ -373,8 +414,7 @@ class swd(object):
 
 class jtag(object):
 
-  def __init__(self):
+  def __init__(self, dev):
     pass
-
 
 #------------------------------------------------------------------------------

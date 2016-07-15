@@ -4,8 +4,16 @@ import jlink
 
 def main():
 
-  swd_driver = jlink.swd(sn = None)
-  print swd_driver
+  sn = None
+  #sn = u'000059305662'
+  #sn = u'000480101411'
+  #sn = u'000682893163'
 
+  (dev, msg) = jlink.find(sn = sn)
+  if dev is None:
+    print msg
+  else:
+    swd_driver = jlink.swd(dev)
+    print swd_driver
 
 main()
