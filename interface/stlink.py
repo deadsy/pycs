@@ -14,6 +14,8 @@ from array import array as Array
 from usbtools.usbtools import UsbTools
 import usbdev
 
+import time
+
 #------------------------------------------------------------------------------
 # supported devices
 
@@ -58,6 +60,11 @@ class stlink(object):
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
     self.usb.open(self.vid, self.pid, interface = itf, serial = self.sn)
+    ver = self.get_version()
+    assert ver['stlink_v'] == 2, 'only version 2 of stlink is supported'
+
+  def __del__(self):
+    self.usb.close()
 
   def get_version(self):
     """return the ST-Link version"""
@@ -71,8 +78,37 @@ class stlink(object):
     ver['stlink_pid'] = (x[5] << 8) | x[4]
     return ver
 
+  def get_target_voltage(self):
+    """get target voltage"""
+    self.usb.write_data(Array('B', [GET_TARGET_VOLTAGE,]))
+    x = self.usb.read_data(8)
+    factor = (x[3] << 24) | (x[2] << 16) | (x[1] << 8) | (x[0] << 0)
+    reading = (x[7] << 24) | (x[6] << 16) | (x[5] << 8) | (x[4] << 0)
+    voltage = 2400 * reading / factor
+    return voltage
+
+  def details_str(self):
+    """return a string for device details"""
+    return ''
+
   def __str__(self):
     """return a string for basic device description"""
     return 'ST-Link usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn)
+
+#------------------------------------------------------------------------------
+
+class dbgio(object):
+
+  def __init__(self, dev):
+    self.stlink = stlink(dev)
+    vref = self.stlink.get_target_voltage()
+    # check VREF
+    assert vref > 1500, 'Vref is too low. Check target power.'
+
+  def __str__(self):
+    s = []
+    s.append(self.stlink.details_str())
+    s.append(str(self.stlink))
+    return '\n'.join(s)
 
 #------------------------------------------------------------------------------

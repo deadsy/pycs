@@ -64,8 +64,8 @@ class usbdev(object):
     self.wrbuf_chunksize = 4 << 10
     self.itf = None
     self.index = None
-    self.in_ep = None
-    self.out_ep = None
+    self.ep_in = None
+    self.ep_out = None
     self._wrap_api()
 
   # public functions
@@ -102,7 +102,7 @@ class usbdev(object):
       # return the number of bytes written
       return ofs
     except usb.core.USBError, e:
-      raise usbdev_error('usbdev_error: %s' % str(e))
+      raise usbdev_error(str(e))
 
   def read_data(self, size, attempts = 1):
     """read size bytes of data from the device"""
@@ -133,6 +133,7 @@ class usbdev(object):
               # try again
               continue
               # return what we have
+              assert False, 'not enough data'
               return data
         # copy the read buffer into the returned data
         n = len(self.rdbuf)
@@ -147,7 +148,7 @@ class usbdev(object):
           bytes_to_rd -= n
           # read more data...
     except usb.core.USBError, e:
-      raise usbdev_error('usbdev_error: %s' % str(e))
+      raise usbdev_error(str(e))
     # never reached
     raise usbdev_error("internal error")
 
@@ -173,23 +174,23 @@ class usbdev(object):
     self.index = ifnum
     self.interface = config[(ifnum-1, 0)]
     endpoints = sorted([ep.bEndpointAddress for ep in self.interface])
-    self.in_ep, self.out_ep = endpoints[:2]
+    self.ep_out, self.ep_in = endpoints[:2]
 
   def _write_v1(self, data):
     """Write using the deprecated API"""
-    return self.usb_dev.write(self.in_ep, data, self.interface, self.usb_wr_timeout)
+    return self.usb_dev.write(self.ep_out, data, self.interface, self.usb_wr_timeout)
 
   def _read_v1(self):
     """Read using the deprecated API"""
-    return self.usb_dev.read(self.out_ep, self.rdbuf_chunksize, self.interface, self.usb_rd_timeout)
+    return self.usb_dev.read(self.ep_in, self.rdbuf_chunksize, self.interface, self.usb_rd_timeout)
 
   def _write_v2(self, data):
     """Write using the API introduced with pyusb 1.0.0b2"""
-    return self.usb_dev.write(self.in_ep, data, self.usb_wr_timeout)
+    return self.usb_dev.write(self.ep_out, data, self.usb_wr_timeout)
 
   def _read_v2(self):
     """Read using the API introduced with pyusb 1.0.0b2"""
-    return self.usb_dev.read(self.out_ep, self.rdbuf_chunksize, self.usb_rd_timeout)
+    return self.usb_dev.read(self.ep_in, self.rdbuf_chunksize, self.usb_rd_timeout)
 
 #------------------------------------------------------------------------------
 

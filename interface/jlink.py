@@ -230,6 +230,9 @@ class jlink(object):
     ver = self.get_hw_version()
     self.hw_jtag_cmd = (EMU_CMD_HW_JTAG2, EMU_CMD_HW_JTAG3)[ver['major'] >= 5]
 
+  def __del__(self):
+    self.usb.close()
+
   def get_version(self):
     """Return the firmware version"""
     self.usb.write_data(Array('B', [EMU_CMD_VERSION,]))

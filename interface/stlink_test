@@ -10,7 +10,7 @@ def main():
   if dev is None:
     print msg
   else:
-    drv = stlink.stlink(dev)
-    print drv.get_version()
+    drv = stlink.dbgio(dev)
+    print drv
 
 main()
