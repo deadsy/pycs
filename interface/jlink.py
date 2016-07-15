@@ -9,8 +9,7 @@ openocd: src/jtag/drivers/jlink.c
 
 Notes:
 
-1) Tested with J-Link Base/EDU
-   J-Link EDU == J-Link Base (so far as I can tell)
+1) Tested with J-Link Base/EDU, J-Link EDU == J-Link Base (so far as I can tell)
 
 """
 #------------------------------------------------------------------------------
@@ -31,7 +30,7 @@ _FREQ = 12.0 * _MHz
 
 # vid, pid, itf
 jlink_devices = (
-    (0x1366, 0x0101, 1), # J-Link Base
+    (0x1366, 0x0101, 1), # J-Link Base/EDU
     #(0x1366, 0x0102, None), # ?
     #(0x1366, 0x0103, None), # ?
     #(0x1366, 0x0104, None), # ?
@@ -45,6 +44,13 @@ def itf_lookup(vid, pid):
     if (v == vid) and (p == pid):
       return i
   return None
+
+def find(vps = None, sn = None):
+  """find a jlink device based on vid, pid and serial number"""
+  if vps is None:
+    # look for any jlink device
+    vps = [(vid, pid) for (vid, pid, itf) in jlink_devices]
+  return usbdev.find(vps, sn)
 
 #------------------------------------------------------------------------------
 # Commands
@@ -209,45 +215,8 @@ MAX_SPEED = 12000
 
 #------------------------------------------------------------------------------
 
-def find(vps = None, sn = None):
-  """lookup a jlink device based on vid, pid and serial number"""
-  if vps is None:
-    # look for any jlink device
-    vps = [(vid, pid) for (vid,pid,itf) in jlink_devices]
-  devices = UsbTools.find_all(vps)
-  # do we have any devices?
-  if len(devices) == 0:
-    return None, 'no device found'
-  if sn is not None:
-    # filter using the serial number
-    devices_sn = [d for d in devices if d[2] == sn]
-    if len(devices_sn) == 0:
-      # we have devices, but none with this serial number
-      s = []
-      s.append('no device with this serial number')
-      s.append('devices found:')
-      for d in devices:
-        s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
-      return None, '\n'.join(s)
-    else:
-      devices = device_sn
-  # no devices
-  if len(devices) == 0:
-    return None, 'no device found'
-  # 1 device
-  if len(devices) == 1:
-    return devices[0], None
-  # multiple devices found
-  s = []
-  s.append('multiple devices')
-  s.append('devices found:')
-  for d in devices:
-    s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
-  return None, '\n'.join(s)
-
-#------------------------------------------------------------------------------
-
 class jlink(object):
+  """J-Link Device Driver"""
 
   def __init__(self, dev):
     self.vid = dev[0]

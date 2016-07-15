@@ -3,7 +3,7 @@
 
 USB Device
 
-A generic class for dealing with reading/writing to USB devices.
+A generic class for reading/writing USB devices.
 
 """
 #------------------------------------------------------------------------------
@@ -11,6 +11,40 @@ A generic class for dealing with reading/writing to USB devices.
 import usb.core
 from array import array as Array
 from usbtools.usbtools import UsbTools
+
+#------------------------------------------------------------------------------
+
+def find(vps, sn = None):
+  """lookup a usb device based on vid, pid and serial number"""
+  devices = UsbTools.find_all(vps)
+  # do we have any devices?
+  if len(devices) == 0:
+    return None, 'no device found'
+  if sn is not None:
+    # filter using the serial number
+    devices_sn = [d for d in devices if d[2] == sn]
+    if len(devices_sn) == 0:
+      # we have devices, but none with this serial number
+      s = []
+      s.append('no device with this serial number')
+      s.append('devices found:')
+      for d in devices:
+        s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
+      return None, '\n'.join(s)
+    else:
+      devices = device_sn
+  # no devices
+  if len(devices) == 0:
+    return None, 'no device found'
+  # multiple devices
+  if len(devices) > 1:
+    s = []
+    s.append('multiple devices found:')
+    for d in devices:
+      s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
+    return None, '\n'.join(s)
+  # 1 device
+  return devices[0], None
 
 #------------------------------------------------------------------------------
 
@@ -73,18 +107,15 @@ class usbdev(object):
   def read_data(self, size, attempts = 1):
     """read size bytes of data from the device"""
     data = Array('B')
-
     # do we have all of the data in the read buffer?
     if size <= len(self.rdbuf) - self.rdofs:
       data = self.rdbuf[self.rdofs : self.rdofs + size]
       self.rdofs += size
       return data
-
     # do we have some of the data in the read buffer?
     if len(self.rdbuf) - self.rdofs > 0:
       data = self.rdbuf[self.rdofs:]
       # do a usb read to get the rest...
-
     # read from the usb device
     try:
       bytes_to_rd = size - len(data)

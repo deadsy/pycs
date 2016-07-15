@@ -1,0 +1,16 @@
+#!/usr/bin/python
+
+import stlink
+
+def main():
+
+  sn = None
+
+  (dev, msg) = stlink.find(sn = sn)
+  if dev is None:
+    print msg
+  else:
+    drv = stlink.stlink(dev)
+    print drv.get_version()
+
+main()
