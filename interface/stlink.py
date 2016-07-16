@@ -87,6 +87,43 @@ class stlink(object):
     voltage = 2400 * reading / factor
     return voltage
 
+  def wr_debug32(self, adr, val):
+    """32 bit write to a memory address"""
+    cmd = Array('B', (DEBUG_COMMAND, JTAG_WRITEDEBUG_32BIT))
+    cmd += wr_uint32(adr)
+    cmd += wr_uint32(val)
+    self.usb.send_recv(cmd, 2)
+
+  def wr_mem32(self, adr, buf):
+    """write 32 bit buffer to memory address"""
+    cmd = Array('B', (DEBUG_COMMAND, DEBUG_WRITEMEM_32BIT))
+    cmd += wr_uint32(adr)
+    cmd += wr_uint16(len(buf))
+    self.usb.send(cmd)
+    self.usb.send(buf)
+
+  def wr_mem8(self, adr, buf):
+    """write 8 bit buffer to memory address"""
+    cmd = Array('B', (DEBUG_COMMAND, DEBUG_WRITEMEM_8BIT))
+    cmd += wr_uint32(adr)
+    cmd += wr_uint16(len(buf))
+    self.usb.send(cmd)
+    self.usb.send(buf)
+
+  def current_mode(self):
+    """return the current mode"""
+    cmd = Array('B', (GET_CURRENT_MODE,))
+    x = self.usb.send_recv(cmd, 2)
+    return x[0]
+
+
+
+
+
+
+
+
+
   def details_str(self):
     """return a string for device details"""
     return ''
