@@ -133,7 +133,6 @@ class usbdev(object):
               # try again
               continue
               # return what we have
-              assert False, 'not enough data'
               return data
         # copy the read buffer into the returned data
         n = len(self.rdbuf)
