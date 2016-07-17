@@ -10,7 +10,6 @@ NXP development board for Kinetis Chips
 
 import conio
 import cli
-import jlink
 import cortexm
 import mem
 import soc
@@ -26,22 +25,23 @@ prompt = 'frdm_k64f'
 class target(object):
   """frdm_k64f - NXP development board for Kinetis Chips"""
 
-  def __init__(self, ui, usb_number):
+  def __init__(self, ui, dbgio):
     self.ui = ui
+    self.dbgio = dbgio
     self.device = kinetis.get_device(self.ui, soc_name)
-    self.jlink = jlink.JLink(usb_number, self.device.cpu_info.name, jlink._JLINKARM_TIF_SWD)
-    self.cpu = cortexm.cortexm(self, ui, self.jlink, self.device)
+    self.dbgio.connect(self.device.cpu_info.name, 'swd')
+    self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
+      ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
       ('go', self.cpu.cmd_go),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
-      ('jlink', self.jlink.cmd_jlink),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
       ('regs', self.cmd_regs, soc.help_regs),
@@ -50,7 +50,7 @@ class target(object):
 
     self.ui.cli.set_root(self.menu_root)
     self.set_prompt()
-    self.jlink.cmd_jlink(self.ui, None)
+    self.dbgio.cmd_info(self.ui, None)
 
   def cmd_regs(self, ui, args):
     """display registers"""
@@ -60,12 +60,12 @@ class target(object):
       self.device.cmd_regs(ui, args)
 
   def set_prompt(self):
-    indicator = ('*', '')[self.jlink.is_halted()]
+    indicator = ('*', '')[self.dbgio.is_halted()]
     self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
 
   def cmd_exit(self, ui, args):
-    """exit the application"""
-    self.jlink.jlink_close()
+    """exit application"""
+    self.dbgio.disconnect()
     ui.exit()
 
 # -----------------------------------------------------------------------------

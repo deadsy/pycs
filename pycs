@@ -14,6 +14,8 @@ import conio
 import cli
 import util
 
+import jlink
+
 # -----------------------------------------------------------------------------
 
 _version_str = 'pycs: ARM CoreSight Tool 1.0\n'
@@ -132,8 +134,9 @@ class user_interface(object):
 
   def find_target(self, target):
     """find and select a target"""
-    module = importlib.import_module('target.%s' % target)
-    module.target(self, 0)
+    target = importlib.import_module('target.%s' % target)
+    dbgio = jlink.JLink()
+    target.target(self, dbgio)
 
   def exit(self):
     self.cli.exit()

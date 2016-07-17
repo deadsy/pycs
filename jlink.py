@@ -40,6 +40,30 @@ REG_R14 = 14
 REG_R15 = 15
 REG_PSR = 16
 
+# map from standard register names to Jlink register numbers
+regmap = {
+  'r0': REG_R0,
+  'r1': REG_R1,
+  'r2': REG_R2,
+  'r3': REG_R3,
+  'r4': REG_R4,
+  'r5': REG_R5,
+  'r6': REG_R6,
+  'r7': REG_R7,
+  'r8': REG_R8,
+  'r9': REG_R9,
+  'r10': REG_R10,
+  'r11': REG_R11,
+  'r12': REG_R12,
+  'r13': REG_R13,
+  'sp': REG_R13,
+  'r14': REG_R14,
+  'lr': REG_R14,
+  'r15': REG_R15,
+  'pc': REG_R15,
+  'psr': REG_PSR,
+}
+
 # ----------------------------------------------------------------------------
 # map from SVD cpu names to JLink cpu names
 
@@ -124,7 +148,21 @@ def get_jlink_dll():
 
 class JLink(object):
 
-  def __init__(self, usb_number, device, itf):
+  def __init__(self, vidpid = None, idx = 0, sn = None):
+    """no actual operations, record the selected usb device"""
+    self.usb_vp = vidpid
+    self.usb_idx = idx
+    self.usb_sn = sn
+    self.cpu_name = None
+    self.itf = None
+    self.menu = (
+      ('info', self.cmd_info),
+    )
+
+  def connect(self, cpu_name, itf):
+    """connect the debugger to the target"""
+    self.cpu_name = cpu_name
+    self.itf = {'swd':_JLINKARM_TIF_SWD,'jtag':_JLINKARM_TIF_JTAG}[itf]
     timeout = 10
     retried = False
     t0 = time.time()
@@ -132,7 +170,7 @@ class JLink(object):
     while time.time() < t0 + timeout:
       self.jl, self.jlink_lib_name = get_jlink_dll()
       try:
-        self._init(usb_number, device, itf)
+        self.jlink_init()
         if retried:
           print 'success'
         return
@@ -150,7 +188,22 @@ class JLink(object):
     else:
       raise
 
-  def cmd_jlink(self, ui, args):
+  def disconnect(self):
+    """disconnect the debugger from the target"""
+    self.jlink_close()
+
+  def jlink_init(self):
+    self.select_usb(self.usb_idx)
+    self.jlink_open()
+    state = self.get_hw_status()
+    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
+    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
+    self.exec_command('device=%s' % cpu_names[self.cpu_name])
+    self.set_speed(4000)
+    self.tif_select(self.itf)
+    self.jlink_connect()
+
+  def cmd_info(self, ui, args):
     """display jlink information"""
     ui.put('%s\n' % self)
 
@@ -160,17 +213,6 @@ class JLink(object):
     s.append('jlink device v%d sn%d %s' % (self.get_hw_version(), self.get_sn(), self.get_fw_string()))
     s.append('target voltage %.3fV' % (float(self.get_hw_status()['vref']) / 1000.0))
     return '\n'.join(s)
-
-  def _init(self, usb_number, device, itf):
-    self.select_usb(usb_number)
-    self.jlink_open()
-    state = self.get_hw_status()
-    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
-    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
-    self.exec_command('device=%s' % cpu_names[device])
-    self.set_speed(4000)
-    self.tif_select(itf)
-    self.jlink_connect()
 
   def get_dll_version(self):
     # int JLINKARM_GetDLLVersion(void);
@@ -333,10 +375,10 @@ class JLink(object):
     fn = self.jl.JLINKARM_ReadReg
     fn.restype = ctypes.c_uint32
     fn.argtypes = [ctypes.c_int]
-    return fn(ctypes.c_int(reg))
+    return fn(ctypes.c_int(regmap[reg]))
 
   def rd_pc(self):
-    return self.rdreg(REG_R15)
+    return self.rdreg('pc')
 
   def cp15_is_present(self):
     # int JLINKARM_CP15_IsPresent(void);

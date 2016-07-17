@@ -216,6 +216,7 @@ class stlink(object):
 #------------------------------------------------------------------------------
 
 class dbgio(object):
+  """ST-Link implementation of dbgio cpu interface"""
 
   def __init__(self, dev):
     self.stlink = stlink(dev)
@@ -223,16 +224,31 @@ class dbgio(object):
     # check VREF
     assert vref > 1500, 'Vref is too low. Check target power.'
 
-    print self.stlink.get_status()
 
-    print '0x%08x' % self.stlink.rd_dbg32(0xe000ed00)
 
-    self.stlink.wr_dbg32(0x20000000, 0xcafebabe)
-    self.stlink.wr_dbg32(0x20000004, 0xdeadbeef)
 
-    print '0x%08x' % self.stlink.rd_dbg32(0x20000000)
-    print '0x%08x' % self.stlink.rd_dbg32(0x20000004)
 
+
+
+  # public functions
+
+  def rd32(self, adr):
+    return self.stlink.rd_dbg32(adr)
+
+  def rd16(self, adr):
+    assert False. 'TODO'
+
+  def rd8(self, adr):
+    assert False. 'TODO'
+
+  def wr32(self, adr, val):
+    return self.stlink.wr_dbg32(adr, val)
+
+  def wr16(self, adr, val):
+    assert False. 'TODO'
+
+  def wr8(self, adr, val):
+    assert False. 'TODO'
 
   def __str__(self):
     s = []

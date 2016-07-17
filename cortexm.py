@@ -10,7 +10,6 @@ import time
 
 import util
 import iobuf
-import jlink
 import cmregs
 import soc
 
@@ -23,24 +22,25 @@ help_disassemble = (
 
 # -----------------------------------------------------------------------------
 
+# name, description
 _reg_names = (
-  ('r0', jlink.REG_R0),
-  ('r1', jlink.REG_R1),
-  ('r2', jlink.REG_R2),
-  ('r3', jlink.REG_R3),
-  ('r4', jlink.REG_R4),
-  ('r5', jlink.REG_R5),
-  ('r6', jlink.REG_R6),
-  ('r7', jlink.REG_R7),
-  ('r8', jlink.REG_R8),
-  ('r9', jlink.REG_R9),
-  ('r10', jlink.REG_R10),
-  ('r11', jlink.REG_R11),
-  ('r12', jlink.REG_R12),
-  ('sp(r13)', jlink.REG_R13),
-  ('lr(r14)', jlink.REG_R14),
-  ('pc(r15)', jlink.REG_R15),
-  ('psr', jlink.REG_PSR),
+  ('r0', 'r0'),
+  ('r1', 'r1'),
+  ('r2', 'r2'),
+  ('r3', 'r3'),
+  ('r4', 'r4'),
+  ('r5', 'r5'),
+  ('r6', 'r6'),
+  ('r7', 'r7'),
+  ('r8', 'r8'),
+  ('r9', 'r9'),
+  ('r10', 'r10'),
+  ('r11', 'r11'),
+  ('r12', 'r12'),
+  ('sp', 'sp(r13)'),
+  ('lr', 'lr(r14)'),
+  ('pc', 'pc(r15)'),
+  ('psr', 'psr'),
 )
 
 # -----------------------------------------------------------------------------
@@ -97,10 +97,10 @@ def find_irq(i_list, irq):
 
 class cortexm(object):
 
-  def __init__(self, target, ui, jlink, device):
+  def __init__(self, target, ui, dbgio, device):
     self.target = target
     self.ui = ui
-    self.jlink = jlink
+    self.dbgio = dbgio
     self.device = device
     self.saved_regs = []
     self.width = 32
@@ -115,11 +115,11 @@ class cortexm(object):
     """read from memory - n bits aligned"""
     adr = util.align(adr, n)
     if n == 32:
-      return self.jlink.rd32(adr)
+      return self.dbgio.rd32(adr)
     elif n == 16:
-      return self.jlink.rd16(adr)
+      return self.dbgio.rd16(adr)
     elif n == 8:
-      return self.jlink.rd8(adr)
+      return self.dbgio.rd8(adr)
     else:
       return 0
 
@@ -127,11 +127,11 @@ class cortexm(object):
     """write to memory - n bits aligned"""
     adr = util.align(adr, n)
     if n == 32:
-      return self.jlink.wr32(adr, val)
+      return self.dbgio.wr32(adr, val)
     elif n == 16:
-      return self.jlink.wr16(adr, val)
+      return self.dbgio.wr16(adr, val)
     elif n == 8:
-      return self.jlink.wr8(adr, val)
+      return self.dbgio.wr8(adr, val)
     else:
       return 0
 
@@ -140,39 +140,39 @@ class cortexm(object):
     max_words = 16
     while n > 0:
       nwords = (n, max_words)[n >= max_words]
-      [io.wr32(x) for x in self.jlink.rdmem32(adr, nwords)]
+      [io.wr32(x) for x in self.dbgio.rdmem32(adr, nwords)]
       n -= nwords
       adr += nwords * 4
 
   def wrmem32(self, adr, n, io):
     """write n 32 bit words to memory starting at adr"""
-    self.jlink.wrmem32(adr, [io.rd32() for i in range(n)])
+    self.dbgio.wrmem32(adr, [io.rd32() for i in range(n)])
 
   def halt(self, msg=False):
     """halt the cpu"""
-    if self.jlink.is_halted():
+    if self.dbgio.is_halted():
       if msg:
         self.ui.put('cpu is already halted\n')
       return
-    self.jlink.halt()
+    self.dbgio.halt()
     self.target.set_prompt()
 
   def go(self, msg=False):
     """un-halt the cpu"""
-    if not self.jlink.is_halted():
+    if not self.dbgio.is_halted():
       if msg:
         self.ui.put('cpu is already running\n')
       return
-    self.jlink.go()
+    self.dbgio.go()
     self.target.set_prompt()
 
   def reset(self):
     """reset the cpu"""
-    self.jlink.reset()
+    self.dbgio.reset()
 
   def step(self):
     """single step the cpu"""
-    self.jlink.step()
+    self.dbgio.step()
 
   def NVIC_GetPriority(self, irq):
     """return the priority encoding for an exception"""
@@ -217,13 +217,13 @@ class cortexm(object):
   def cmd_regs(self, ui, args):
     """display cpu registers"""
     self.halt()
-    regs = [self.jlink.rdreg(n) for (name, n) in _reg_names]
+    regs = [self.dbgio.rdreg(name) for (name, descr) in _reg_names]
     if len(self.saved_regs) == 0:
       self.saved_regs = regs
     delta = [('*', '')[x == y] for (x, y) in zip(self.saved_regs, regs)]
     self.saved_regs = regs
     for i in range(len(_reg_names)):
-      ui.put('%-8s: %08x %s\n' % (_reg_names[i][0], regs[i], delta[i]))
+      ui.put('%-8s: %08x %s\n' % (_reg_names[i][1], regs[i], delta[i]))
 
   def cmd_disassemble(self, ui, args):
     """disassemble memory"""
@@ -233,7 +233,7 @@ class cortexm(object):
     if len(args) == 0:
       # read the pc
       self.halt()
-      adr = self.jlink.rd_pc()
+      adr = self.dbgio.rd_pc()
     if len(args) >= 1:
       adr = util.sex_arg(ui, args[0], 32)
       if adr is None:
