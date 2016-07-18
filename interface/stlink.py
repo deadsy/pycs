@@ -35,7 +35,7 @@ def itf_lookup(vid, pid):
 def find(vps = None, sn = None):
   """find an stlink device based on vid, pid and serial number"""
   if vps is None:
-    # look for any jlink device
+    # look for any stlink device
     vps = [(vid, pid) for (vid, pid, itf) in stlink_devices]
   return usbdev.find(vps, sn)
 
@@ -93,10 +93,10 @@ def read_u32(x):
 class stlink(object):
   """ST-Link Device Driver"""
 
-  def __init__(self, dev):
-    self.vid = dev[0]
-    self.pid = dev[1]
-    self.sn = dev[2]
+  def __init__(self, vid, pid, sn):
+    self.vid = vid
+    self.pid = pid
+    self.sn = sn
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
     self.usb.open(self.vid, self.pid, interface = itf, serial = self.sn)
@@ -108,7 +108,7 @@ class stlink(object):
     ver = self.get_version()
     assert ver['stlink_v'] == 2, 'only version 2 of stlink is supported'
 
-  def __del__(self):
+  def close(self):
     self.usb.close()
 
   def send_recv(self, data, size):
@@ -201,11 +201,6 @@ class stlink(object):
     #self.usb.send(buf)
 
 
-
-  def details_str(self):
-    """return a string for device details"""
-    return ''
-
   def __str__(self):
     """return a string for basic device description"""
     s = []
@@ -218,41 +213,61 @@ class stlink(object):
 class dbgio(object):
   """ST-Link implementation of dbgio cpu interface"""
 
-  def __init__(self, dev):
-    self.stlink = stlink(dev)
+  def __init__(self, vid = None, pid = None, idx = None, sn = None):
+    """no actual operations, record the selected usb device"""
+    self.vid = vid
+    self.pid = pid
+    self.idx = idx
+    self.sn = sn
+    self.cpu_name = None
+    self.itf = None
+    self.menu = (
+      ('info', self.cmd_info),
+    )
+
+  # public functions
+
+  def connect(self, cpu_name, itf):
+    """connect the debugger to the target"""
+    self.cpu_name = cpu_name
+    self.dbg_itf = itf
+    self.stlink = stlink(self.vid, self.pid, self.sn)
     vref = self.stlink.get_target_voltage()
     # check VREF
     assert vref > 1500, 'Vref is too low. Check target power.'
 
+  def disconnect(self):
+    """disconnect the debugger from the target"""
+    self.stlink.close()
 
+  def cmd_info(self, ui, args):
+    """display stlink information"""
+    ui.put('%s\n' % self)
 
-
-
-
-
-  # public functions
+  def is_halted(self):
+    """return True if target is halted"""
+    return self.stlink.get_status() == 'halted'
 
   def rd32(self, adr):
     return self.stlink.rd_dbg32(adr)
 
   def rd16(self, adr):
-    assert False. 'TODO'
+    assert False, 'TODO'
 
   def rd8(self, adr):
-    assert False. 'TODO'
+    assert False, 'TODO'
 
   def wr32(self, adr, val):
     return self.stlink.wr_dbg32(adr, val)
 
   def wr16(self, adr, val):
-    assert False. 'TODO'
+    assert False, 'TODO'
 
   def wr8(self, adr, val):
-    assert False. 'TODO'
+    assert False, 'TODO'
 
   def __str__(self):
     s = []
-    s.append(self.stlink.details_str())
     s.append(str(self.stlink))
     return '\n'.join(s)
 

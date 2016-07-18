@@ -15,6 +15,7 @@ import cli
 import util
 
 import jlink
+import interface.stlink as stlink
 
 # -----------------------------------------------------------------------------
 
@@ -136,6 +137,11 @@ class user_interface(object):
     """find and select a target"""
     target = importlib.import_module('target.%s' % target)
     dbgio = jlink.JLink()
+
+    #(dev, msg) = stlink.find()
+    #assert dev is not None
+    #dbgio = stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
+
     target.target(self, dbgio)
 
   def exit(self):

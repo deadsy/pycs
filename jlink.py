@@ -148,11 +148,9 @@ def get_jlink_dll():
 
 class JLink(object):
 
-  def __init__(self, vidpid = None, idx = 0, sn = None):
+  def __init__(self, idx = 0):
     """no actual operations, record the selected usb device"""
-    self.usb_vp = vidpid
     self.usb_idx = idx
-    self.usb_sn = sn
     self.cpu_name = None
     self.itf = None
     self.menu = (
