@@ -81,28 +81,16 @@ DBG_CMD_ENTER_SWD      = 0xa3
 #------------------------------------------------------------------------------
 # map register names to stlink register numbers
 
-# TODO check
 regmap = {
-  'r0': 0,
-  'r1': 1,
-  'r2': 2,
-  'r3': 3,
-  'r4': 4,
-  'r5': 5,
-  'r6': 6,
-  'r7': 7,
-  'r8': 8,
-  'r9': 9,
-  'r10': 10,
-  'r11': 11,
-  'r12': 12,
-  'r13': 13,
-  'sp': 13,
-  'r14': 14,
-  'lr': 14,
-  'r15': 15,
-  'pc': 15,
-  'psr': 16,
+  'r0':0,'r1':1,'r2':2,'r3':3,'r4':4,'r5':5,'r6':6,'r7':7,
+  'r8':8,'r9':9,'r10':10,'r11':11,'r12':12,'r13':13,'r14':14,'r15':15,
+  'lr':14,'pc':15,'psr':16,'msp':17,'psp':18,
+  # primask
+  # faultmask
+  # basepri
+  # control
+  # 19 ?
+  # 20 ?
 }
 
 #------------------------------------------------------------------------------
@@ -301,7 +289,7 @@ class dbgio(object):
 
   def rd_pc(self):
     """read the program counter"""
-    return self.rdreg('pc')
+    return self.rd_reg('pc')
 
   def rdmem32(self, adr, n):
     """read n 32 bit values from memory region"""
