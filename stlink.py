@@ -79,6 +79,33 @@ DBG_CMD_ENTER_SWD      = 0xa3
 #define STLINK_JTAG_DRIVE_NRST 0x3c
 
 #------------------------------------------------------------------------------
+# map register names to stlink register numbers
+
+# TODO check
+regmap = {
+  'r0': 0,
+  'r1': 1,
+  'r2': 2,
+  'r3': 3,
+  'r4': 4,
+  'r5': 5,
+  'r6': 6,
+  'r7': 7,
+  'r8': 8,
+  'r9': 9,
+  'r10': 10,
+  'r11': 11,
+  'r12': 12,
+  'r13': 13,
+  'sp': 13,
+  'r14': 14,
+  'lr': 14,
+  'r15': 15,
+  'pc': 15,
+  'psr': 16,
+}
+
+#------------------------------------------------------------------------------
 
 def append_u32(x, val):
   """append a 32-bit value to a byte buffer"""
@@ -165,9 +192,18 @@ class stlink(object):
     """force debug mode"""
     self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_FORCEDEBUG)), 2)
 
+  def run(self):
+    """make the cpu run"""
+    self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_RUNCORE)), 2)
+
   def exit_debug_mode(self):
     """exit debug mode"""
     self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_EXIT)), 0)
+
+  def rd_reg(self, idx):
+    """read a register value"""
+    x = self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_READREG, idx)), 4)
+    return read_u32(x)
 
   def rd_dbg32(self, adr):
     """read a 32-bit memory address"""
@@ -248,22 +284,79 @@ class dbgio(object):
     """return True if target is halted"""
     return self.stlink.get_status() == 'halted'
 
+  def halt(self):
+    """halt the cpu"""
+    self.stlink.force_debug_mode()
+
+  def go(self):
+    """put the cpu into running mode"""
+    self.stlink.run()
+
+  def rdreg(self, reg):
+    """read the named register"""
+    idx = regmap.get(reg, None)
+    if idx is None:
+      return None
+    return self.stlink.rd_reg(idx)
+
+  def rd_pc(self):
+    """read the program counter"""
+    return self.rdreg('pc')
+
+  def rdmem32(self, adr, n):
+    """read n 32 bit values from memory region"""
+    assert adr & 3 == 0
+    assert False, 'TODO'
+
+  def rdmem16(self, adr, n):
+    """read n 16 bit values from memory region"""
+    assert adr & 1 == 0
+    assert False, 'TODO'
+
+  def rdmem8(self, adr, n):
+    """read n 8 bit values from memory region"""
+    assert False, 'TODO'
+
   def rd32(self, adr):
+    """read 32 bit value from adr"""
+    assert adr & 3 == 0
     return self.stlink.rd_dbg32(adr)
 
   def rd16(self, adr):
+    """read 16 bit value from adr"""
+    assert adr & 1 == 0
     assert False, 'TODO'
 
   def rd8(self, adr):
+    """read 8 bit value from adr"""
+    assert False, 'TODO'
+
+  def wrmem32(self, adr, buf):
+    """write buffer of 32 bit values to memory region"""
+    assert adr & 3 == 0
+    assert False, 'TODO'
+
+  def wrmem16(self, adr, buf):
+    """write buffer of 16 bit values to memory region"""
+    assert adr & 1 == 0
+    assert False, 'TODO'
+
+  def wrmem8(self, adr, buf):
+    """write buffer of 8 bit values to memory region"""
     assert False, 'TODO'
 
   def wr32(self, adr, val):
+    """write 32 bit value to adr"""
+    assert adr & 3 == 0
     return self.stlink.wr_dbg32(adr, val)
 
   def wr16(self, adr, val):
+    """write 16 bit value to adr"""
+    assert adr & 1 == 0
     assert False, 'TODO'
 
   def wr8(self, adr, val):
+    """write 8 bit value to adr"""
     assert False, 'TODO'
 
   def __str__(self):

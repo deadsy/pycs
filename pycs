@@ -15,7 +15,7 @@ import cli
 import util
 
 import jlink
-import interface.stlink as stlink
+import stlink
 
 # -----------------------------------------------------------------------------
 
@@ -125,6 +125,17 @@ def Process_Options(argv):
       error('invalid vid:pid argument')
     _vidpid = x
 
+
+# -----------------------------------------------------------------------------
+
+def get_dbgio(target):
+  """return a debug interface for this target"""
+  return jlink.Jlink()
+
+  #(dev, msg) = stlink.find()
+  #assert dev is not None
+  #return stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
+
 # -----------------------------------------------------------------------------
 
 class user_interface(object):
@@ -136,13 +147,7 @@ class user_interface(object):
   def find_target(self, target):
     """find and select a target"""
     target = importlib.import_module('target.%s' % target)
-    dbgio = jlink.JLink()
-
-    #(dev, msg) = stlink.find()
-    #assert dev is not None
-    #dbgio = stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
-
-    target.target(self, dbgio)
+    target.target(self, get_dbgio(target))
 
   def exit(self):
     self.cli.exit()
