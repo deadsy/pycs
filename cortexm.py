@@ -21,26 +21,13 @@ help_disassemble = (
 )
 
 # -----------------------------------------------------------------------------
+# standard register names
 
-# name, description
-_reg_names = (
-  ('r0', 'r0'),
-  ('r1', 'r1'),
-  ('r2', 'r2'),
-  ('r3', 'r3'),
-  ('r4', 'r4'),
-  ('r5', 'r5'),
-  ('r6', 'r6'),
-  ('r7', 'r7'),
-  ('r8', 'r8'),
-  ('r9', 'r9'),
-  ('r10', 'r10'),
-  ('r11', 'r11'),
-  ('r12', 'r12'),
-  ('sp', 'sp(r13)'),
-  ('lr', 'lr(r14)'),
-  ('pc', 'pc(r15)'),
-  ('psr', 'psr'),
+regnames = (
+  'r0','r1','r2','r3','r4','r5','r6','r7',
+  'r8','r9','r10','r11','r12','r13','r14','r15',
+  'lr','pc','psr','msp','psp','primask',
+  'faultmask','basepri','control',
 )
 
 # -----------------------------------------------------------------------------
@@ -217,13 +204,18 @@ class cortexm(object):
   def cmd_regs(self, ui, args):
     """display cpu registers"""
     self.halt()
-    regs = [self.dbgio.rdreg(name) for (name, descr) in _reg_names]
+    regs = [self.dbgio.rdreg(name) for name in regnames]
     if len(self.saved_regs) == 0:
       self.saved_regs = regs
     delta = [('*', '')[x == y] for (x, y) in zip(self.saved_regs, regs)]
     self.saved_regs = regs
-    for i in range(len(_reg_names)):
-      ui.put('%-8s: %08x %s\n' % (_reg_names[i][1], regs[i], delta[i]))
+    cols = []
+    for i in range(len(regnames)):
+      if regs[i] is None:
+        # we don't know this register value
+        continue
+      cols.append([regnames[i], ': %08x' % regs[i], delta[i]])
+    ui.put('%s\n' % util.display_cols(cols))
 
   def cmd_disassemble(self, ui, args):
     """disassemble memory"""

@@ -20,48 +20,17 @@ _JLINKARM_TIF_SPI = 5
 _JLINKARM_TIF_C2 = 6
 
 # ----------------------------------------------------------------------------
-# registers
+# map register names to jlink register numbers
 
-REG_R0 = 0
-REG_R1 = 1
-REG_R2 = 2
-REG_R3 = 3
-REG_R4 = 4
-REG_R5 = 5
-REG_R6 = 6
-REG_R7 = 7
-REG_R8 = 8
-REG_R9 = 9
-REG_R10 = 10
-REG_R11 = 11
-REG_R12 = 12
-REG_R13 = 13
-REG_R14 = 14
-REG_R15 = 15
-REG_PSR = 16
-
-# map from standard register names to Jlink register numbers
 regmap = {
-  'r0': REG_R0,
-  'r1': REG_R1,
-  'r2': REG_R2,
-  'r3': REG_R3,
-  'r4': REG_R4,
-  'r5': REG_R5,
-  'r6': REG_R6,
-  'r7': REG_R7,
-  'r8': REG_R8,
-  'r9': REG_R9,
-  'r10': REG_R10,
-  'r11': REG_R11,
-  'r12': REG_R12,
-  'r13': REG_R13,
-  'sp': REG_R13,
-  'r14': REG_R14,
-  'lr': REG_R14,
-  'r15': REG_R15,
-  'pc': REG_R15,
-  'psr': REG_PSR,
+  'r0':0,'r1':1,'r2':2,'r3':3,'r4':4,'r5':5,'r6':6,'r7':7,
+  'r8':8,'r9':9,'r10':10,'r11':11,'r12':12,'r13':13,'r14':14,'r15':15,
+  'lr':14,'pc':15,'psr':16,'msp':13,
+  # psp
+  # primask
+  # faultmask
+  # basepri
+  # control
 }
 
 # ----------------------------------------------------------------------------
@@ -370,10 +339,13 @@ class JLink(object):
 
   def rdreg(self, reg):
     # uint32_t JLINKARM_ReadReg(int reg);
+    idx = regmap.get(reg, None)
+    if idx is None:
+      return None
     fn = self.jl.JLINKARM_ReadReg
     fn.restype = ctypes.c_uint32
     fn.argtypes = [ctypes.c_int]
-    return fn(ctypes.c_int(regmap[reg]))
+    return fn(ctypes.c_int(idx))
 
   def rd_pc(self):
     return self.rdreg('pc')

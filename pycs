@@ -130,7 +130,7 @@ def Process_Options(argv):
 
 def get_dbgio(target):
   """return a debug interface for this target"""
-  return jlink.Jlink()
+  return jlink.JLink()
 
   #(dev, msg) = stlink.find()
   #assert dev is not None
