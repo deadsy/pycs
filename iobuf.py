@@ -229,6 +229,10 @@ class data_buffer(object):
     assert self.width == 32, 'width is not 32 bits'
     self.write(val)
 
+  def wr8(self, val):
+    assert self.width == 8, 'width is not 8 bits'
+    self.write(val)
+
   def convert8(self, mode):
     """convert the buffer to 8 bit values"""
     if self.width == 32:
@@ -363,6 +367,9 @@ class data_buffer(object):
     """return an ascii string representing an 8-bit buffer"""
     assert self.width == 8, 'width must be 8 bits'
     return ''.join([('.', chr(b))[chr(b) in printable] for b in self.buf])
+
+  def __len__(self):
+    return len(self.buf)
 
   def __str__(self):
     """return a string for the buffer values"""

@@ -126,10 +126,19 @@ class cortexm(object):
     """read n 32 bit words from memory starting at adr"""
     max_words = 16
     while n > 0:
-      nwords = (n, max_words)[n >= max_words]
-      [io.wr32(x) for x in self.dbgio.rdmem32(adr, nwords)]
-      n -= nwords
-      adr += nwords * 4
+      nread = (n, max_words)[n >= max_words]
+      [io.wr32(x) for x in self.dbgio.rdmem32(adr, nread)]
+      n -= nread
+      adr += nread * 4
+
+  def rdmem8(self, adr, n, io):
+    """read n 8 bit words from memory starting at adr"""
+    max_bytes = 64
+    while n > 0:
+      nread = (n, max_bytes)[n >= max_bytes]
+      [io.wr8(x) for x in self.dbgio.rdmem8(adr, nread)]
+      n -= nread
+      adr += nread
 
   def wrmem32(self, adr, n, io):
     """write n 32 bit words to memory starting at adr"""

@@ -9,11 +9,15 @@ This code finds the buffers in RAM and then reads them as the target code runs.
 """
 #-----------------------------------------------------------------------------
 
+import util
+import iobuf
+
+#-----------------------------------------------------------------------------
+
 sizeof_SEGGER_RTT_CB_header = 24
 sizeof_SEGGER_RTT_RING_BUFFER = 24
 
 #-----------------------------------------------------------------------------
-
 
 class rtt_buf(object):
   """rtt buffer object"""
@@ -28,8 +32,8 @@ class rtt_buf(object):
     # get the buffer size
     self.buf_size = self.cpu.rd(self.adr + 8, 32)
     # record the other addresses for future reference
-    self.wrofs_adr = self.adr + 12
-    self.rdofs_adr = self.adr + 16
+    self.wr_ofs_adr = self.adr + 12
+    self.rd_ofs_adr = self.adr + 16
     self.flags_adr = self.adr + 20
 
   def get_name(self, adr):
@@ -43,6 +47,31 @@ class rtt_buf(object):
       adr += 1
       s.append(chr(c))
     return ''.join(s)
+
+  def poll(self, ui):
+    """poll this buffer"""
+    wr_ofs = self.cpu.rd(self.wr_ofs_adr, 32)
+    rd_ofs = self.cpu.rd(self.rd_ofs_adr, 32)
+    flags = self.cpu.rd(self.flags_adr, 32)
+
+    ui.put('wr ofs %x\n' % wr_ofs)
+    ui.put('rd ofs %x\n' % rd_ofs)
+    ui.put('flags %x\n' % flags)
+
+    if wr_ofs != rd_ofs:
+      buf = iobuf.data_buffer(8)
+      if rd_ofs < wr_ofs:
+        # read to write offset
+        self.cpu.rdmem8(self.buf_adr + rd_ofs, wr_ofs - rd_ofs, buf)
+      else:
+        # read to end of buffer
+        self.cpu.rdmem8(self.buf_adr + rd_ofs, self.buf_size - rd_ofs, buf)
+        # read to write offset
+        self.cpu.rdmem8(self.buf_adr, wr_ofs, buf)
+    self.cpu.wr(self.rd_ofs_adr, wr_ofs, 32)
+
+    ui.put('%d bytes read\n' % len(buf))
+    ui.put('%s\n' % buf.ascii_str())
 
   def __str__(self):
     return '%s %d bytes @ 0x%08x' % (self.name, self.buf_size, self.buf_adr)
@@ -61,6 +90,7 @@ class rtt(object):
     self.menu = (
       ('init', self.cmd_init),
       ('info', self.cmd_info),
+      ('poll', self.cmd_poll),
     )
 
   def look_for_sig(self, state, x):
@@ -95,6 +125,11 @@ class rtt(object):
       adr -= 16
     return (adr, state)
 
+  def cmd_poll(self, ui, args):
+    """process the target to host buffers"""
+    for b in self.t2h:
+      b.poll(ui)
+
   def cmd_init(self, ui, args):
     """initialise the rtt client"""
     # Call this code as often as you like.
@@ -128,17 +163,16 @@ class rtt(object):
 
   def cmd_info(self, ui, args):
     """show rtt information"""
-    cols = []
     if self.adr is not None:
+      cols = []
       cols.append(['rtt address', ': 0x%08x' % self.adr])
       if len(self.t2h) > 0:
-
-['target to host: %s' % str(b) for b in self.t2h]
-        cols.extend((['target to host: %s' % str(b) for b in self.t2h]))
+        cols.extend([['target to host', ': %s' % b] for b in self.t2h])
       if len(self.h2t) > 0:
-        s.append('\n'.join(['host to target: %s' % str(b) for b in self.h2t]))
+        cols.extend([['host to target', ': %s' % b] for b in self.h2t])
+      s = util.display_cols(cols)
     else:
-      s.append('rtt is not initialised')
-    ui.put('%s\n' % '\n'.join(s))
+      s = 'rtt is not initialised'
+    ui.put('%s\n' % s)
 
 #-----------------------------------------------------------------------------
