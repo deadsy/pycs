@@ -5,6 +5,7 @@ ST-Link Driver
 
 Sources:
 https://github.com/texane/stlink
+openocd: ./src/jtag/drivers/stlink_usb.c
 
 """
 #------------------------------------------------------------------------------
@@ -40,43 +41,64 @@ def find(vps = None, sn = None):
   return usbdev.find(vps, sn)
 
 #------------------------------------------------------------------------------
+# stlink protocol constants
 
-GET_VERSION            = 0xf1
-DEBUG_COMMAND          = 0xf2
-DFU_COMMAND            = 0xf3
-GET_CURRENT_MODE       = 0xf5
-GET_TARGET_VOLTAGE     = 0xf7
+STLINK_GET_VERSION        = 0xF1
+STLINK_DEBUG_COMMAND      = 0xF2
+STLINK_DFU_COMMAND        = 0xF3
+STLINK_SWIM_COMMAND       = 0xF4
+STLINK_GET_CURRENT_MODE   = 0xF5
+STLINK_GET_TARGET_VOLTAGE = 0xF7
 
-# dfu commands
-DFU_CMD_EXIT           = 0x07
+# STLINK_DEBUG_COMMAND + ...
+STLINK_DEBUG_ENTER_JTAG          =  0x00
+STLINK_DEBUG_GETSTATUS           =  0x01
+STLINK_DEBUG_FORCEDEBUG          =  0x02
+STLINK_DEBUG_APIV1_RESETSYS      =  0x03
+STLINK_DEBUG_APIV1_READALLREGS   =  0x04
+STLINK_DEBUG_APIV1_READREG       =  0x05
+STLINK_DEBUG_APIV1_WRITEREG      =  0x06
+STLINK_DEBUG_READMEM_32BIT       =  0x07
+STLINK_DEBUG_WRITEMEM_32BIT      =  0x08
+STLINK_DEBUG_RUNCORE             =  0x09
+STLINK_DEBUG_STEPCORE            =  0x0a
+STLINK_DEBUG_APIV1_SETFP         =  0x0b
+STLINK_DEBUG_READMEM_8BIT        =  0x0c
+STLINK_DEBUG_WRITEMEM_8BIT       =  0x0d
+STLINK_DEBUG_APIV1_CLEARFP       =  0x0e
+STLINK_DEBUG_APIV1_WRITEDEBUGREG =  0x0f
+STLINK_DEBUG_APIV1_SETWATCHPOINT =  0x10
+STLINK_DEBUG_APIV1_ENTER         =  0x20
+STLINK_DEBUG_EXIT                =  0x21
+STLINK_DEBUG_READCOREID          =  0x22
+STLINK_DEBUG_APIV2_ENTER         =  0x30
+STLINK_DEBUG_APIV2_READ_IDCODES  =  0x31
+STLINK_DEBUG_APIV2_RESETSYS      =  0x32
+STLINK_DEBUG_APIV2_READREG       =  0x33
+STLINK_DEBUG_APIV2_WRITEREG      =  0x34
+STLINK_DEBUG_APIV2_WRITEDEBUGREG =  0x35
+STLINK_DEBUG_APIV2_READDEBUGREG  =  0x36
+STLINK_DEBUG_APIV2_READALLREGS   =  0x3A
+STLINK_DEBUG_APIV2_GETLASTRWSTATUS = 0x3B
+STLINK_DEBUG_APIV2_DRIVE_NRST      = 0x3C
+STLINK_DEBUG_APIV2_START_TRACE_RX  = 0x40
+STLINK_DEBUG_APIV2_STOP_TRACE_RX   = 0x41
+STLINK_DEBUG_APIV2_GET_TRACE_NB    = 0x42
+STLINK_DEBUG_APIV2_SWD_SET_FREQ    = 0x43
 
-# debug commands
-DBG_CMD_ENTER_JTAG     = 0x00
-DBG_CMD_GETSTATUS      = 0x01
-DBG_CMD_FORCEDEBUG     = 0x02
-DBG_CMD_RESETSYS       = 0x03
-DBG_CMD_READALLREGS    = 0x04
-DBG_CMD_READREG        = 0x05
-DBG_CMD_WRITEREG       = 0x06
-DBG_CMD_RDMEM_32BIT    = 0x07
-DBG_CMD_WRMEM_32BIT    = 0x08
-DBG_CMD_RUNCORE        = 0x09
-DBG_CMD_STEPCORE       = 0x0a
-DBG_CMD_SETFP          = 0x0b
-DBG_CMD_WRITEMEM_8BIT  = 0x0d
-DBG_CMD_CLEARFP        = 0x0e
-DBG_CMD_WRITEDEBUGREG  = 0x0f
-DBG_CMD_ENTER          = 0x20
-DBG_CMD_EXIT           = 0x21
-DBG_CMD_READCOREID     = 0x22
-DBG_CMD_WRDBG_32BIT    = 0x35
-DBG_CMD_RDDBG_32BIT    = 0x36
-DBG_CMD_ENTER_SWD      = 0xa3
+# STLINK_DEBUG_COMMAND + STLINK_DEBUG_APIVx_ENTER + ...
+STLINK_DEBUG_ENTER_JTAG            = 0x00
+STLINK_DEBUG_ENTER_SWD             = 0xa3
 
-#define STLINK_SWD_ENTER 0x30
-#define STLINK_SWD_READCOREID 0x32  // TBD
+# STLINK_DFU_COMMAND + ...
+STLINK_DFU_EXIT = 0x07
 
-#define STLINK_JTAG_DRIVE_NRST 0x3c
+# STLINK_SWIM_COMMAND + ...
+STLINK_SWIM_ENTER = 0x00
+STLINK_SWIM_EXIT = 0x01
+
+# the current implementation of the stlink limits 8bit read/writes to max 64 bytes
+STLINK_MAX_RW8 = 64
 
 #------------------------------------------------------------------------------
 # map register names to stlink register numbers
@@ -98,6 +120,10 @@ regmap = {
 def append_u32(x, val):
   """append a 32-bit value to a byte buffer"""
   x += Array('B', struct.pack('<I', val))
+
+def append_u16(x, val):
+  """append a 16-bit value to a byte buffer"""
+  x += Array('B', struct.pack('<H', val))
 
 def read_u32(x):
   """read a 32-bit value from a byte buffer"""
@@ -136,89 +162,144 @@ class stlink(object):
 
   def get_version(self):
     """return the ST-Link version"""
-    x = self.send_recv(Array('B', (GET_VERSION,)), 6)
+    x = self.send_recv(Array('B', (STLINK_GET_VERSION,)), 6)
     ver = {}
     ver['stlink_v'] = (x[0] & 0xf0) >> 4
     ver['jtag_v'] = ((x[0] & 0x0f) << 2) | ((x[1] & 0xc0) >> 6)
     ver['swim_v'] = x[1] & 0x3f
     ver['st_vid'] = (x[3] << 8) | x[2]
     ver['stlink_pid'] = (x[5] << 8) | x[4]
+    # set the api version
+    self.api = ('v1', 'v2')[ver['jtag_v'] >= 11]
     return ver
 
-  def get_target_voltage(self):
+  def get_voltage(self):
     """get target voltage in millivolts"""
-    x = self.send_recv(Array('B', (GET_TARGET_VOLTAGE,)), 8)
+    x = self.send_recv(Array('B', (STLINK_GET_TARGET_VOLTAGE,)), 8)
     factor = (x[3] << 24) | (x[2] << 16) | (x[1] << 8) | (x[0] << 0)
     reading = (x[7] << 24) | (x[6] << 16) | (x[5] << 8) | (x[4] << 0)
     voltage = 2400 * reading / factor
     return voltage
 
-  def get_current_mode(self):
-    """get the current mode"""
-    x = self.send_recv(Array('B', (GET_CURRENT_MODE,)), 2)
-    return {0:'dfu',1:'mass',2:'debug'}.get(x[0], None)
+  def get_status(self):
+    """get the status"""
+    assert self.api == 'v1', 'TODO for apiv2'
+    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_GETSTATUS)), 2)
+    return {0x80:'running',0x81:'halted'}.get(x[0], None)
 
   def get_core_id(self):
     """get the core id"""
-    x = self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_READCOREID)), 4)
+    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READCOREID)), 4)
     return read_u32(x)
 
-  def get_status(self):
-    """get the status"""
-    x = self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_GETSTATUS)), 2)
-    return {0x80:'running',0x81:'halted'}.get(x[0], None)
+  def get_current_mode(self):
+    """get the current mode"""
+    x = self.send_recv(Array('B', (STLINK_GET_CURRENT_MODE,)), 2)
+    return {0:'dfu',1:'mass',2:'debug',3:'swim',4:'bootloader'}.get(x[0], None)
 
-  def exit_dfu_mode(self):
-    """exit dfu command"""
-    self.send_recv(Array('B', (DFU_COMMAND, DFU_CMD_EXIT)), 0)
+  def enter_mode(self, mode):
+    """enter mode"""
+    nread = (0, 2)[self.api == 'v2']
+    enter = (STLINK_DEBUG_APIV1_ENTER, STLINK_DEBUG_APIV2_ENTER)[self.api == 'v2']
+    if mode == 'jtag':
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, enter, STLINK_DEBUG_ENTER_JTAG)), nread)
+    elif mode == 'swd':
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, enter, STLINK_DEBUG_ENTER_SWD)), nread)
+    elif mode == 'swim':
+      self.send_recv(Array('B', (STLINK_SWIM_COMMAND, STLINK_SWIM_ENTER)), nread)
+    else:
+      assert False, 'bad mode'
 
-  def enter_swd_mode(self):
-    """enter swd mode"""
-    self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_ENTER, DBG_CMD_ENTER_SWD)), 0)
+  def leave_mode(self, mode):
+    """leave mode"""
+    if mode == 'jtag' or mode == 'swd':
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_EXIT)), 0)
+    elif mode == 'swim':
+      self.send_recv(Array('B', (STLINK_SWIM_COMMAND, STLINK_SWIM_EXIT)), 0)
+    elif mode == 'dfu':
+      self.send_recv(Array('B', (STLINK_DFU_COMMAND, STLINK_DFU_EXIT)), 0)
+    else:
+      assert False, 'bad mode'
 
-  def force_debug_mode(self):
-    """force debug mode"""
-    self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_FORCEDEBUG)), 2)
+
+
+
+
+
+
+
+  def halt(self):
+    """halt the cpu"""
+    assert self.api == 'v1', 'TODO for apiv2'
+    self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_FORCEDEBUG)), 2)
 
   def run(self):
     """make the cpu run"""
-    self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_RUNCORE)), 2)
+    assert self.api == 'v1', 'TODO for apiv2'
+    self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_RUNCORE)), 2)
 
-  def exit_debug_mode(self):
-    """exit debug mode"""
-    self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_EXIT)), 0)
 
-  def rd_reg(self, idx):
-    """read a register value"""
-    x = self.send_recv(Array('B', (DEBUG_COMMAND, DBG_CMD_READREG, idx)), 4)
+
+  def read_reg(self, num):
+    """read a register"""
+    assert self.api == 'v1', 'TODO for apiv2'
+    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_APIV1_READREG, num)), 4)
     return read_u32(x)
 
-  def rd_dbg32(self, adr):
-    """read a 32-bit memory address"""
-    cmd = Array('B', (DEBUG_COMMAND, DBG_CMD_RDDBG_32BIT))
-    append_u32(cmd, adr)
-    x = self.send_recv(cmd, 8)
-    return read_u32(x[4:])
 
-  def wr_dbg32(self, adr, val):
-    """write a 32-bit memory address"""
-    cmd = Array('B', (DEBUG_COMMAND, DBG_CMD_WRDBG_32BIT))
-    append_u32(cmd, adr)
-    append_u32(cmd, val)
-    self.send_recv(cmd, 2)
 
+
+
+
+
+
+  #def rd_dbg32(self, adr):
+    #"""read a 32-bit memory address"""
+    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDDBG_32BIT))
+    #append_u32(cmd, adr)
+    #x = self.send_recv(cmd, 8)
+    #return read_u32(x[4:])
+
+  #def wr_dbg32(self, adr, val):
+    #"""write a 32-bit memory address"""
+    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_WRDBG_32BIT))
+    #append_u32(cmd, adr)
+    #append_u32(cmd, val)
+    #self.send_recv(cmd, 2)
+
+  def rd_mem32(self, adr, n):
+    """read n 32 bit values from memory region"""
+    nbytes = 4 * n
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDMEM_32BIT))
+    append_u32(cmd, adr)
+    append_u16(cmd, nbytes)
+    x = self.send_recv(cmd, nbytes)
+    return [read_u32(x[i:i+4]) for i in xrange(0,nbytes,4)]
 
   #def wr_mem32(self, adr, buf):
     #"""write 32 bit buffer to memory address"""
-    #cmd = Array('B', (DEBUG_COMMAND, DEBUG_WRITEMEM_32BIT))
+    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DEBUG_WRITEMEM_32BIT))
     #cmd += wr_uint32(adr)
     #cmd += wr_uint16(len(buf))
     #self.usb.send(cmd)
     #self.usb.send(buf)
 
+  def rd_mem8(self, adr, n):
+    """read n 8 bit values from memory region"""
+    assert n <= STLINK_MAX_RW8
+    nread = n
+    # fix the read length for single bytes
+    if nread == 1:
+      nread += 1
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDMEM_8BIT))
+    append_u32(cmd, adr)
+    append_u16(cmd, nread)
+    x = self.send_recv(cmd, nread)
+    return [x[i] for i in xrange(n)]
+
   #def wr_mem8(self, adr, buf):
     #"""write 8 bit buffer to memory address"""
-    #cmd = Array('B', (DEBUG_COMMAND, DEBUG_WRITEMEM_8BIT))
+    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DEBUG_WRITEMEM_8BIT))
     #cmd += wr_uint32(adr)
     #cmd += wr_uint16(len(buf))
     #self.usb.send(cmd)
@@ -294,7 +375,7 @@ class dbgio(object):
   def rdmem32(self, adr, n):
     """read n 32 bit values from memory region"""
     assert adr & 3 == 0
-    assert False, 'TODO'
+    return self.stlink.rd_mem32(adr, n)
 
   def rdmem16(self, adr, n):
     """read n 16 bit values from memory region"""
