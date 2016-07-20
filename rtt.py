@@ -128,11 +128,13 @@ class rtt(object):
 
   def cmd_info(self, ui, args):
     """show rtt information"""
-    s = []
+    cols = []
     if self.adr is not None:
-      s.append('rtt address: 0x%08x' % self.adr)
+      cols.append(['rtt address', ': 0x%08x' % self.adr])
       if len(self.t2h) > 0:
-        s.append('\n'.join(['target to host: %s' % str(b) for b in self.t2h]))
+
+['target to host: %s' % str(b) for b in self.t2h]
+        cols.extend((['target to host: %s' % str(b) for b in self.t2h]))
       if len(self.h2t) > 0:
         s.append('\n'.join(['host to target: %s' % str(b) for b in self.h2t]))
     else:
