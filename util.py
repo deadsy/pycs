@@ -121,6 +121,10 @@ def align(adr, width):
   """round down address to a width bits boundary"""
   return adr & ~((width >> 3) - 1)
 
+def mask(width):
+  """return a mask of width bits"""
+  return (1 << width) - 1
+
 def mask_val(val, width):
   """mask a value to width bits"""
   return val & ((1 << width) - 1)

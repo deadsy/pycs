@@ -12,10 +12,12 @@ openocd: ./src/jtag/drivers/stlink_usb.c
 
 import struct
 from array import array as Array
+import time
+
 from usbtools.usbtools import UsbTools
 import usbdev
-
-import time
+import cortexm
+import iobuf
 
 #------------------------------------------------------------------------------
 # supported devices
@@ -100,6 +102,10 @@ STLINK_SWIM_EXIT = 0x01
 # the current implementation of the stlink limits 8bit read/writes to max 64 bytes
 STLINK_MAX_RW8 = 64
 
+# api v1 core state
+STLINK_CORE_RUNNING = 0x80
+STLINK_CORE_HALTED  = 0x81
+
 #------------------------------------------------------------------------------
 # map register names to stlink register numbers
 
@@ -141,16 +147,25 @@ class stlink(object):
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
     self.usb.open(self.vid, self.pid, interface = itf, serial = self.sn)
-    # enter debug mode
-    if self.get_current_mode() == 'dfu':
-      self.exit_dfu_mode()
-    if self.get_current_mode() != 'debug':
-      self.enter_swd_mode()
+    # get the interface information
     ver = self.get_version()
     assert ver['stlink_v'] == 2, 'only version 2 of stlink is supported'
+    # set the api version
+    self.api = ('v1', 'v2')[ver['jtag_v'] >= 11]
+    self.api = 'v1'
+    # enter debug mode
+    if self.get_current_mode() == 'dfu':
+      self.leave_mode('dfu')
+    if self.get_current_mode() != 'debug':
+      self.enter_mode('swd')
+
+  def __del__(self):
+    if self.usb is not None:
+      self.close()
 
   def close(self):
     self.usb.close()
+    self.usb = None
 
   def send_recv(self, data, size):
     """send data, receive size bytes"""
@@ -169,8 +184,6 @@ class stlink(object):
     ver['swim_v'] = x[1] & 0x3f
     ver['st_vid'] = (x[3] << 8) | x[2]
     ver['stlink_pid'] = (x[5] << 8) | x[4]
-    # set the api version
-    self.api = ('v1', 'v2')[ver['jtag_v'] >= 11]
     return ver
 
   def get_voltage(self):
@@ -183,9 +196,17 @@ class stlink(object):
 
   def get_status(self):
     """get the status"""
-    assert self.api == 'v1', 'TODO for apiv2'
-    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_GETSTATUS)), 2)
-    return {0x80:'running',0x81:'halted'}.get(x[0], None)
+    if self.api == 'v2':
+      x = self.rd_dbg32(cortexm.DCB_DHCSR)
+      if x & cortexm.S_HALT:
+        return 'halted'
+      elif x & cortexm.S_RESET_ST:
+        return 'reset'
+      else:
+        return 'running'
+    else:
+      x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_GETSTATUS)), 2)
+      return {STLINK_CORE_RUNNING:'running',STLINK_CORE_HALTED:'halted'}.get(x[0], None)
 
   def get_core_id(self):
     """get the core id"""
@@ -221,13 +242,6 @@ class stlink(object):
     else:
       assert False, 'bad mode'
 
-
-
-
-
-
-
-
   def halt(self):
     """halt the cpu"""
     assert self.api == 'v1', 'TODO for apiv2'
@@ -238,79 +252,108 @@ class stlink(object):
     assert self.api == 'v1', 'TODO for apiv2'
     self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_RUNCORE)), 2)
 
-
-
-  def read_reg(self, num):
+  def rd_reg(self, n):
     """read a register"""
     assert self.api == 'v1', 'TODO for apiv2'
-    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_APIV1_READREG, num)), 4)
+    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_APIV1_READREG, n)), 4)
     return read_u32(x)
 
+  def rd_dbg32(self, adr):
+    """read a 32-bit memory mapped debug register"""
+    assert self.api == 'v2'
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_APIV2_READDEBUGREG))
+    append_u32(cmd, adr)
+    x = self.send_recv(cmd, 8)
+    return read_u32(x[4:])
 
-
-
-
-
-
-
-  #def rd_dbg32(self, adr):
-    #"""read a 32-bit memory address"""
-    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDDBG_32BIT))
-    #append_u32(cmd, adr)
-    #x = self.send_recv(cmd, 8)
-    #return read_u32(x[4:])
-
-  #def wr_dbg32(self, adr, val):
-    #"""write a 32-bit memory address"""
-    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_WRDBG_32BIT))
-    #append_u32(cmd, adr)
-    #append_u32(cmd, val)
-    #self.send_recv(cmd, 2)
+  def wr_dbg32(self, adr, val):
+    """write a 32-bit memory mapped debug register"""
+    x = (STLINK_DEBUG_APIV1_WRITEDEBUGREG, STLINK_DEBUG_APIV2_WRITEDEBUGREG)[self.api == 'v2']
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, x))
+    append_u32(cmd, adr)
+    append_u32(cmd, val)
+    self.send_recv(cmd, 2)
 
   def rd_mem32(self, adr, n):
     """read n 32 bit values from memory region"""
+    assert adr & 3 == 0
     nbytes = 4 * n
-    cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDMEM_32BIT))
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READMEM_32BIT))
     append_u32(cmd, adr)
     append_u16(cmd, nbytes)
     x = self.send_recv(cmd, nbytes)
     return [read_u32(x[i:i+4]) for i in xrange(0,nbytes,4)]
 
-  #def wr_mem32(self, adr, buf):
-    #"""write 32 bit buffer to memory address"""
-    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DEBUG_WRITEMEM_32BIT))
-    #cmd += wr_uint32(adr)
-    #cmd += wr_uint16(len(buf))
-    #self.usb.send(cmd)
-    #self.usb.send(buf)
+  def wr_mem32(self, adr, buf):
+    """write 32 bit buffer to memory address"""
+    assert adr & 3 == 0
+    # convert the 32-bit buffer to a array of bytes
+    buf = iobuf.data_buffer(32, buf)
+    buf.convert(8, 'le')
+    buf = Array('B', buf.buf)
+    # build the command
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_WRITEMEM_32BIT))
+    append_u32(cmd, adr)
+    append_u16(cmd, len(buf))
+    # send the command and buffer
+    self.send_recv(cmd, 0)
+    self.send_recv(buf, 0)
+
+  # note: stlink does not appear to have 16-bit rd/wr operations,
+  # We fake 16-bit rd/wr with 8-bit operations. This could be a
+  # problem for hardware that needs a real 16-bit load/store.
+
+  def rd_mem16(self, adr, n):
+    """read n 16 bit values from memory region"""
+    assert adr & 1 == 0
+    nbytes = 2 * n
+    # do an 8 bit read
+    buf = self.rd_mem8(adr, nbytes)
+    # convert the 8-bit buffer to a 16-bit buffer
+    buf = iobuf.data_buffer(8, buf)
+    buf.convert(16, 'le')
+    return buf.buf
+
+  def wr_mem16(self, adr, buf):
+    """write 16 bit buffer to memory address"""
+    assert adr & 1 == 0
+    # convert the 16-bit buffer to a array of bytes
+    buf = iobuf.data_buffer(16, buf)
+    buf.convert(8, 'le')
+    # do an 8-bit write
+    self.wr_mem8(adr, buf.buf)
 
   def rd_mem8(self, adr, n):
     """read n 8 bit values from memory region"""
     assert n <= STLINK_MAX_RW8
-    nread = n
+    # build the command
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READMEM_8BIT))
+    append_u32(cmd, adr)
+    append_u16(cmd, n)
     # fix the read length for single bytes
+    nread = n
     if nread == 1:
       nread += 1
-    cmd = Array('B', (STLINK_DEBUG_COMMAND, DBG_CMD_RDMEM_8BIT))
-    append_u32(cmd, adr)
-    append_u16(cmd, nread)
     x = self.send_recv(cmd, nread)
     return [x[i] for i in xrange(n)]
 
-  #def wr_mem8(self, adr, buf):
-    #"""write 8 bit buffer to memory address"""
-    #cmd = Array('B', (STLINK_DEBUG_COMMAND, DEBUG_WRITEMEM_8BIT))
-    #cmd += wr_uint32(adr)
-    #cmd += wr_uint16(len(buf))
-    #self.usb.send(cmd)
-    #self.usb.send(buf)
-
+  def wr_mem8(self, adr, buf):
+    """write 8 bit buffer to memory address"""
+    # convert the 8-bit buffer to a array of bytes
+    buf = Array('B', buf)
+    # build the command
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_WRITEMEM_8BIT))
+    append_u32(cmd, adr)
+    append_u16(cmd, len(buf))
+    # send the command and buffer
+    self.send_recv(cmd, 0)
+    self.send_recv(buf, 0)
 
   def __str__(self):
     """return a string for basic device description"""
     s = []
     s.append('ST-Link usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
-    s.append('target voltage %.3fV' % (float(self.get_target_voltage()) / 1000.0))
+    s.append('target voltage %.3fV' % (float(self.get_voltage()) / 1000.0))
     return '\n'.join(s)
 
 #------------------------------------------------------------------------------
@@ -337,7 +380,7 @@ class dbgio(object):
     self.cpu_name = cpu_name
     self.dbg_itf = itf
     self.stlink = stlink(self.vid, self.pid, self.sn)
-    vref = self.stlink.get_target_voltage()
+    vref = self.stlink.get_voltage()
     # check VREF
     assert vref > 1500, 'Vref is too low. Check target power.'
 
@@ -355,7 +398,7 @@ class dbgio(object):
 
   def halt(self):
     """halt the cpu"""
-    self.stlink.force_debug_mode()
+    self.stlink.halt()
 
   def go(self):
     """put the cpu into running mode"""
@@ -363,70 +406,58 @@ class dbgio(object):
 
   def rdreg(self, reg):
     """read the named register"""
-    idx = regmap.get(reg, None)
-    if idx is None:
+    n = regmap.get(reg, None)
+    if n is None:
       return None
-    return self.stlink.rd_reg(idx)
-
-  def rd_pc(self):
-    """read the program counter"""
-    return self.rd_reg('pc')
+    return self.stlink.rd_reg(n)
 
   def rdmem32(self, adr, n):
     """read n 32 bit values from memory region"""
-    assert adr & 3 == 0
     return self.stlink.rd_mem32(adr, n)
 
   def rdmem16(self, adr, n):
     """read n 16 bit values from memory region"""
-    assert adr & 1 == 0
-    assert False, 'TODO'
+    return self.stlink.rd_mem16(adr, n)
 
   def rdmem8(self, adr, n):
     """read n 8 bit values from memory region"""
-    assert False, 'TODO'
+    return self.stlink.rd_mem8(adr, n)
 
   def rd32(self, adr):
     """read 32 bit value from adr"""
-    assert adr & 3 == 0
-    return self.stlink.rd_dbg32(adr)
+    return self.stlink.rd_mem32(adr, 1)[0]
 
   def rd16(self, adr):
     """read 16 bit value from adr"""
-    assert adr & 1 == 0
-    assert False, 'TODO'
+    return self.stlink.rd_mem16(adr, 1)[0]
 
   def rd8(self, adr):
     """read 8 bit value from adr"""
-    assert False, 'TODO'
+    return self.stlink.rd_mem8(adr, 1)[0]
 
   def wrmem32(self, adr, buf):
     """write buffer of 32 bit values to memory region"""
-    assert adr & 3 == 0
-    assert False, 'TODO'
+    return self.stlink.wr_mem32(adr, buf)
 
   def wrmem16(self, adr, buf):
     """write buffer of 16 bit values to memory region"""
-    assert adr & 1 == 0
-    assert False, 'TODO'
+    return self.stlink.wr_mem16(adr, buf)
 
   def wrmem8(self, adr, buf):
     """write buffer of 8 bit values to memory region"""
-    assert False, 'TODO'
+    return self.stlink.wr_mem8(adr, buf)
 
   def wr32(self, adr, val):
     """write 32 bit value to adr"""
-    assert adr & 3 == 0
-    return self.stlink.wr_dbg32(adr, val)
+    return self.stlink.wr_mem32(adr, (val,))
 
   def wr16(self, adr, val):
     """write 16 bit value to adr"""
-    assert adr & 1 == 0
-    assert False, 'TODO'
+    return self.stlink.wr_mem16(adr, (val,))
 
   def wr8(self, adr, val):
     """write 8 bit value to adr"""
-    assert False, 'TODO'
+    return self.stlink.wr_mem8(adr, (val,))
 
   def __str__(self):
     s = []

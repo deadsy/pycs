@@ -347,9 +347,6 @@ class JLink(object):
     fn.argtypes = [ctypes.c_int]
     return fn(ctypes.c_int(idx))
 
-  def rd_pc(self):
-    return self.rdreg('pc')
-
   def cp15_is_present(self):
     # int JLINKARM_CP15_IsPresent(void);
     fn = self.jl.JLINKARM_CP15_IsPresent

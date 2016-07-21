@@ -15,6 +15,27 @@ import soc
 
 # -----------------------------------------------------------------------------
 
+# Debug Control Block
+DCB_DHCSR = 0xE000EDF0
+DCB_DCRSR = 0xE000EDF4
+DCB_DCRDR = 0xE000EDF8
+DCB_DEMCR = 0xE000EDFC
+
+# DCB_DHCSR bit and field definitions
+DBGKEY      = (0xA05F << 16)
+C_DEBUGEN   = (1 << 0)
+C_HALT      = (1 << 1)
+C_STEP      = (1 << 2)
+C_MASKINTS  = (1 << 3)
+S_REGRDY    = (1 << 16)
+S_HALT      = (1 << 17)
+S_SLEEP     = (1 << 18)
+S_LOCKUP    = (1 << 19)
+S_RETIRE_ST = (1 << 24)
+S_RESET_ST  = (1 << 25)
+
+# -----------------------------------------------------------------------------
+
 help_disassemble = (
     ('[adr] [len]', 'address (hex) - default is current pc'),
     ('', 'length (hex) - default is 0x10'),
@@ -234,7 +255,7 @@ class cortexm(object):
     if len(args) == 0:
       # read the pc
       self.halt()
-      adr = self.dbgio.rd_pc()
+      adr = self.dbgio.rdreg('pc')
     if len(args) >= 1:
       adr = util.sex_arg(ui, args[0], 32)
       if adr is None:

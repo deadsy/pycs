@@ -198,7 +198,8 @@ class data_buffer(object):
     self.width = width
     self.buf = []
     if data:
-      self.buf = [util.mask_val(x, self.width) for x in data]
+      mask = util.mask(self.width)
+      self.buf = [x & mask for x in data]
     self.wr_idx = len(self.buf)
     self.rd_idx = 0
 
@@ -291,7 +292,19 @@ class data_buffer(object):
       # nothing to do
       return
     elif self.width == 8:
-      assert False, 'TODO: unsupported conversion from 8 to 16 bits'
+      # round up to a multiple of 2 bytes
+      n = len(self.buf) & 1
+      self.buf.extend((0,) * n)
+      new_buf = []
+      for i in range(0, len(self.buf), 2):
+        if mode == 'be':
+          # big endian conversion
+          val = (self.buf[i] << 8) | self.buf[i+1]
+        else:
+          # little endian conversion
+          val = self.buf[i] | (self.buf[i+1] << 8)
+        new_buf.append(val)
+      self.buf = new_buf
     else:
       assert False, 'conversion error: width %d' % self.width
     # reset the buffer indices
