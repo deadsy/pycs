@@ -128,8 +128,7 @@ class cortexm(object):
       return self.dbgio.rd16(adr)
     elif n == 8:
       return self.dbgio.rd8(adr)
-    else:
-      return 0
+    assert False
 
   def wr(self, adr, val, n):
     """write to memory - n bits aligned"""
@@ -140,30 +139,19 @@ class cortexm(object):
       return self.dbgio.wr16(adr, val)
     elif n == 8:
       return self.dbgio.wr8(adr, val)
-    else:
-      return 0
+    assert False
 
   def rdmem32(self, adr, n, io):
-    """read n 32 bit words from memory starting at adr"""
-    max_words = 16
-    while n > 0:
-      nread = (n, max_words)[n >= max_words]
-      [io.wr32(x) for x in self.dbgio.rdmem32(adr, nread)]
-      n -= nread
-      adr += nread * 4
+    """read n 32-bit words from memory starting at adr"""
+    self.dbgio.rdmem32(adr, n, io)
 
   def rdmem8(self, adr, n, io):
-    """read n 8 bit words from memory starting at adr"""
-    max_bytes = 64
-    while n > 0:
-      nread = (n, max_bytes)[n >= max_bytes]
-      [io.wr8(x) for x in self.dbgio.rdmem8(adr, nread)]
-      n -= nread
-      adr += nread
+    """read n 8-bit words from memory starting at adr"""
+    self.dbgio.rdmem8(adr, n, io)
 
   def wrmem32(self, adr, n, io):
-    """write n 32 bit words to memory starting at adr"""
-    self.dbgio.wrmem32(adr, [io.rd32() for i in range(n)])
+    """write n 32-bit words to memory starting at adr"""
+    self.dbgio.wrmem32(adr, n, io)
 
   def halt(self, msg=False):
     """halt the cpu"""

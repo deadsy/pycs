@@ -473,17 +473,44 @@ class dbgio(object):
       return None
     return self.jlink.rdreg(n)
 
-  def rdmem32(self, adr, n):
-    """read n 32 bit values from memory region"""
-    return self.jlink.rdmem32(adr, n)
+  def rdmem32(self, adr, n, io):
+    """read n 32-bit values from memory region"""
+    max_n = 16
+    while n > 0:
+      nread = (n, max_n)[n >= max_n]
+      [io.wr32(x) for x in self.jlink.rdmem32(adr, nread)]
+      n -= nread
+      adr += nread * 4
 
-  def rdmem16(self, adr, n):
-    """read n 16 bit values from memory region"""
-    return self.jlink.rdmem16(adr, n)
+  def rdmem16(self, adr, n, io):
+    """read n 16-bit values from memory region"""
+    max_n = 32
+    while n > 0:
+      nread = (n, max_n)[n >= max_n]
+      [io.wr16(x) for x in self.jlink.rdmem16(adr, nread)]
+      n -= nread
+      adr += nread * 2
 
-  def rdmem8(self, adr, n):
-    """read n 8 bit values from memory region"""
-    return self.jlink.rdmem8(adr, n)
+  def rdmem8(self, adr, n, io):
+    """read n 8-bit values from memory region"""
+    max_n = 64
+    while n > 0:
+      nread = (n, max_n)[n >= max_n]
+      [io.wr8(x) for x in self.jlink.rdmem8(adr, nread)]
+      n -= nread
+      adr += nread
+
+  def wrmem32(self, adr, n, io):
+    """write n 32-bit words to memory starting at adr"""
+    self.jlink.wrmem32(adr, [io.rd32() for i in range(n)])
+
+  def wrmem16(self, adr, n, io):
+    """write n 16-bit words to memory starting at adr"""
+    self.jlink.wrmem16(adr, [io.rd16() for i in range(n)])
+
+  def wrmem8(self, adr, n, io):
+    """write n 8-bit words to memory starting at adr"""
+    self.jlink.wrmem8(adr, [io.rd8() for i in range(n)])
 
   def rd32(self, adr):
     """read 32 bit value from adr"""
@@ -496,18 +523,6 @@ class dbgio(object):
   def rd8(self, adr):
     """read 8 bit value from adr"""
     return self.jlink.rdmem8(adr, 1)[0]
-
-  def wrmem32(self, adr, buf):
-    """write buffer of 32 bit values to memory region"""
-    return self.jlink.wrmem32(adr, buf)
-
-  def wrmem16(self, adr, buf):
-    """write buffer of 16 bit values to memory region"""
-    return self.jlink.wrmem16(adr, buf)
-
-  def wrmem8(self, adr, buf):
-    """write buffer of 8 bit values to memory region"""
-    return self.jlink.wrmem8(adr, buf)
 
   def wr32(self, adr, val):
     """write 32 bit value to adr"""
