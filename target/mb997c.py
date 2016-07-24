@@ -14,6 +14,7 @@ import soc
 import flash
 import gpio
 import i2c
+import rtt
 
 import vendor.st.st as vendor
 import vendor.st.flash as flash_driver
@@ -92,6 +93,9 @@ class target(object):
     self.gpio = gpio.gpio(gpio_drv)
     self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB9'))
     self.dac = dac.cs43l22(self.i2c, 0x94, self.dac_reset)
+    # setup the rtt client
+    ram = self.device.sram
+    self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -109,6 +113,7 @@ class target(object):
       ('mem', self.mem.menu, 'memory functions'),
       ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
+      ('rtt', self.rtt.menu, 'rtt client functions'),
       ('vtable', self.cpu.cmd_vtable),
     )
 

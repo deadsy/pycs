@@ -31,10 +31,11 @@ class rtt_buf(object):
     self.buf_adr = self.cpu.rd(self.adr + 4, 32)
     # get the buffer size
     self.buf_size = self.cpu.rd(self.adr + 8, 32)
+    # get the flags
+    self.flags = self.cpu.rd(self.adr + 20, 32)
     # record the other addresses for future reference
     self.wr_ofs_adr = self.adr + 12
     self.rd_ofs_adr = self.adr + 16
-    self.flags_adr = self.adr + 20
 
   def get_name(self, adr):
     if adr == 0:
@@ -52,11 +53,9 @@ class rtt_buf(object):
     """poll this buffer"""
     wr_ofs = self.cpu.rd(self.wr_ofs_adr, 32)
     rd_ofs = self.cpu.rd(self.rd_ofs_adr, 32)
-    flags = self.cpu.rd(self.flags_adr, 32)
 
-    ui.put('wr ofs %x\n' % wr_ofs)
-    ui.put('rd ofs %x\n' % rd_ofs)
-    ui.put('flags %x\n' % flags)
+    ui.put('wr ofs 0x%x\n' % wr_ofs)
+    ui.put('rd ofs 0x%x\n' % rd_ofs)
 
     if wr_ofs != rd_ofs:
       buf = iobuf.data_buffer(8)
@@ -68,10 +67,11 @@ class rtt_buf(object):
         self.cpu.rdmem8(self.buf_adr + rd_ofs, self.buf_size - rd_ofs, buf)
         # read to write offset
         self.cpu.rdmem8(self.buf_adr, wr_ofs, buf)
-    self.cpu.wr(self.rd_ofs_adr, wr_ofs, 32)
-
-    ui.put('%d bytes read\n' % len(buf))
-    ui.put('%s\n' % buf.ascii_str())
+      self.cpu.wr(self.rd_ofs_adr, wr_ofs, 32)
+      ui.put('%d bytes read\n' % len(buf))
+      ui.put('%s\n' % buf.ascii_str())
+    else:
+      ui.put('0 bytes read\n')
 
   def __str__(self):
     return '%s %d bytes @ 0x%08x' % (self.name, self.buf_size, self.buf_adr)

@@ -373,8 +373,6 @@ class dbgio(object):
       ('info', self.cmd_info),
     )
 
-  # public functions
-
   def connect(self, cpu_name, itf):
     """connect the debugger to the target"""
     self.cpu_name = cpu_name
@@ -460,8 +458,6 @@ class dbgio(object):
     return self.stlink.wr_mem8(adr, (val,))
 
   def __str__(self):
-    s = []
-    s.append(str(self.stlink))
-    return '\n'.join(s)
+    return str(self.stlink)
 
 #------------------------------------------------------------------------------

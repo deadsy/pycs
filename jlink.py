@@ -118,68 +118,11 @@ def get_jlink_dll():
 class JLink(object):
 
   def __init__(self, idx = 0):
-    """no actual operations, record the selected usb device"""
     self.usb_idx = idx
-    self.cpu_name = None
-    self.itf = None
-    self.menu = (
-      ('info', self.cmd_info),
-    )
-
-  def connect(self, cpu_name, itf):
-    """connect the debugger to the target"""
-    self.cpu_name = cpu_name
-    self.itf = {'swd':_JLINKARM_TIF_SWD,'jtag':_JLINKARM_TIF_JTAG}[itf]
-    timeout = 10
-    retried = False
-    t0 = time.time()
-    elapsed = -1
-    while time.time() < t0 + timeout:
-      self.jl, self.jlink_lib_name = get_jlink_dll()
-      try:
-        self.jlink_init()
-        if retried:
-          print 'success'
-        return
-      except JLinkException, x:
-        if x.args[0] == -258:
-          new_elapsed = int(time.time() - t0)
-          if new_elapsed != elapsed:
-            elapsed = new_elapsed
-            print timeout - elapsed,
-            sys.stdout.flush()
-          retried = True
-          continue
-        else:
-          raise
-    else:
-      raise
-
-  def disconnect(self):
-    """disconnect the debugger from the target"""
-    self.jlink_close()
-
-  def jlink_init(self):
+    # load the library
+    self.jl, self.jlink_lib_name = get_jlink_dll()
     self.select_usb(self.usb_idx)
     self.jlink_open()
-    state = self.get_hw_status()
-    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
-    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
-    self.exec_command('device=%s' % cpu_names[self.cpu_name])
-    self.set_speed(4000)
-    self.tif_select(self.itf)
-    self.jlink_connect()
-
-  def cmd_info(self, ui, args):
-    """display jlink information"""
-    ui.put('%s\n' % self)
-
-  def __str__(self):
-    s = []
-    s.append('jlink library v%d %s' % (self.get_dll_version(), self.get_compile_data_time()))
-    s.append('jlink device v%d sn%d %s' % (self.get_hw_version(), self.get_sn(), self.get_fw_string()))
-    s.append('target voltage %.3fV' % (float(self.get_hw_status()['vref']) / 1000.0))
-    return '\n'.join(s)
 
   def get_dll_version(self):
     # int JLINKARM_GetDLLVersion(void);
@@ -339,9 +282,6 @@ class JLink(object):
 
   def rdreg(self, reg):
     # uint32_t JLINKARM_ReadReg(int reg);
-    idx = regmap.get(reg, None)
-    if idx is None:
-      return None
     fn = self.jl.JLINKARM_ReadReg
     fn.restype = ctypes.c_uint32
     fn.argtypes = [ctypes.c_int]
@@ -408,27 +348,19 @@ class JLink(object):
       raise JLinkException('JLINKARM_ReadMemU8 status = %d (0x%08x)' % (status.value, base))
     return [buf[i] for i in range(n)]
 
-  def rd32(self, adr):
-    return self.rdmem32(adr, 1)[0]
-
-  def rd16(self, adr):
-    return self.rdmem16(adr, 1)[0]
-
-  def rd8(self, adr):
-    return self.rdmem8(adr, 1)[0]
-
-  # Note1: I'm not sure what the underlying store is for JLINKARM_WriteMem.
-  # It stores an arbitrary number of bytes without overwriting adjacent memory locations,
-  # but does it do 32 bit stores when it can? I'm not sure. If you want to ensure 8/16/32
-  # stores then the JLINKARM_WriteU8/16/32 calls might be a better bet. But I'm not sure
-  # how they work either.
-
-  # Note2: I use JLINKARM_WriteMem for writing nand page data to the controller cache.
-  # It works and is much faster than doing individual calls to JLINKARM_WriteU32.
-
   def wrmem32(self, adr, buf):
     """write a buffer of 32 bit values to a memory region"""
     # void JLINKARM_WriteMem(U32 addr, U32 count, const void * p);
+
+    # Note1: I'm not sure what the underlying store is for JLINKARM_WriteMem.
+    # It stores an arbitrary number of bytes without overwriting adjacent memory locations,
+    # but does it do 32 bit stores when it can? I'm not sure. If you want to ensure 8/16/32
+    # stores then the JLINKARM_WriteU8/16/32 calls might be a better bet. But I'm not sure
+    # how they work either.
+
+    # Note2: I use JLINKARM_WriteMem for writing nand page data to the controller cache.
+    # It works and is much faster than doing individual calls to JLINKARM_WriteU32.
+
     fn = self.jl.JLINKARM_WriteMem
     fn.restype = None
     fn.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p]
@@ -479,5 +411,117 @@ class JLink(object):
     fn.restype = None
     fn.argtypes = [ctypes.c_uint32, ctypes.c_uint8]
     fn(ctypes.c_uint32(adr), ctypes.c_uint8(val))
+
+  def __str__(self):
+    s = []
+    s.append('jlink library v%d %s' % (self.get_dll_version(), self.get_compile_data_time()))
+    s.append('jlink device v%d sn%d %s' % (self.get_hw_version(), self.get_sn(), self.get_fw_string()))
+    s.append('target voltage %.3fV' % (float(self.get_hw_status()['vref']) / 1000.0))
+    return '\n'.join(s)
+
+# ----------------------------------------------------------------------------
+
+class dbgio(object):
+  """JLink implementation of dbgio cpu interface"""
+
+  def __init__(self, idx = 0):
+    """no actual operations, record the selected usb device"""
+    self.usb_idx = idx
+    self.menu = (
+      ('info', self.cmd_info),
+    )
+
+  def connect(self, cpu_name, itf):
+    """connect the debugger to the target"""
+      # create the jlink interface
+    self.jlink = JLink(self.usb_idx)
+    # check the hardware
+    state = self.jlink.get_hw_status()
+    assert state['vref'] > 1500, 'Vref is too low. Check target power.'
+    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
+    # setup the jlink interface
+    self.jlink.exec_command('device=%s' % cpu_names[cpu_name])
+    self.jlink.set_speed(4000)
+    itf = {'swd':_JLINKARM_TIF_SWD,'jtag':_JLINKARM_TIF_JTAG}[itf]
+    self.jlink.tif_select(itf)
+    self.jlink.jlink_connect()
+
+  def disconnect(self):
+    """disconnect the debugger from the target"""
+    self.jlink.jlink_close()
+
+  def cmd_info(self, ui, args):
+    """display jlink information"""
+    ui.put('%s\n' % self)
+
+  def is_halted(self):
+    """return True if target is halted"""
+    return self.jlink.is_halted()
+
+  def halt(self):
+    """halt the cpu"""
+    self.jlink.halt()
+
+  def go(self):
+    """put the cpu into running mode"""
+    self.jlink.go()
+
+  def rdreg(self, reg):
+    """read the named register"""
+    n = regmap.get(reg, None)
+    if n is None:
+      return None
+    return self.jlink.rdreg(n)
+
+  def rdmem32(self, adr, n):
+    """read n 32 bit values from memory region"""
+    return self.jlink.rdmem32(adr, n)
+
+  def rdmem16(self, adr, n):
+    """read n 16 bit values from memory region"""
+    return self.jlink.rdmem16(adr, n)
+
+  def rdmem8(self, adr, n):
+    """read n 8 bit values from memory region"""
+    return self.jlink.rdmem8(adr, n)
+
+  def rd32(self, adr):
+    """read 32 bit value from adr"""
+    return self.jlink.rdmem32(adr, 1)[0]
+
+  def rd16(self, adr):
+    """read 16 bit value from adr"""
+    return self.jlink.rdmem16(adr, 1)[0]
+
+  def rd8(self, adr):
+    """read 8 bit value from adr"""
+    return self.jlink.rdmem8(adr, 1)[0]
+
+  def wrmem32(self, adr, buf):
+    """write buffer of 32 bit values to memory region"""
+    return self.jlink.wrmem32(adr, buf)
+
+  def wrmem16(self, adr, buf):
+    """write buffer of 16 bit values to memory region"""
+    return self.jlink.wrmem16(adr, buf)
+
+  def wrmem8(self, adr, buf):
+    """write buffer of 8 bit values to memory region"""
+    return self.jlink.wrmem8(adr, buf)
+
+  def wr32(self, adr, val):
+    """write 32 bit value to adr"""
+    return self.jlink.wr32(adr, val)
+
+  def wr16(self, adr, val):
+    """write 16 bit value to adr"""
+    return self.jlink.wr16(adr, val)
+
+  def wr8(self, adr, val):
+    """write 8 bit value to adr"""
+    return self.jlink.wr8(adr, val)
+
+  def __str__(self):
+    return str(self.jlink)
 
 # ----------------------------------------------------------------------------
