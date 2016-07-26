@@ -8,6 +8,7 @@ import math
 import util
 import iobuf
 import time
+import random
 
 # -----------------------------------------------------------------------------
 
@@ -111,6 +112,7 @@ class mem(object):
       ('rd8', self.cmd_rd8, _help_mem_rd),
       ('rd16', self.cmd_rd16, _help_mem_rd),
       ('rd32', self.cmd_rd32, _help_mem_rd),
+      ('test', self.cmd_test, _help_mem_region),
       ('verify', self.cmd_verify, _help_mem_verify),
       ('wr8', self.cmd_wr8, _help_mem_wr),
       ('wr16', self.cmd_wr16, _help_mem_wr),
@@ -354,5 +356,33 @@ class mem(object):
     t_end = time.time()
     ui.put('%s\n' % data.md5('le'))
     ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
+
+  def cmd_test(self, ui, args):
+    """test memory with a write and readback"""
+    x = util.mem_args(ui, args, self.cpu.device)
+    if x is None:
+      return
+    (adr, n) = x
+    if n == 0:
+      return
+    if n is None:
+      n = 0x40
+    # round down address to 32-bit byte boundary
+    adr &= ~3
+    # round up n to an integral multiple of 4 bytes
+    n = (n + 3) & ~3
+    # build a random buffer
+    nwords = n / 4
+    data = iobuf.data_buffer(32)
+    [data.wr32(random.randint(0,0xffffffff)) for i in xrange(nwords)]
+    # write it to memory
+    t_start = time.time()
+    self.cpu.wrmem32(adr, nwords, data)
+    t_end = time.time()
+
+    ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
+
+
+
 
 # -----------------------------------------------------------------------------

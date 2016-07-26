@@ -226,12 +226,28 @@ class data_buffer(object):
     else:
       assert False, 'buffer write error: more than 1 off the end'
 
+  def rd32(self):
+    assert self.width == 32
+    return self.read()
+
+  def rd16(self):
+    assert self.width == 16
+    return self.read()
+
+  def rd8(self):
+    assert self.width == 8
+    return self.read()
+
   def wr32(self, val):
-    assert self.width == 32, 'width is not 32 bits'
+    assert self.width == 32
+    self.write(val)
+
+  def wr16(self, val):
+    assert self.width == 16
     self.write(val)
 
   def wr8(self, val):
-    assert self.width == 8, 'width is not 8 bits'
+    assert self.width == 8
     self.write(val)
 
   def convert8(self, mode):

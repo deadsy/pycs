@@ -416,15 +416,22 @@ class dbgio(object):
 
   def wrmem32(self, adr, n, io):
     """write n 32-bit words to memory starting at adr"""
-    return self.stlink.wr_mem32(adr, [io.rd32() for i in xrange(n)])
+    # maximum write length is limited by the 16-bit length field
+    max_n = 0x3fff
+    while n > 0:
+      nwrite = (n, max_n)[n >= max_n]
+      self.stlink.wr_mem32(adr, [io.rd32() for i in xrange(nwrite)])
+      n -= nwrite
+      adr += nwrite * 4
 
   def wrmem16(self, adr, n, io):
     """write n 16-bit words to memory starting at adr"""
-    return self.stlink.wr_mem16(adr, [io.rd16() for i in xrange(n)])
+    assert False
+    self.stlink.wr_mem16(adr, [io.rd16() for i in xrange(n)])
 
   def wrmem8(self, adr, n, io):
     """write n 8-bit words to memory starting at adr"""
-    return self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(n)])
+    self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(n)])
 
   def rd32(self, adr):
     """read 32 bit value from adr"""
@@ -432,6 +439,7 @@ class dbgio(object):
 
   def rd16(self, adr):
     """read 16 bit value from adr"""
+    assert False
     return self.stlink.rd_mem16(adr, 1)[0]
 
   def rd8(self, adr):
@@ -444,6 +452,7 @@ class dbgio(object):
 
   def wr16(self, adr, val):
     """write 16 bit value to adr"""
+    assert False
     return self.stlink.wr_mem16(adr, (val,))
 
   def wr8(self, adr, val):
