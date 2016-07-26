@@ -89,8 +89,8 @@ STLINK_DEBUG_APIV2_GET_TRACE_NB    = 0x42
 STLINK_DEBUG_APIV2_SWD_SET_FREQ    = 0x43
 
 # STLINK_DEBUG_COMMAND + STLINK_DEBUG_APIVx_ENTER + ...
-STLINK_DEBUG_ENTER_JTAG            = 0x00
-STLINK_DEBUG_ENTER_SWD             = 0xa3
+STLINK_DEBUG_ENTER_JTAG = 0x00
+STLINK_DEBUG_ENTER_SWD = 0xa3
 
 # STLINK_DFU_COMMAND + ...
 STLINK_DFU_EXIT = 0x07
@@ -98,9 +98,6 @@ STLINK_DFU_EXIT = 0x07
 # STLINK_SWIM_COMMAND + ...
 STLINK_SWIM_ENTER = 0x00
 STLINK_SWIM_EXIT = 0x01
-
-# the current implementation of the stlink limits 8bit read/writes to max 64 bytes
-STLINK_MAX_RW8 = 64
 
 # api v1 core state
 STLINK_CORE_RUNNING = 0x80
@@ -253,10 +250,22 @@ class stlink(object):
     self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_RUNCORE)), 2)
 
   def rd_reg(self, n):
-    """read a register"""
-    assert self.api == 'v1', 'TODO for apiv2'
-    x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_APIV1_READREG, n)), 4)
-    return read_u32(x)
+    """read from a register"""
+    x = (STLINK_DEBUG_APIV1_READREG, STLINK_DEBUG_APIV2_READREG)[self.api == 'v2']
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, x, n))
+    if self.api == 'v1':
+      x = self.send_recv(cmd, 4)
+      return read_u32(x)
+    else:
+      x = self.send_recv(cmd, 8)
+      return read_u32(x[4:])
+
+  def wr_reg(self, n, val):
+    """write to a register"""
+    x = (STLINK_DEBUG_APIV1_WRITEREG, STLINK_DEBUG_APIV2_WRITEREG)[self.api == 'v2']
+    cmd = Array('B', (STLINK_DEBUG_COMMAND, x, n))
+    append_u32(cmd, val)
+    self.send_recv(cmd, 2)
 
   def rd_dbg32(self, adr):
     """read a 32-bit memory mapped debug register"""
@@ -275,7 +284,7 @@ class stlink(object):
     self.send_recv(cmd, 2)
 
   def rd_mem32(self, adr, n):
-    """read n 32 bit values from memory region"""
+    """read n 32-bit values from memory region"""
     assert adr & 3 == 0
     nbytes = 4 * n
     cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READMEM_32BIT))
@@ -285,7 +294,7 @@ class stlink(object):
     return [read_u32(x[i:i+4]) for i in xrange(0,nbytes,4)]
 
   def wr_mem32(self, adr, buf):
-    """write 32 bit buffer to memory address"""
+    """write 32-bit buffer to memory address"""
     assert adr & 3 == 0
     # convert the 32-bit buffer to a array of bytes
     buf = iobuf.data_buffer(32, buf)
@@ -300,7 +309,7 @@ class stlink(object):
     self.send_recv(buf, 0)
 
   def rd_mem8(self, adr, n):
-    """read n 8 bit values from memory region"""
+    """read n 8-bit values from memory region"""
     # build the command
     cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READMEM_8BIT))
     append_u32(cmd, adr)
@@ -378,11 +387,18 @@ class dbgio(object):
     self.stlink.run()
 
   def rdreg(self, reg):
-    """read the named register"""
+    """read from the named register"""
     n = regmap.get(reg, None)
     if n is None:
       return None
     return self.stlink.rd_reg(n)
+
+  def wrreg(self, reg, val):
+    """write to the named register"""
+    n = regmap.get(reg, None)
+    if n is None:
+      return
+    self.stlink.wr_reg(n, val)
 
   def rdmem32(self, adr, n, io):
     """read n 32-bit words from memory starting at adr"""
