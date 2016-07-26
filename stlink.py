@@ -409,17 +409,37 @@ class dbgio(object):
       return None
     return self.stlink.rd_reg(n)
 
-  def rdmem32(self, adr, n):
+  def rdmem32(self, adr, n, io):
     """read n 32 bit values from memory region"""
-    return self.stlink.rd_mem32(adr, n)
+    max_n = 0x5ff
+    while n > 0:
+      nread = (n, max_n)[n >= max_n]
+      # avoid reads that are a multiple of 16 x 32-bit, they are slow
+      if nread & 15 == 0:
+        nread -= 1
+      [io.wr32(x) for x in self.stlink.rd_mem32(adr, nread)]
+      n -= nread
+      adr += nread * 4
 
   def rdmem16(self, adr, n):
     """read n 16 bit values from memory region"""
-    return self.stlink.rd_mem16(adr, n)
+    [io.wr16(x) for x in self.stlink.rd_mem16(adr, n)]
 
   def rdmem8(self, adr, n):
     """read n 8 bit values from memory region"""
-    return self.stlink.rd_mem8(adr, n)
+    [io.wr8(x) for x in self.stlink.rd_mem8(adr, n)]
+
+  def wrmem32(self, adr, n, io):
+    """write buffer of 32 bit values to memory region"""
+    return self.stlink.wr_mem32(adr, [io.rd32() for i in xrange(n)])
+
+  def wrmem16(self, adr, n, io):
+    """write buffer of 16 bit values to memory region"""
+    return self.stlink.wr_mem16(adr, [io.rd16() for i in xrange(n)])
+
+  def wrmem8(self, adr, n, io):
+    """write buffer of 8 bit values to memory region"""
+    return self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(n)])
 
   def rd32(self, adr):
     """read 32 bit value from adr"""
@@ -432,18 +452,6 @@ class dbgio(object):
   def rd8(self, adr):
     """read 8 bit value from adr"""
     return self.stlink.rd_mem8(adr, 1)[0]
-
-  def wrmem32(self, adr, buf):
-    """write buffer of 32 bit values to memory region"""
-    return self.stlink.wr_mem32(adr, buf)
-
-  def wrmem16(self, adr, buf):
-    """write buffer of 16 bit values to memory region"""
-    return self.stlink.wr_mem16(adr, buf)
-
-  def wrmem8(self, adr, buf):
-    """write buffer of 8 bit values to memory region"""
-    return self.stlink.wr_mem8(adr, buf)
 
   def wr32(self, adr, val):
     """write 32 bit value to adr"""

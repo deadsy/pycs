@@ -7,6 +7,7 @@ Memory Functions
 import math
 import util
 import iobuf
+import time
 
 # -----------------------------------------------------------------------------
 
@@ -348,7 +349,10 @@ class mem(object):
     if n > (16 << 10):
       ui.put('reading memory ...\n')
     data = iobuf.data_buffer(32)
+    t_start = time.time()
     self.cpu.rdmem32(adr, n/4, data)
+    t_end = time.time()
     ui.put('%s\n' % data.md5('le'))
+    ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
 
 # -----------------------------------------------------------------------------
