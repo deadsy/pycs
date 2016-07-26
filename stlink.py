@@ -241,13 +241,26 @@ class stlink(object):
 
   def halt(self):
     """halt the cpu"""
-    assert self.api == 'v1', 'TODO for apiv2'
-    self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_FORCEDEBUG)), 2)
+    if self.api == 'v2':
+      self.wr_dbg32(cortexm.DCB_DHCSR, cortexm.DBGKEY | cortexm.C_HALT | cortexm.C_DEBUGEN)
+    else:
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_FORCEDEBUG)), 2)
 
   def run(self):
     """make the cpu run"""
-    assert self.api == 'v1', 'TODO for apiv2'
-    self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_RUNCORE)), 2)
+    if self.api == 'v2':
+      self.wr_dbg32(cortexm.DCB_DHCSR, cortexm.DBGKEY | cortexm.C_DEBUGEN)
+    else:
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_RUNCORE)), 2)
+
+  def step(self):
+    """step the cpu"""
+    if self.api == 'v2':
+      self.wr_dbg32(cortexm.DCB_DHCSR, cortexm.DBGKEY|cortexm.C_HALT|cortexm.C_MASKINTS|cortexm.C_DEBUGEN)
+      self.wr_dbg32(cortexm.DCB_DHCSR, cortexm.DBGKEY|cortexm.C_STEP|cortexm.C_MASKINTS|cortexm.C_DEBUGEN)
+      self.wr_dbg32(cortexm.DCB_DHCSR, cortexm.DBGKEY|cortexm.C_HALT|cortexm.C_DEBUGEN)
+    else:
+      self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_STEPCORE)), 2)
 
   def rd_reg(self, n):
     """read from a register"""
