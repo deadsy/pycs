@@ -299,33 +299,8 @@ class stlink(object):
     self.send_recv(cmd, 0)
     self.send_recv(buf, 0)
 
-  # note: stlink does not appear to have 16-bit rd/wr operations,
-  # We fake 16-bit rd/wr with 8-bit operations. This could be a
-  # problem for hardware that needs a real 16-bit load/store.
-
-  def rd_mem16(self, adr, n):
-    """read n 16 bit values from memory region"""
-    assert adr & 1 == 0
-    nbytes = 2 * n
-    # do an 8 bit read
-    buf = self.rd_mem8(adr, nbytes)
-    # convert the 8-bit buffer to a 16-bit buffer
-    buf = iobuf.data_buffer(8, buf)
-    buf.convert(16, 'le')
-    return buf.buf
-
-  def wr_mem16(self, adr, buf):
-    """write 16 bit buffer to memory address"""
-    assert adr & 1 == 0
-    # convert the 16-bit buffer to a array of bytes
-    buf = iobuf.data_buffer(16, buf)
-    buf.convert(8, 'le')
-    # do an 8-bit write
-    self.wr_mem8(adr, buf.buf)
-
   def rd_mem8(self, adr, n):
     """read n 8 bit values from memory region"""
-    assert n <= STLINK_MAX_RW8
     # build the command
     cmd = Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_READMEM_8BIT))
     append_u32(cmd, adr)
@@ -410,7 +385,7 @@ class dbgio(object):
     return self.stlink.rd_reg(n)
 
   def rdmem32(self, adr, n, io):
-    """read n 32 bit values from memory region"""
+    """read n 32-bit words from memory starting at adr"""
     max_n = 0x5ff
     while n > 0:
       nread = (n, max_n)[n >= max_n]
@@ -421,24 +396,34 @@ class dbgio(object):
       n -= nread
       adr += nread * 4
 
-  def rdmem16(self, adr, n):
-    """read n 16 bit values from memory region"""
-    [io.wr16(x) for x in self.stlink.rd_mem16(adr, n)]
+  def rdmem16(self, adr, n, io):
+    """read n 16-bit words from memory starting at adr"""
+    # stlink does not have direct 16-bit read operations
+    # fake it with an 8 bit read.
+    io.convert8('le')
+    self.rdmem8(adr, n * 2, io)
+    io.convert16('le')
 
-  def rdmem8(self, adr, n):
-    """read n 8 bit values from memory region"""
-    [io.wr8(x) for x in self.stlink.rd_mem8(adr, n)]
+  def rdmem8(self, adr, n, io):
+    """read n 8-bit words from memory starting at adr"""
+    # n = 0..0x3c (ok), 0x3d..0x40 (slow), >= 0x41 (fails)
+    max_n = 0x3c
+    while n > 0:
+      nread = (n, max_n)[n >= max_n]
+      [io.wr8(x) for x in self.stlink.rd_mem8(adr, nread)]
+      n -= nread
+      adr += nread
 
   def wrmem32(self, adr, n, io):
-    """write buffer of 32 bit values to memory region"""
+    """write n 32-bit words to memory starting at adr"""
     return self.stlink.wr_mem32(adr, [io.rd32() for i in xrange(n)])
 
   def wrmem16(self, adr, n, io):
-    """write buffer of 16 bit values to memory region"""
+    """write n 16-bit words to memory starting at adr"""
     return self.stlink.wr_mem16(adr, [io.rd16() for i in xrange(n)])
 
   def wrmem8(self, adr, n, io):
-    """write buffer of 8 bit values to memory region"""
+    """write n 8-bit words to memory starting at adr"""
     return self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(n)])
 
   def rd32(self, adr):

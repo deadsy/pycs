@@ -145,6 +145,10 @@ class cortexm(object):
     """read n 32-bit words from memory starting at adr"""
     self.dbgio.rdmem32(adr, n, io)
 
+  def rdmem16(self, adr, n, io):
+    """read n 16-bit words from memory starting at adr"""
+    self.dbgio.rdmem16(adr, n, io)
+
   def rdmem8(self, adr, n, io):
     """read n 8-bit words from memory starting at adr"""
     self.dbgio.rdmem8(adr, n, io)
@@ -152,6 +156,14 @@ class cortexm(object):
   def wrmem32(self, adr, n, io):
     """write n 32-bit words to memory starting at adr"""
     self.dbgio.wrmem32(adr, n, io)
+
+  def wrmem16(self, adr, n, io):
+    """write n 16-bit words to memory starting at adr"""
+    self.dbgio.wrmem16(adr, n, io)
+
+  def wrmem8(self, adr, n, io):
+    """write n 8-bit words to memory starting at adr"""
+    self.dbgio.wrmem8(adr, n, io)
 
   def halt(self, msg=False):
     """halt the cpu"""
