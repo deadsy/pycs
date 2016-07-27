@@ -16,7 +16,7 @@ _help_mem_2file = (
   ('<filename> <address/name> [len]', 'read from memory, write to file'),
   ('  filename', 'name of file'),
   ('  address', 'address of memory (hex)'),
-  ('  name', 'name of memory region - see "map" command'),
+    ('  name', 'name of memory region - see "map" command'),
   ('  len', 'length of memory region (hex)'),
 )
 
@@ -373,16 +373,19 @@ class mem(object):
     n = (n + 3) & ~3
     # build a random buffer
     nwords = n / 4
-    data = iobuf.data_buffer(32)
-    [data.wr32(random.randint(0,0xffffffff)) for i in xrange(nwords)]
+    wrbuf = iobuf.data_buffer(32)
+    [wrbuf.wr32(random.randint(0,0xffffffff)) for i in xrange(nwords)]
     # write it to memory
     t_start = time.time()
-    self.cpu.wrmem32(adr, nwords, data)
+    self.cpu.wrmem32(adr, nwords, wrbuf)
     t_end = time.time()
-
-    ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
-
-
-
+    ui.put('write %.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
+    # read it from memory
+    rdbuf = iobuf.data_buffer(32)
+    t_start = time.time()
+    self.cpu.rdmem32(adr, nwords, rdbuf)
+    t_end = time.time()
+    ui.put('read %.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
+    ui.put('read %s write\n' % ('!=', '==')[wrbuf.compare(rdbuf)])
 
 # -----------------------------------------------------------------------------

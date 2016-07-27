@@ -384,6 +384,17 @@ class data_buffer(object):
     else:
       assert False, 'endian swap error: width %d' % self.width
 
+  def compare(self, x):
+    """compare io buffers: return True if they are the same"""
+    if self.width != x.width:
+      return False
+    if len(self.buf) != len(x.buf):
+      return False
+    for i in xrange(len(self.buf)):
+      if self.buf[i] != x.buf[i]:
+        return False
+    return True
+
   def md5(self, mode):
     """return an md5 hash of the buffer"""
     x = self.copy()
