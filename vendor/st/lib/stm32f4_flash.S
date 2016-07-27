@@ -13,9 +13,5 @@ stm32f4 flash loader
   .thumb_func
   .global write
 
-
-
-
-
 exit:
   bkpt #0

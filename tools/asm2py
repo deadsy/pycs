@@ -4,7 +4,10 @@
 
 assembly to python
 
-Generate a tuple of opcodes for an assembly language routine.
+Generate a tuple of 32-bit opcode values for an assembly language routine.
+
+32-bit buffer transfers to target memory are generally the fastest so
+we generate the output in this form.
 
 """
 # -----------------------------------------------------------------------------
@@ -36,12 +39,12 @@ def process(asm_fname):
   bin_fname = basename + '.bin'
 
   # assemble the *.S file
-  # cpp -I$(INCPATH) $< | as $(ASMFLAGS) -o $@
-  cmd = '%s -I. %s | %s -o %s' % (cpp_tool, asm_fname, as_tool, obj_fname)
+  # cpp $< | as -o $@
+  cmd = '%s %s | %s -o %s' % (cpp_tool, asm_fname, as_tool, obj_fname)
   subprocess.call(cmd, shell = True)
 
   # link the object to resolve branch labels
-  # gcc $(ASMFLAGS) -static -nostdinc -nostartfiles -nodefaultlibs -nostdlib -ffreestanding -Xlinker --section-start=.text=0xff200200 -Xlinker --entry=0xff200200 $< -o $@
+  # gcc $(FLAGS) $< -o $@
   flags = '-static -nostdinc -nostartfiles -nodefaultlibs -nostdlib -ffreestanding '
   flags += '-Xlinker --section-start=.text=0x%08x ' % ram_start
   flags += '-Xlinker --entry=0x%08x ' % ram_start
@@ -53,50 +56,44 @@ def process(asm_fname):
   cmd = '%s -j .text %s -O binary %s' % (objcopy_tool, elf_fname, bin_fname)
   subprocess.call(cmd, shell = True)
 
-  # dump the binary as a python tuple
-
+  # get the binary data
   f = file(bin_fname, 'rb')
   x = f.read()
   f.close()
 
-  x = [ord(c) for c in x]
+  # file cleanup
+  os.remove(obj_fname)
+  os.remove(elf_fname)
+  os.remove(bin_fname)
 
-  n = len(x)
+  # convert to an 8-bit buffer
+  buf8 = [ord(c) for c in x]
+
+  # check length
+  n = len(buf8)
   if n == 0:
     # no data
     return
-  if n & 3:
-    # pad to n x 32-bits
-    x.extend((0,) * (4 - (n & 3)))
 
+  # pad with zeroes to 32 bits
+  if n & 3:
+    buf8.extend((0,) * (4 - (n & 3)))
+
+  # convert to 32-bit little endian
+  buf32 = [(buf8[i] << 0) | (buf8[i + 1] << 8) | (buf8[i + 2] << 16) | (buf8[i + 3] << 24) for i in xrange(0, len(buf8), 4)]
+
+  # dump the binary to stdout as a python tuple
   print('%s = (' % basename)
-  print x
+  print '\n'.join(['  0x%08x,' % x for x in buf32])
   print(')')
 
 # -----------------------------------------------------------------------------
 
-#def process(infiles, outfile):
-    #"""convert each *.bin file into a tuple of opcodes"""
-    #ofile = file('%s' % outfile, 'w')
-    #for ifile in infiles:
-        #func = ifile.split('.')[0]
-        #ofile.write('%s = (\n' % func)
-        #bin_file = file(ifile,"rb")
-        #while True:
-          #op = bin_file.read(4)
-          #if not op:
-            #break
-          #ofile.write('    0x%02X%02X%02X%02X,\n' % tuple([ord(x) for x in op]))
-        #ofile.write(')\n')
-    #ofile.close()
-
-# -----------------------------------------------------------------------------
-
 def print_usage():
-  print('usage: %s <file>' % sys.argv[0])
+  sys.stderr.write('usage: %s <file>\n' % sys.argv[0])
 
 def print_error(msg):
-  print('error: %s' % msg)
+  sys.stderr.write('error: %s\n' % msg)
 
 def main():
 
@@ -106,8 +103,14 @@ def main():
 
   asm_fname = sys.argv[1]
 
+  # check the file
   if not os.path.isfile(asm_fname):
     print_error('file %s not found' % asm_fname)
+    sys.exit(1)
+
+  # check the tools
+  if not os.path.isfile(gcc_tool):
+    print_error('%s not found, fix the tool path' % gcc_tool)
     sys.exit(1)
 
   process(asm_fname)
