@@ -1,0 +1,119 @@
+#!/usr/bin/python
+# -----------------------------------------------------------------------------
+"""
+
+assembly to python
+
+Generate a tuple of opcodes for an assembly language routine.
+
+"""
+# -----------------------------------------------------------------------------
+
+import sys
+import os
+import subprocess
+
+# -----------------------------------------------------------------------------
+# cross compilation tools
+
+tool_path = '/opt/gcc-arm-none-eabi-5_4-2016q2/bin/'
+cpp_tool = tool_path + 'arm-none-eabi-cpp'
+as_tool = tool_path + 'arm-none-eabi-as'
+gcc_tool = tool_path + 'arm-none-eabi-gcc'
+objcopy_tool = tool_path + 'arm-none-eabi-objcopy'
+
+# -----------------------------------------------------------------------------
+
+ram_start = 0x20000000
+
+# -----------------------------------------------------------------------------
+
+def process(asm_fname):
+
+  basename = asm_fname.split('.')[0]
+  obj_fname = basename + '.o'
+  elf_fname = basename + '.elf'
+  bin_fname = basename + '.bin'
+
+  # assemble the *.S file
+  # cpp -I$(INCPATH) $< | as $(ASMFLAGS) -o $@
+  cmd = '%s -I. %s | %s -o %s' % (cpp_tool, asm_fname, as_tool, obj_fname)
+  subprocess.call(cmd, shell = True)
+
+  # link the object to resolve branch labels
+  # gcc $(ASMFLAGS) -static -nostdinc -nostartfiles -nodefaultlibs -nostdlib -ffreestanding -Xlinker --section-start=.text=0xff200200 -Xlinker --entry=0xff200200 $< -o $@
+  flags = '-static -nostdinc -nostartfiles -nodefaultlibs -nostdlib -ffreestanding '
+  flags += '-Xlinker --section-start=.text=0x%08x ' % ram_start
+  flags += '-Xlinker --entry=0x%08x ' % ram_start
+  cmd = '%s %s %s -o %s' % (gcc_tool, flags, obj_fname, elf_fname)
+  subprocess.call(cmd, shell = True)
+
+  # dump the text segment binary
+  # objcopy -j .text $< -O binary $@
+  cmd = '%s -j .text %s -O binary %s' % (objcopy_tool, elf_fname, bin_fname)
+  subprocess.call(cmd, shell = True)
+
+  # dump the binary as a python tuple
+
+  f = file(bin_fname, 'rb')
+  x = f.read()
+  f.close()
+
+  x = [ord(c) for c in x]
+
+  n = len(x)
+  if n == 0:
+    # no data
+    return
+  if n & 3:
+    # pad to n x 32-bits
+    x.extend((0,) * (4 - (n & 3)))
+
+  print('%s = (' % basename)
+  print x
+  print(')')
+
+# -----------------------------------------------------------------------------
+
+#def process(infiles, outfile):
+    #"""convert each *.bin file into a tuple of opcodes"""
+    #ofile = file('%s' % outfile, 'w')
+    #for ifile in infiles:
+        #func = ifile.split('.')[0]
+        #ofile.write('%s = (\n' % func)
+        #bin_file = file(ifile,"rb")
+        #while True:
+          #op = bin_file.read(4)
+          #if not op:
+            #break
+          #ofile.write('    0x%02X%02X%02X%02X,\n' % tuple([ord(x) for x in op]))
+        #ofile.write(')\n')
+    #ofile.close()
+
+# -----------------------------------------------------------------------------
+
+def print_usage():
+  print('usage: %s <file>' % sys.argv[0])
+
+def print_error(msg):
+  print('error: %s' % msg)
+
+def main():
+
+  if len(sys.argv) != 2:
+    print_usage()
+    sys.exit(1)
+
+  asm_fname = sys.argv[1]
+
+  if not os.path.isfile(asm_fname):
+    print_error('file %s not found' % asm_fname)
+    sys.exit(1)
+
+  process(asm_fname)
+
+main()
+
+# -----------------------------------------------------------------------------
+
+
