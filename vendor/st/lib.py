@@ -1,11 +1,13 @@
 stm32f4_flash = {
-  'adr': 0x20000000,
+  'load': 0x20000000,
+  'entry': 0x20000000,
   'code': (
     0x0000be00,
   ),
 }
 stm32f2x = {
-  'adr': 0x20000000,
+  'load': 0x20000000,
+  'entry': 0x20000000,
   'code': (
     0x8000f8d0,
     0x0f00f1b8,
