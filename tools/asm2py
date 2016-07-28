@@ -82,10 +82,13 @@ def process(asm_fname):
   # convert to 32-bit little endian
   buf32 = [(buf8[i] << 0) | (buf8[i + 1] << 8) | (buf8[i + 2] << 16) | (buf8[i + 3] << 24) for i in xrange(0, len(buf8), 4)]
 
-  # dump the binary to stdout as a python tuple
-  print('%s = (' % basename)
-  print '\n'.join(['  0x%08x,' % x for x in buf32])
-  print(')')
+  # output the library routine as a python dictionary
+  print('%s = {' % basename)
+  print("  'adr': 0x%08x," % ram_start)
+  print("  'code': (")
+  print '\n'.join(['    0x%08x,' % x for x in buf32])
+  print('  ),')
+  print('}')
 
 # -----------------------------------------------------------------------------
 

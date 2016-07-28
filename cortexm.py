@@ -191,6 +191,19 @@ class cortexm(object):
     """single step the cpu"""
     self.dbgio.step()
 
+  def runlib(self, lib):
+    """run a library routine that has been loaded to ram"""
+    assert self.dbgio.is_halted(), 'cpu should be halted'
+    # todo
+
+  def loadlib(self, lib, run = False):
+    """load a library routine to ram"""
+    self.halt()
+    code = iobuf.data_buffer(32, lib['code'])
+    self.wrmem32(lib['adr'], len(code), code)
+    if run:
+      self.runlib(lib)
+
   def NVIC_GetPriority(self, irq):
     """return the priority encoding for an exception"""
     if irq == Reset_IRQn:
