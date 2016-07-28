@@ -130,6 +130,14 @@ class cortexm(object):
       return self.dbgio.rd8(adr)
     assert False
 
+  def rdmem(self, adr, n, io):
+    """read a buffer from memory starting at adr"""
+    self.dbgio.rdmem(adr, n, io)
+
+  def rdmem32(self, adr, n, io):
+    """read n 32-bit words from memory starting at adr"""
+    self.dbgio.rdmem32(adr, n, io)
+
   def wr(self, adr, val, n):
     """write to memory - n bits aligned"""
     adr = util.align(adr, n)
@@ -141,29 +149,9 @@ class cortexm(object):
       return self.dbgio.wr8(adr, val)
     assert False
 
-  def rdmem32(self, adr, n, io):
-    """read n 32-bit words from memory starting at adr"""
-    self.dbgio.rdmem32(adr, n, io)
-
-  def rdmem16(self, adr, n, io):
-    """read n 16-bit words from memory starting at adr"""
-    self.dbgio.rdmem16(adr, n, io)
-
-  def rdmem8(self, adr, n, io):
-    """read n 8-bit words from memory starting at adr"""
-    self.dbgio.rdmem8(adr, n, io)
-
-  def wrmem32(self, adr, n, io):
-    """write n 32-bit words to memory starting at adr"""
-    self.dbgio.wrmem32(adr, n, io)
-
-  def wrmem16(self, adr, n, io):
-    """write n 16-bit words to memory starting at adr"""
-    self.dbgio.wrmem16(adr, n, io)
-
-  def wrmem8(self, adr, n, io):
-    """write n 8-bit words to memory starting at adr"""
-    self.dbgio.wrmem8(adr, n, io)
+  def wrmem(self, adr, n, io):
+    """write a buffer to memory starting at adr"""
+    self.dbgio.wrmem(adr, n, io)
 
   def halt(self, msg=False):
     """halt the cpu"""
@@ -200,7 +188,7 @@ class cortexm(object):
     """load a library routine to ram"""
     self.halt()
     code = iobuf.data_buffer(32, lib['code'])
-    self.wrmem32(lib['adr'], len(code), code)
+    self.wrmem(lib['adr'], len(code), code)
     if run:
       self.runlib(lib)
 

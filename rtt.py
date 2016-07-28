@@ -61,12 +61,12 @@ class rtt_buf(object):
       buf = iobuf.data_buffer(8)
       if rd_ofs < wr_ofs:
         # read to write offset
-        self.cpu.rdmem8(self.buf_adr + rd_ofs, wr_ofs - rd_ofs, buf)
+        self.cpu.rdmem(self.buf_adr + rd_ofs, wr_ofs - rd_ofs, buf)
       else:
         # read to end of buffer
-        self.cpu.rdmem8(self.buf_adr + rd_ofs, self.buf_size - rd_ofs, buf)
+        self.cpu.rdmem(self.buf_adr + rd_ofs, self.buf_size - rd_ofs, buf)
         # read to write offset
-        self.cpu.rdmem8(self.buf_adr, wr_ofs, buf)
+        self.cpu.rdmem(self.buf_adr, wr_ofs, buf)
       self.cpu.wr(self.rd_ofs_adr, wr_ofs, 32)
       ui.put('%d bytes read\n' % len(buf))
       ui.put('%s\n' % buf.ascii_str())

@@ -7,6 +7,13 @@ Sources:
 https://github.com/texane/stlink
 openocd: ./src/jtag/drivers/stlink_usb.c
 
+Note:
+
+ST-Link doesn't support real 16-bit load/store operations.
+For the sake of the API we fake them with 8-bit operations.
+If the hardware needs a real 16-bit operation you will need to do
+it with a ram loaded library routine. (E.g. flash burning)
+
 """
 #------------------------------------------------------------------------------
 
@@ -443,6 +450,17 @@ class dbgio(object):
       n -= nread
       adr += nread
 
+  def rdmem(self, adr, n, io):
+    """read a buffer from memory starting at adr"""
+    if io.width == 32:
+      self.rdmem32(adr, n, io)
+    elif io.width == 16:
+      self.rdmem16(adr, n, io)
+    elif io.width == 8:
+      self.rdmem8(adr, n, io)
+    else:
+      assert False, 'bad buffer width'
+
   def wrmem32(self, adr, n, io):
     """write n 32-bit words to memory starting at adr"""
     # maximum write length is limited by the 16-bit length field
@@ -455,12 +473,32 @@ class dbgio(object):
 
   def wrmem16(self, adr, n, io):
     """write n 16-bit words to memory starting at adr"""
-    assert False
-    self.stlink.wr_mem16(adr, [io.rd16() for i in xrange(n)])
+    # stlink does not have direct 16-bit read operations
+    # fake it with an 8 bit write.
+    io = io.copy()
+    io.convert8('le')
+    self.wrmem8(adr, n * 2, io)
 
   def wrmem8(self, adr, n, io):
     """write n 8-bit words to memory starting at adr"""
-    self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(n)])
+    # n = 0..0x40 (ok), 0x41..0x54 (slow), >= 0x55 (fails)
+    max_n = 0x40
+    while n > 0:
+      nwrite = (n, max_n)[n >= max_n]
+      self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(nwrite)])
+      n -= nwrite
+      adr += nwrite
+
+  def wrmem(self, adr, n, io):
+    """write a buffer to memory starting at adr"""
+    if io.width == 32:
+      self.wrmem32(adr, n, io)
+    elif io.width == 16:
+      self.wrmem16(adr, n, io)
+    elif io.width == 8:
+      self.wrmem8(adr, n, io)
+    else:
+      assert False, 'bad buffer width'
 
   def rd32(self, adr):
     """read 32 bit value from adr"""
@@ -468,8 +506,9 @@ class dbgio(object):
 
   def rd16(self, adr):
     """read 16 bit value from adr"""
-    assert False
-    return self.stlink.rd_mem16(adr, 1)[0]
+    io = iobuf.data_buffer(16)
+    self.rdmem16(adr, 1, io)
+    return io.read()
 
   def rd8(self, adr):
     """read 8 bit value from adr"""
@@ -481,8 +520,8 @@ class dbgio(object):
 
   def wr16(self, adr, val):
     """write 16 bit value to adr"""
-    assert False
-    return self.stlink.wr_mem16(adr, (val,))
+    io = iobuf.data_buffer(16, (val,))
+    self.wrmem16(adr, 1, io)
 
   def wr8(self, adr, val):
     """write 8 bit value to adr"""

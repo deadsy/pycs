@@ -112,7 +112,9 @@ class mem(object):
       ('rd8', self.cmd_rd8, _help_mem_rd),
       ('rd16', self.cmd_rd16, _help_mem_rd),
       ('rd32', self.cmd_rd32, _help_mem_rd),
-      ('test', self.cmd_test, _help_mem_region),
+      ('t8', self.cmd_test8, _help_mem_region),
+      ('t16', self.cmd_test16, _help_mem_region),
+      ('t32', self.cmd_test32, _help_mem_region),
       ('verify', self.cmd_verify, _help_mem_verify),
       ('wr8', self.cmd_wr8, _help_mem_wr),
       ('wr16', self.cmd_wr16, _help_mem_wr),
@@ -242,7 +244,7 @@ class mem(object):
     for i in xrange(n/16):
       # read 4, 32-bit words (16 bytes per line)
       io = iobuf.data_buffer(32)
-      self.cpu.rdmem32(adr, 4, io)
+      self.cpu.rdmem(adr, 4, io)
       # work out the data string
       io.convert(width, 'le')
       data_str = str(io)
@@ -352,12 +354,12 @@ class mem(object):
       ui.put('reading memory ...\n')
     data = iobuf.data_buffer(32)
     t_start = time.time()
-    self.cpu.rdmem32(adr, n/4, data)
+    self.cpu.rdmem(adr, n/4, data)
     t_end = time.time()
     ui.put('%s\n' % data.md5('le'))
     ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
 
-  def cmd_test(self, ui, args):
+  def cmd_test(self, width, ui, args):
     """test memory with a write and readback"""
     x = util.mem_args(ui, args, self.cpu.device)
     if x is None:
@@ -371,21 +373,37 @@ class mem(object):
     adr &= ~3
     # round up n to an integral multiple of 4 bytes
     n = (n + 3) & ~3
-    # build a random buffer
-    nwords = n / 4
-    wrbuf = iobuf.data_buffer(32)
-    [wrbuf.wr32(random.randint(0,0xffffffff)) for i in xrange(nwords)]
+    # convert to n 32/16/8-bit units
+    nx = n / (width / 8)
+    maxval = (1 << width) - 1
+    # we will typically be testing ram, so halt the cpu.
+    self.cpu.halt()
+    # build a random write buffer
+    wrbuf = iobuf.data_buffer(width)
+    [wrbuf.write(random.randint(0, maxval)) for i in xrange(nx)]
     # write it to memory
     t_start = time.time()
-    self.cpu.wrmem32(adr, nwords, wrbuf)
+    self.cpu.wrmem(adr, nx, wrbuf)
     t_end = time.time()
     ui.put('write %.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
     # read it from memory
-    rdbuf = iobuf.data_buffer(32)
+    rdbuf = iobuf.data_buffer(width)
     t_start = time.time()
-    self.cpu.rdmem32(adr, nwords, rdbuf)
+    self.cpu.rdmem(adr, nx, rdbuf)
     t_end = time.time()
     ui.put('read %.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
     ui.put('read %s write\n' % ('!=', '==')[wrbuf.compare(rdbuf)])
+
+  def cmd_test8(self, ui, args):
+    """test memory with 8-bit write and readback"""
+    self.cmd_test(8, ui, args)
+
+  def cmd_test16(self, ui, args):
+    """test memory with 16-bit write and readback"""
+    self.cmd_test(16, ui, args)
+
+  def cmd_test32(self, ui, args):
+    """test memory with 32-bit write and readback"""
+    self.cmd_test(32, ui, args)
 
 # -----------------------------------------------------------------------------
