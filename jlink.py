@@ -127,7 +127,7 @@ class JLink(object):
   def get_dll_version(self):
     # int JLINKARM_GetDLLVersion(void);
     fn = self.jl.JLINKARM_GetDLLVersion
-    fn.restype = ctypes.c_int
+    fn.restype = c_int
     fn.argtypes = []
     return fn()
 
@@ -164,8 +164,8 @@ class JLink(object):
   def get_fw_string(self):
     # int JLINKARM_GetFirmwareString(char *str, int n);
     fn = self.jl.JLINKARM_GetFirmwareString
-    fn.restype = ctypes.c_int
-    fn.argtypes = [ctypes.c_char_p, ctypes.c_int]
+    fn.restype = c_int
+    fn.argtypes = [ctypes.c_char_p, c_int]
     buf = ctypes.create_string_buffer(128)
     fn(buf, len(buf))
     return buf.value
@@ -209,8 +209,8 @@ class JLink(object):
   def exec_command(self, cmd):
     # int JLINKARM_ExecCommand(char *sIn, char *sBuffer, int buffersize);
     fn = self.jl.JLINKARM_ExecCommand
-    fn.restype = ctypes.c_int
-    fn.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int]
+    fn.restype = c_int
+    fn.argtypes = [ctypes.c_char_p, ctypes.c_char_p, c_int]
     command = ctypes.create_string_buffer(cmd)
     result = ctypes.create_string_buffer(128)
     rc = fn(command, result, len(result))
@@ -228,16 +228,16 @@ class JLink(object):
   def tif_select(self, tif):
     # int JLINKARM_TIF_Select(int intface);
     fn = self.jl.JLINKARM_TIF_Select
-    fn.restype = ctypes.c_int
-    fn.argtypes = [ctypes.c_int, ]
-    rc = fn(ctypes.c_int(tif))
+    fn.restype = c_int
+    fn.argtypes = [c_int,]
+    rc = fn(c_int(tif))
     if rc != 0:
       raise JLinkException('JLINKARM_TIF_Select returned %d' % rc)
 
   def jlink_connect(self):
     # int JLINKARM_Connect(void);
     fn = self.jl.JLINKARM_Connect
-    fn.restype = ctypes.c_int
+    fn.restype = c_int
     fn.argtypes = []
     rc = fn()
     if rc != 0:
@@ -246,7 +246,7 @@ class JLink(object):
   def halt(self):
     # int JLINKARM_Halt(void);
     fn = self.jl.JLINKARM_Halt
-    fn.restype = ctypes.c_int
+    fn.restype = c_int
     fn.argtypes = []
     rc = fn()
     if rc != 0:
@@ -255,7 +255,7 @@ class JLink(object):
   def is_halted(self):
     # int JLINKARM_IsHalted(void);
     fn = self.jl.JLINKARM_IsHalted
-    fn.restype = ctypes.c_int
+    fn.restype = c_int
     fn.argtypes = []
     return fn() != 0
 
@@ -284,13 +284,20 @@ class JLink(object):
     # uint32_t JLINKARM_ReadReg(int reg);
     fn = self.jl.JLINKARM_ReadReg
     fn.restype = ctypes.c_uint32
-    fn.argtypes = [ctypes.c_int]
-    return fn(ctypes.c_int(idx))
+    fn.argtypes = [c_int,]
+    return fn(c_int(reg))
+
+  def wrreg(self, reg, val):
+    # void JLINKARM_WriteReg(int reg, uint32_t val);
+    fn = self.jl.JLINKARM_WriteReg
+    fn.restype = None
+    fn.argtypes = [c_int,c_uint32]
+    fn(c_int(reg), c_uint32(val))
 
   def cp15_is_present(self):
     # int JLINKARM_CP15_IsPresent(void);
     fn = self.jl.JLINKARM_CP15_IsPresent
-    fn.restype = ctypes.c_int
+    fn.restype = c_int
     fn.argtypes = []
     return fn() != 0
 
@@ -352,14 +359,11 @@ class JLink(object):
     """write a buffer of 32 bit values to a memory region"""
     # void JLINKARM_WriteMem(U32 addr, U32 count, const void * p);
 
-    # Note1: I'm not sure what the underlying store is for JLINKARM_WriteMem.
+    # Note: I'm not sure what the underlying store is for JLINKARM_WriteMem.
     # It stores an arbitrary number of bytes without overwriting adjacent memory locations,
     # but does it do 32 bit stores when it can? I'm not sure. If you want to ensure 8/16/32
     # stores then the JLINKARM_WriteU8/16/32 calls might be a better bet. But I'm not sure
     # how they work either.
-
-    # Note2: I use JLINKARM_WriteMem for writing nand page data to the controller cache.
-    # It works and is much faster than doing individual calls to JLINKARM_WriteU32.
 
     fn = self.jl.JLINKARM_WriteMem
     fn.restype = None
@@ -467,11 +471,18 @@ class dbgio(object):
     self.jlink.go()
 
   def rdreg(self, reg):
-    """read the named register"""
+    """read from the named register"""
     n = regmap.get(reg, None)
     if n is None:
       return None
     return self.jlink.rdreg(n)
+
+  def wrreg(self, reg, val):
+    """write to the named register"""
+    n = regmap.get(reg, None)
+    if n is None:
+      return
+    self.jlink.wrreg(n, val)
 
   def rdmem32(self, adr, n, io):
     """read n 32-bit values from memory region"""
@@ -500,6 +511,17 @@ class dbgio(object):
       n -= nread
       adr += nread
 
+  def rdmem(self, adr, n, io):
+    """read a buffer from memory starting at adr"""
+    if io.width == 32:
+      self.rdmem32(adr, n, io)
+    elif io.width == 16:
+      self.rdmem16(adr, n, io)
+    elif io.width == 8:
+      self.rdmem8(adr, n, io)
+    else:
+      assert False, 'bad buffer width'
+
   def wrmem32(self, adr, n, io):
     """write n 32-bit words to memory starting at adr"""
     self.jlink.wrmem32(adr, [io.rd32() for i in xrange(n)])
@@ -511,6 +533,17 @@ class dbgio(object):
   def wrmem8(self, adr, n, io):
     """write n 8-bit words to memory starting at adr"""
     self.jlink.wrmem8(adr, [io.rd8() for i in xrange(n)])
+
+  def wrmem(self, adr, n, io):
+    """write a buffer to memory starting at adr"""
+    if io.width == 32:
+      self.wrmem32(adr, n, io)
+    elif io.width == 16:
+      self.wrmem16(adr, n, io)
+    elif io.width == 8:
+      self.wrmem8(adr, n, io)
+    else:
+      assert False, 'bad buffer width'
 
   def rd32(self, adr):
     """read 32 bit value from adr"""

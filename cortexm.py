@@ -117,7 +117,13 @@ class cortexm(object):
     self.menu = (
       ('cpuid', self.cmd_cpuid),
       ('rate', self.cmd_systick_rate),
+      ('test', self.cmd_test),
     )
+
+  def cmd_test(self, ui, args):
+    """test"""
+    self.halt()
+    self.dbgio.wrreg('r0', 0xdeadbeef)
 
   def rd(self, adr, n):
     """read from memory - n bits aligned"""
