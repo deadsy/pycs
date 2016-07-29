@@ -26,6 +26,16 @@ soc_name = 'EFM32LG890F128'
 prompt = 'tepo'
 
 # -----------------------------------------------------------------------------
+
+# jlink device
+default_itf = {
+  'name': 'jlink',
+  'vid': 0x1366,
+  'pid': 0x0101,
+  'itf': 0,
+}
+
+# -----------------------------------------------------------------------------
 # gpio configuration: see -http://hackingthepo.weebly.com/
 
 gpio_cfg = (

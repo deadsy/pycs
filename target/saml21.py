@@ -23,6 +23,16 @@ prompt = 'saml21'
 
 # -----------------------------------------------------------------------------
 
+# jlink device
+default_itf = {
+  'name': 'jlink',
+  'vid': 0x1366,
+  'pid': 0x0101,
+  'itf': 0,
+}
+
+# -----------------------------------------------------------------------------
+
 class target(object):
   """saml21 - Atmel SAM L21 Xplained Pro Evaluation Board"""
 

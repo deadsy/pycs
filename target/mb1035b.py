@@ -26,6 +26,16 @@ soc_name = 'STM32F303xC'
 prompt = 'mb1035b'
 
 # -----------------------------------------------------------------------------
+
+# built in stlinkv2
+default_itf = {
+  'name': 'stlink',
+  'vid': 0x0483,
+  'pid': 0x3748,
+  'itf': 1,
+}
+
+# -----------------------------------------------------------------------------
 # gpio configuration
 
 # pin, mode, pupd, otype, ospeed, name

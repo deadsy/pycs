@@ -130,11 +130,15 @@ def Process_Options(argv):
 
 def get_dbgio(target):
   """return a debug interface for this target"""
-  return jlink.dbgio()
-
-  #(dev, msg) = stlink.find()
-  #assert dev is not None
-  #return stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
+  itf = target.default_itf
+  if itf['name'] == 'jlink':
+    return jlink.dbgio()
+  elif itf['name'] == 'stlink':
+    (dev, msg) = stlink.find()
+    assert dev is not None
+    return stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
+  else:
+    return None
 
 # -----------------------------------------------------------------------------
 

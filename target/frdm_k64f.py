@@ -22,6 +22,16 @@ prompt = 'frdm_k64f'
 
 # -----------------------------------------------------------------------------
 
+# jlink device
+default_itf = {
+  'name': 'jlink',
+  'vid': 0x1366,
+  'pid': 0x0101,
+  'itf': 2,
+}
+
+# -----------------------------------------------------------------------------
+
 class target(object):
   """frdm_k64f - NXP development board for Kinetis Chips"""
 
