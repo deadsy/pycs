@@ -12,13 +12,9 @@ import termios
 import sys
 
 #-----------------------------------------------------------------------------
-# when otherwise idle, allow other things to run
-
-_poll_timeout = 0.5  # secs
-
-#-----------------------------------------------------------------------------
 
 CHAR_NULL = 0x00
+CHAR_CTRLD = 0x04
 CHAR_BELL = 0x07
 CHAR_TAB = 0x09
 CHAR_CR = 0x0a
@@ -53,10 +49,10 @@ class console:
     termios.tcsetattr(self.fd, termios.TCSANOW, self.saved)
     os.close(self.fd)
 
-  def get(self):
+  def get(self, timeout = 0.5):
     """get console input - return ascii code"""
     # block until we can read or we have a timeout
-    (rd, wr, er) = select.select((self.fd,), (), (), _poll_timeout)
+    (rd, wr, er) = select.select((self.fd,), (), (), timeout)
     if len(rd) == 0:
       # timeout - allow other routines to run
       return CHAR_NULL

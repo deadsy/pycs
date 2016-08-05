@@ -159,6 +159,11 @@ class user_interface(object):
   def put(self, s):
     self.io.put(s)
 
+  def poll(self):
+    # poll the input during an operation
+    # use a short timeout so we don't peg the cpu
+    return self.io.get(timeout=0.01)
+
   def run(self):
     self.cli.run()
 

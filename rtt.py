@@ -11,11 +11,14 @@ This code finds the buffers in RAM and then reads them as the target code runs.
 
 import util
 import iobuf
+import conio
 
 #-----------------------------------------------------------------------------
 
 sizeof_SEGGER_RTT_CB_header = 24
 sizeof_SEGGER_RTT_RING_BUFFER = 24
+
+_not_initialised = 'rtt is not initialised'
 
 #-----------------------------------------------------------------------------
 
@@ -73,6 +76,42 @@ class rtt_buf(object):
     else:
       ui.put('0 bytes read\n')
 
+  def read(self):
+    """read the buffer"""
+    wr_ofs = self.cpu.rd(self.wr_ofs_adr, 32)
+    rd_ofs = self.cpu.rd(self.rd_ofs_adr, 32)
+    # do we have data?
+    if wr_ofs != rd_ofs:
+      # we have data - read it
+      # TODO: possible performance improvement with 32 bit reads
+      buf = iobuf.data_buffer(8)
+      if rd_ofs < wr_ofs:
+        # non-wrapped buffer: read to write offset
+        self.cpu.rdmem(self.buf_adr + rd_ofs, wr_ofs - rd_ofs, buf)
+      else:
+        # wrapped buffer: read to end of buffer
+        self.cpu.rdmem(self.buf_adr + rd_ofs, self.buf_size - rd_ofs, buf)
+        # read to write offset
+        self.cpu.rdmem(self.buf_adr, wr_ofs, buf)
+      # we are caught up: read offset == write offset
+      self.cpu.wr(self.rd_ofs_adr, wr_ofs, 32)
+      return buf
+    else:
+      # no data
+      return None
+
+  def text_dump(self, ui, delimiter = '\r'):
+    """assume the buffer contains null delimited text"""
+    buf = self.read()
+    if buf is None:
+      return
+    ui.put(buf.to_str())
+    #s = buf.to_str()
+    #print s
+
+    #s = s.split('\r')
+    #ui.put('%s\n' % str(s))
+
   def __str__(self):
     return '%s %d bytes @ 0x%08x' % (self.name, self.buf_size, self.buf_adr)
 
@@ -90,7 +129,7 @@ class rtt(object):
     self.menu = (
       ('init', self.cmd_init),
       ('info', self.cmd_info),
-      ('poll', self.cmd_poll),
+      ('mon', self.cmd_mon),
     )
 
   def look_for_sig(self, state, x):
@@ -125,10 +164,20 @@ class rtt(object):
       adr -= 16
     return (adr, state)
 
-  def cmd_poll(self, ui, args):
-    """process the target to host buffers"""
-    for b in self.t2h:
-      b.poll(ui)
+  def cmd_mon(self, ui, args):
+    """monitor and display the rtt buffers"""
+    if self.adr is None:
+      ui.put('%s\n' % _not_initialised)
+      return
+    ui.put('Monitoring target to host RTT buffers\nCtrl-D to exit\n')
+    while True:
+      c = ui.poll()
+      if c == conio.CHAR_CTRLD:
+        break
+      else:
+        # read the target to host buffers
+        for b in self.t2h:
+          b.text_dump(ui)
 
   def cmd_init(self, ui, args):
     """initialise the rtt client"""
@@ -160,19 +209,18 @@ class rtt(object):
     self.t2h = [b for b in self.t2h if b.buf_size > 0]
     self.h2t = [b for b in self.h2t if b.buf_size > 0]
 
-
   def cmd_info(self, ui, args):
     """show rtt information"""
-    if self.adr is not None:
-      cols = []
-      cols.append(['rtt address', ': 0x%08x' % self.adr])
-      if len(self.t2h) > 0:
-        cols.extend([['target to host', ': %s' % b] for b in self.t2h])
-      if len(self.h2t) > 0:
-        cols.extend([['host to target', ': %s' % b] for b in self.h2t])
-      s = util.display_cols(cols)
-    else:
-      s = 'rtt is not initialised'
-    ui.put('%s\n' % s)
+    if self.adr is None:
+      ui.put('%s\n' % _not_initialised)
+      return
+    # print the rtt info
+    cols = []
+    cols.append(['rtt address', ': 0x%08x' % self.adr])
+    if len(self.t2h) > 0:
+      cols.extend([['target to host', ': %s' % b] for b in self.t2h])
+    if len(self.h2t) > 0:
+      cols.extend([['host to target', ': %s' % b] for b in self.h2t])
+    ui.put('%s\n' % util.display_cols(cols))
 
 #-----------------------------------------------------------------------------

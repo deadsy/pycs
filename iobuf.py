@@ -408,12 +408,17 @@ class data_buffer(object):
     assert self.width == 8, 'width must be 8 bits'
     return ''.join([('.', chr(b))[chr(b) in printable] for b in self.buf])
 
+  def to_str(self):
+    """convert an 8-bit buffer to a string"""
+    assert self.width == 8, 'width must be 8 bits'
+    return ''.join([chr(b) for b in self.buf])
+
   def __len__(self):
     return len(self.buf)
 
   def __str__(self):
     """return a string for the buffer values"""
-    fmt = '%%0%dx' % (self.width / 4)
-    return ' '.join([fmt % x for x in self.buf])
+    fmt = '0x%%0%dx' % (self.width / 4)
+    return ','.join([fmt % x for x in self.buf])
 
 #-----------------------------------------------------------------------------
