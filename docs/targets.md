@@ -24,7 +24,7 @@ The vendor directory contains the code that takes basic Cortex-M functionality a
  * Specific Coretcx-M core: type, interrupts, priority levels, etc
  * SVD file: to decode the peripheral registers
  * Memory: flash and ram regions
- * Other....
+ * etc.
 
  E.g. ./vendor/nordic/nordic.py
 
@@ -34,11 +34,15 @@ These are generally for things like gpio or flash access.
 ## Target Files
 
 The target directory contains <name>.py files where <name> is the name of the target.
-The target files specifies which specific chip is being used and also provides target specific customization.
-E.g. Details that are specific to that particular target board.
+The target files specifies which chip is being used and provide target specific customization.
 
  * gpio naming
  * external devices
  * default debug interface
+ * etc.
+
+Rule of thumb:
+ * If it's in the vendor datasheet it belongs in the vendor directory.
+ * If it's on the schematic it belongs in the target file.
 
  E.g. ./target/mb997c.py
