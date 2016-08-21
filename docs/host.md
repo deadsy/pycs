@@ -8,12 +8,8 @@ Mac being more Unix-y probably has less issues than Windows.
 Likely problem areas:
 
  * CLI weirdness
- * Need platform specific libraries JLINK operation.
- * Trouble compiling the C code. (needs gcc)
- * Trouble compiling the ASM code. (needs an ARM gcc tool)
+ * Need platform specific libraries for JLINK operation.
+ * Trouble compiling the darm C code. (needs gcc)
+ * Trouble compiling the asm code. (needs an ARM gcc tool)
 
 Mac/Windows users- I'm not going to work on it, so you are on your own. Let me know if you have any patches.
-
-
-
-
