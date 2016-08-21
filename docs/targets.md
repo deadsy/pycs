@@ -21,15 +21,15 @@ The idea is to have as much common code as possible.
 
 The vendor directory contains the code that takes basic Cortex-M functionality and adds specific vendor features.
 
- * type of core: interrupts, priority levels, etc
+ * Specific Coretcx-M core: type, interrupts, priority levels, etc
  * SVD file: to decode the peripheral registers
- * flash and ram regions
- * Anything else....
+ * Memory: flash and ram regions
+ * Other....
 
  E.g. ./vendor/nordic/nordic.py
 
 The vendor directory also contains vendor specific drivers.
-These are typically for things like gpio or flash access.
+These are generally for things like gpio or flash access.
 
 ## Target Files
 
