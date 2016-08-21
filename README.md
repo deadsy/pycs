@@ -6,12 +6,12 @@ Python Based ARM CoreSight Debug and Trace Tools
  * It reads the SoC SVD files to give full peripheral/register decodes for a wide variety of Cortex-M based chips.
 
 ## What do I need?
- * A PC with Python installed [host system](https://github.com/deadsy/pycs/blob/master/docs/host.md)
- * A target system with a Cortex-M ARM cpu [targets](https://github.com/deadsy/pycs/blob/master/docs/targets.md)
- * An SWD debug interface [debug interfaces](https://github.com/deadsy/pycs/blob/master/docs/debug_itf.md)
+ * A PC with Python installed [(Host System)](https://github.com/deadsy/pycs/blob/master/docs/host.md)
+ * A target system with a Cortex-M ARM cpu [(Targets)](https://github.com/deadsy/pycs/blob/master/docs/targets.md)
+ * An SWD debug interface [(Debug Interface)](https://github.com/deadsy/pycs/blob/master/docs/debug_itf.md)
 
 ## Installing the tool
-  * Run "make" - this will build the ARM disassembler that uses C code.
+  * Run "make" - this will build the ARM disassembler library.
   * Run "./pycs" in the same directory you extracted the code to.
   * If you don't have permissions to access USB devices you can fix that (with a udev rules file) or run with "sudo ./pycs"
 
