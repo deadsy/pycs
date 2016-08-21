@@ -4,7 +4,7 @@ PyCS currently support two debug interfaces.
 
 ## Segger JLINK
 
- * See https://www.segger.com/jlink-debug-probes.html
+ * https://www.segger.com/jlink-debug-probes.html
  * The Base and EDU devices have been tested, but anything with SWD capability should work.
 
 Low level access to the CPU is done via the JLINK device library.
@@ -24,10 +24,17 @@ Note: The libraries for MacOS and Windows systems probably work, but I haven't t
 
 ## STLinkV2
 
-The STLinkV2 interface is supported directly by PyCS.
-STLinkV2 is commonly found on ST development boards but is also available as a stand-alone USB dongle.
-E.g. https://www.adafruit.com/products/2548
+ * The STLinkV2 interface is supported directly by PyCS.
+ * STLinkV2 is commonly built-in to ST development boards.
+ * It is also available as a stand-alone USB dongle E.g. https://www.adafruit.com/products/2548
+ * STLinkV2 can be used with any Cortex-M chip - not just ST chips.
 
-Note: STLinkV2 provides no direct support for 16-bit rd/wr of device memory. This is occasionally an issue.
-E.g.- writing to flash on certain ST parts. In these cases the rd/wr must be done using assembly language
+Note: STLinkV2 provides no direct support for 16-bit read and writes. This is occasionally an issue.
+E.g.- writing to flash on certain ST parts. In these cases the read/write must be done using assembly language
 routines that are downloaded to device RAM and run from there.
+
+## CMSIS-DAP
+
+Not currently supported.
+
+
