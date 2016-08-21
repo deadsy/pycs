@@ -19,8 +19,7 @@ The idea is to have as much common code as possible.
 
 ## Vendor Files
 
-The vendor directory contains the code that takes basic Cortex-M functionality and adds all of the specific vendor
-features.
+The vendor directory contains the code that takes basic Cortex-M functionality and adds specific vendor features.
 
  * type of core: interrupts, priority levels, etc
  * SVD file: to decode the peripheral registers
