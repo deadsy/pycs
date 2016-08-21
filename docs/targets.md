@@ -2,9 +2,8 @@
 
 There are many Cortex-M based platforms in the world.
 No single tool supports all of them.
-The idea is to provide a debugger that can be extended with platform specific code.
-Most debuggers are written in C and then customised with some sort of scripting language. E.g. TCL in openocd.
-PyCS is written in Python and customised using Python.
+Most debuggers are written in C and then customized with a scripting language. E.g. TCL in openocd.
+PyCS is written in Python and customized using Python.
 
 ## Customization
 
