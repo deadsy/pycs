@@ -1,6 +1,6 @@
 # SWD Debug Interfaces
 
-PyCS currently support two debug interfaces.
+PyCS currently supports two debug interfaces.
 
 ## Segger JLINK
 
@@ -26,11 +26,11 @@ Note: The libraries for MacOS and Windows systems probably work, but I haven't t
 
  * The STLinkV2 interface is supported directly by PyCS.
  * STLinkV2 is commonly built-in to ST development boards.
- * It is also available as a stand-alone USB dongle E.g. https://www.adafruit.com/products/2548
- * STLinkV2 can be used with any Cortex-M chip - not just ST chips.
+ * It is also available as a stand-alone USB dongle. E.g. https://www.adafruit.com/products/2548
+ * STLinkV2 can be used with any Cortex-M chip, not just ST chips.
 
-Note: STLinkV2 provides no direct support for 16-bit read and writes. This is occasionally an issue.
-E.g.- writing to flash on certain ST parts. In these cases the read/write must be done using assembly language
+Note: STLinkV2 provides no direct support for 16-bit read and writes. This can be an issue.
+E.g. writing to flash on certain ST parts. In these cases the read/write must be done using assembly language
 routines that are downloaded to device RAM and run from there.
 
 ## CMSIS-DAP
