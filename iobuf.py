@@ -418,7 +418,7 @@ class data_buffer(object):
 
   def __str__(self):
     """return a string for the buffer values"""
-    fmt = '0x%%0%dx' % (self.width / 4)
-    return ','.join([fmt % x for x in self.buf])
+    fmt = '%%0%dx' % (self.width / 4)
+    return ' '.join([fmt % x for x in self.buf])
 
 #-----------------------------------------------------------------------------
