@@ -4,8 +4,8 @@ stm32f4_flash = {
   'code': (
     0xb1624b07,
     0x600c6804,
-    0xf41468dc,
-    0xd1fb3f80,
+    0xf01489dc,
+    0xd1fb0f01,
     0x0004f100,
     0x0104f101,
     0x0201f1a2,

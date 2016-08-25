@@ -148,7 +148,7 @@ class drv(object):
     hw.wr(val)
 
   def set_input_disable(self, port, bit):
-    """enable input for the pin"""
+    """disable input for the pin"""
     hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
     val = hw.rd()
     val |= 1 << 1

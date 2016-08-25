@@ -29,10 +29,11 @@ stm32f3 flash loader
 // r0 = src address in ram
 // r1 = dst address in flash
 // r2 = number of u16 words
-// r3,r4 = clobbered
+// r3 = tmp
+// r4 = flash base
 
 start:
-  ldr r4, STM32_FLASH_BASE
+  ldr r4, FLASH_BASE
   add r4, r3
 
 write_u16:
@@ -51,9 +52,11 @@ busy:
   bne  write_u16
 
 exit:
-  bkpt #0x00
+  bkpt #0
 
-STM32_FLASH_BASE:
+.align 2
+
+FLASH_BASE:
   .word 0x40022000
 
 //-----------------------------------------------------------------------------
