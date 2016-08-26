@@ -1,7 +1,10 @@
 //-----------------------------------------------------------------------------
 /*
 
-stm32f4 flash loader
+stm32f4 low voltage flash loader
+
+Under low voltage conditions we do 8-bit flash writes instead
+of 32-bit writes.
 
 */
 //-----------------------------------------------------------------------------
@@ -20,24 +23,25 @@ stm32f4 flash loader
 // r4 = tmp
 
 start:
-  ldr r3, FLASH_BASE
+  lsls  r2, r2, #2
+  ldr   r3, FLASH_BASE
 
 next:
-  cbz r2, exit
-  ldr r4, [r0]
-  str r4, [r1]
+  cbz   r2, exit
+  ldrb  r4, [r0]
+  strb  r4, [r1]
 
 wait:
   ldrh  r4, [r3, #0x0e]
   tst.w r4, #1
   bne   wait
-  add   r0, #4
-  add   r1, #4
+  add   r0, #1
+  add   r1, #1
   sub   r2, #1
   b     next
 
 exit:
-  bkpt  #0
+  bkpt #0
 
 .align 2
 
