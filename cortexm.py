@@ -159,6 +159,14 @@ class cortexm(object):
     """write a buffer to memory starting at adr"""
     self.dbgio.wrmem(adr, n, io)
 
+  def wrreg(self, reg, val):
+    """write to a cpu register"""
+    self.dbgio.wrreg(reg, val)
+
+  def rdreg(self, reg):
+    """read from a cpu register"""
+    return self.dbgio.rdreg(reg)
+
   def halt(self, msg=False):
     """halt the cpu"""
     if self.dbgio.is_halted():
@@ -188,13 +196,18 @@ class cortexm(object):
   def runlib(self, lib):
     """run a library routine that has been loaded to ram"""
     assert self.dbgio.is_halted(), 'cpu should be halted'
-    # todo
+    self.wrreg('pc', lib['entry'])
+    # run the library routine
+    self.dbgio.go()
+    # wait for the breakpoint
+    while not self.dbgio.is_halted():
+      time.sleep(0.01)
 
   def loadlib(self, lib, run = False):
     """load a library routine to ram"""
     self.halt()
     code = iobuf.data_buffer(32, lib['code'])
-    self.wrmem(lib['adr'], len(code), code)
+    self.wrmem(lib['load'], len(code), code)
     if run:
       self.runlib(lib)
 

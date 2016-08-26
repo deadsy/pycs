@@ -10,6 +10,7 @@ Run fixup functions to correct any SVD inadequacies.
 #-----------------------------------------------------------------------------
 
 import soc
+import mem
 import cmregs
 
 #-----------------------------------------------------------------------------
@@ -338,6 +339,8 @@ def STM32F303xC_fixup(d):
   d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 16, None, 'flash option memory'))
   d.insert(soc.make_peripheral('UID', 0x1ffff7ac, 12, _uuid_regset, 'Unique Device ID'))
   d.insert(soc.make_peripheral('FLASH_SIZE', 0x1ffff7cc, 2, _flash_size_regset, 'Flash Size'))
+  # ram buffer for flash writing
+  d.rambuf = mem.region('rambuf', 0x20000000 + 512, 32 << 10)
 
 s = soc_info()
 s.name = 'STM32F303xC'

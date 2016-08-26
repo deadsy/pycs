@@ -18,6 +18,7 @@ sector based flash. Each page/sector is an erase unit.
 import time
 import util
 import mem
+import vendor.st.lib as lib
 
 #-----------------------------------------------------------------------------
 # Define the sectors/pages of flash memory for various devices
@@ -99,25 +100,25 @@ class pdrv(object):
     n = 0
     while n < POLL_MAX:
       status = self.hw.SR.rd()
-      if status & SR_BSY == 0:
+      if status & self.SR_BSY == 0:
         break
       time.sleep(POLL_TIME)
       n += 1
     # clear status bits
-    self.hw.SR.wr(status | SR_EOP | SR_WRPRT | SR_PGERR)
+    self.hw.SR.wr(status | self.SR_EOP | self.SR_WRPRT | self.SR_PGERR)
     # check for errors
     if n >= POLL_MAX:
       return 'timeout'
-    if status & SR_WRPRT:
+    if status & self.SR_WRPRT:
       return 'write protect error'
-    if status & SR_PGERR:
+    if status & self.SR_PGERR:
       return 'programming error'
     # done
     return None
 
   def __unlock(self):
     """unlock the flash"""
-    if self.hw.CR.rd() & CR_LOCK == 0:
+    if self.hw.CR.rd() & self.CR_LOCK == 0:
       # already unlocked
       return
     # write the unlock sequence
@@ -128,16 +129,16 @@ class pdrv(object):
 
   def __lock(self):
     """lock the flash"""
-    self.hw.CR.set_bit(CR_LOCK)
+    self.hw.CR.set_bit(self.CR_LOCK)
 
   def __wr16(self, adr, val):
     """write 16 bits to flash"""
     # set the program bit
-    self.hw.CR.set_bit(CR_PG)
+    self.hw.CR.set_bit(self.CR_PG)
     self.device.cpu.wr(adr, val, 16)
     error = self.__wait4complete()
     # clear the program bit
-    self.hw.CR.clr_bit(CR_PG)
+    self.hw.CR.clr_bit(self.CR_PG)
     return error
 
   def __wr_slow(self, mr, io):
@@ -150,13 +151,26 @@ class pdrv(object):
   def __wr_fast(self, mr, io):
     """write fast (6.40 KiB/sec) - muntzed"""
     # set the program bit
-    self.hw.CR.wr(CR_PG)
+    self.hw.CR.wr(self.CR_PG)
     for adr in xrange(mr.adr, mr.end, 2):
       val = io.rd16()
       if val != 0xffff:
         self.device.cpu.wr(adr, val, 16)
     # clear the program bit
-    self.hw.CR.clr_bit(CR_PG)
+    self.hw.CR.clr_bit(self.CR_PG)
+
+  def __wr_lib(self, mr, io):
+    """write using asm library code"""
+
+    self.device.cpu.loadlib(lib.stm32f3_flash)
+
+    self.device.cpu.wrreg('r0', self.device.rambuf.adr)
+    self.device.cpu.wrreg('r1', mr.adr)
+    self.device.cpu.wrreg('r2', self.device.rambuf.size / 2)
+    self.device.cpu.wrreg('r3', 0)
+
+    self.device.cpu.runlib(lib.stm32f3_flash)
+
 
   def sector_list(self):
     """return a list of flash pages"""
@@ -184,13 +198,13 @@ class pdrv(object):
     # unlock the flash
     self.__unlock()
     # set the mass erase bit
-    self.hw.CR.set_bit(CR_MER)
+    self.hw.CR.set_bit(self.CR_MER)
     # set the start bit
-    self.hw.CR.set_bit(CR_STRT)
+    self.hw.CR.set_bit(self.CR_STRT)
     # wait for completion
     error = self.__wait4complete()
     # clear the mass erase bit
-    self.hw.CR.clr_bit(CR_MER)
+    self.hw.CR.clr_bit(self.CR_MER)
     # lock the flash
     self.__lock()
     return (1,0)[error is None]
@@ -202,15 +216,15 @@ class pdrv(object):
     # unlock the flash
     self.__unlock()
     # set the page erase bit
-    self.hw.CR.set_bit(CR_PER)
+    self.hw.CR.set_bit(self.CR_PER)
     # set the page address
     self.hw.AR.wr(page.adr)
     # set the start bit
-    self.hw.CR.set_bit(CR_STRT)
+    self.hw.CR.set_bit(self.CR_STRT)
     # wait for completion
     error = self.__wait4complete()
     # clear the page erase bit
-    self.hw.CR.clr_bit(CR_PER)
+    self.hw.CR.clr_bit(self.CR_PER)
     # lock the flash
     self.__lock()
     return (1,0)[error is None]
@@ -222,8 +236,9 @@ class pdrv(object):
     # unlock the flash
     self.__unlock()
     # write the flash
-    self.__wr_fast(mr, io)
+    #self.__wr_fast(mr, io)
     #self.__wr_slow(mr, io)
+    self.__wr_lib(mr, io)
     # lock the flash
     self.__lock()
 
@@ -233,7 +248,7 @@ class pdrv(object):
 #-----------------------------------------------------------------------------
 
 class sdrv(object):
-  """flash driver for STM32F3xxx sector based devices"""
+  """flash driver for STM32F4xxx sector based devices"""
 
   # FLASH.SR bits
   SR_BSY    = 1 << 16 # Busy
