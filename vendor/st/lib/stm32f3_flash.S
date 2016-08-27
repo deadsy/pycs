@@ -28,7 +28,7 @@ stm32f3 flash loader
 
 // r0 = src address in ram, return code (ok == 0)
 // r1 = dst address in flash
-// r2 = number of u16 words
+// r2 = number of u32 words
 
 // r3 = tmp
 // r4 = flash base
@@ -36,6 +36,7 @@ stm32f3 flash loader
 
 start:
   ldr   r4, FLASH_BASE
+  lsl   r2, #1
   mov   r5, #(SR_EOP | SR_WRPRT | SR_PGERR)
 
 wr16:
@@ -54,7 +55,7 @@ wait:
   // clear the status bits
   str   r5, [r4, #SR]
   // check for errors
-  tst   r3, #(SR_PGERR | SR_WRPRT)
+  ands  r3, #(SR_PGERR | SR_WRPRT)
   bne   exit
   // next write
   subs  r2, #1
@@ -70,3 +71,5 @@ FLASH_BASE:
   .word 0x40022000
 
 //-----------------------------------------------------------------------------
+
+

@@ -160,17 +160,34 @@ class pdrv(object):
     self.hw.CR.clr_bit(self.CR_PG)
 
   def __wr_lib(self, mr, io):
-    """write using asm library code"""
-
+    """write using asm library code (19.24 KiB/sec)"""
+    # halt the cpu and load the library
+    self.device.cpu.halt()
     self.device.cpu.loadlib(lib.stm32f3_flash)
-
-    self.device.cpu.wrreg('r0', self.device.rambuf.adr)
-    self.device.cpu.wrreg('r1', mr.adr)
-    self.device.cpu.wrreg('r2', self.device.rambuf.size / 2)
-    self.device.cpu.wrreg('r3', 0)
-
-    self.device.cpu.runlib(lib.stm32f3_flash)
-
+    # TODO should files be io buffers directly?
+    words_to_write = io.len32()
+    words_per_buf = self.device.rambuf.size / 4
+    src = self.device.rambuf.adr
+    dst = mr.adr
+    while words_to_write > 0:
+      # program a full buffer - or whatever is left
+      n = min(words_to_write, words_per_buf)
+      # copy the io buffer to the ram buffer
+      self.device.cpu.wrmem32(src, n, io)
+      # setup the registers and call the library
+      self.device.cpu.wrreg('r0', src)
+      self.device.cpu.wrreg('r1', dst)
+      self.device.cpu.wrreg('r2', n)
+      status = self.device.cpu.runlib(lib.stm32f3_flash)
+      # check for errors
+      if status & self.SR_WRPRT:
+        return 'write protect error'
+      if status & self.SR_PGERR:
+        return 'programming error'
+      # next buffer
+      words_to_write -= n
+      dst += 4 * n
+    return None
 
   def sector_list(self):
     """return a list of flash pages"""

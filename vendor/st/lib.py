@@ -17,7 +17,8 @@ stm32f3_flash = {
   'load': 0x20000000,
   'entry': 0x20000000,
   'code': (
-    0xf04f4c0a,
+    0xea4f4c0b,
+    0xf04f0242,
     0xf04f0534,
     0x61230301,
     0x3b02f830,
@@ -25,7 +26,7 @@ stm32f3_flash = {
     0xf01368e3,
     0xd1fb0f01,
     0xf01360e5,
-    0xd1010f14,
+    0xd1010314,
     0xd1ee3a01,
     0xbe004618,
     0x40022000,

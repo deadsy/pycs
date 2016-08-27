@@ -159,8 +159,13 @@ class cortexm(object):
     """write a buffer to memory starting at adr"""
     self.dbgio.wrmem(adr, n, io)
 
+  def wrmem32(self, adr, n, io):
+    """write n 32-bit words to memory starting at adr"""
+    self.dbgio.wrmem32(adr, n, io)
+
   def wrreg(self, reg, val):
     """write to a cpu register"""
+    # the cpu must be halted
     self.dbgio.wrreg(reg, val)
 
   def rdreg(self, reg):
@@ -178,7 +183,7 @@ class cortexm(object):
 
   def go(self, msg=False):
     """un-halt the cpu"""
-    if not self.dbgio.is_halted():
+    if self.dbgio.is_running():
       if msg:
         self.ui.put('cpu is already running\n')
       return
@@ -195,21 +200,24 @@ class cortexm(object):
 
   def runlib(self, lib):
     """run a library routine that has been loaded to ram"""
-    assert self.dbgio.is_halted(), 'cpu should be halted'
+    # the cpu must be halted
     self.wrreg('pc', lib['entry'])
     # run the library routine
     self.dbgio.go()
     # wait for the breakpoint
-    while not self.dbgio.is_halted():
+    while self.dbgio.is_running():
       time.sleep(0.01)
+    # the asm routine returns any status in r0
+    return self.rdreg('r0')
 
   def loadlib(self, lib, run = False):
     """load a library routine to ram"""
-    self.halt()
+    # the cpu must be halted
     code = iobuf.data_buffer(32, lib['code'])
     self.wrmem(lib['load'], len(code), code)
     if run:
-      self.runlib(lib)
+      return self.runlib(lib)
+    return 0
 
   def NVIC_GetPriority(self, irq):
     """return the priority encoding for an exception"""
