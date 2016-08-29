@@ -131,46 +131,17 @@ class pdrv(object):
     """lock the flash"""
     self.hw.CR.set_bit(self.CR_LOCK)
 
-  def __wr16(self, adr, val):
-    """write 16 bits to flash"""
-    # set the program bit
-    self.hw.CR.set_bit(self.CR_PG)
-    self.device.cpu.wr(adr, val, 16)
-    error = self.__wait4complete()
-    # clear the program bit
-    self.hw.CR.clr_bit(self.CR_PG)
-    return error
-
-  def __wr_slow(self, mr, io):
-    """write slow (0.69 KiB/sec) - correct"""
-    for adr in xrange(mr.adr, mr.end, 2):
-      val = io.rd16()
-      if val != 0xffff:
-        self.__wr16(adr, val)
-
-  def __wr_fast(self, mr, io):
-    """write fast (6.40 KiB/sec) - muntzed"""
-    # set the program bit
-    self.hw.CR.wr(self.CR_PG)
-    for adr in xrange(mr.adr, mr.end, 2):
-      val = io.rd16()
-      if val != 0xffff:
-        self.device.cpu.wr(adr, val, 16)
-    # clear the program bit
-    self.hw.CR.clr_bit(self.CR_PG)
-
   def __wr_lib(self, mr, io):
-    """write using asm library code (19.24 KiB/sec)"""
+    """write using asm library code (20.5 KiB/sec)"""
     # halt the cpu and load the library
     self.device.cpu.halt()
     self.device.cpu.loadlib(lib.stm32f3_flash)
-    # TODO should files be io buffers directly?
-    words_to_write = io.len32()
+    words_to_write = mr.size / 4
     words_per_buf = self.device.rambuf.size / 4
     src = self.device.rambuf.adr
     dst = mr.adr
     while words_to_write > 0:
-      # program a full buffer - or whatever is left
+      # program a full buffer, or whatever is left
       n = min(words_to_write, words_per_buf)
       # copy the io buffer to the ram buffer
       self.device.cpu.wrmem32(src, n, io)
@@ -253,8 +224,6 @@ class pdrv(object):
     # unlock the flash
     self.__unlock()
     # write the flash
-    #self.__wr_fast(mr, io)
-    #self.__wr_slow(mr, io)
     self.__wr_lib(mr, io)
     # lock the flash
     self.__lock()

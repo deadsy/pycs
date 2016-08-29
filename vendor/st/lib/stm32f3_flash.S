@@ -28,7 +28,7 @@ stm32f3 flash loader
 
 // r0 = src address in ram, return code (ok == 0)
 // r1 = dst address in flash
-// r2 = number of u32 words
+// r2 = number of u32 words to write
 
 // r3 = tmp
 // r4 = flash base

@@ -109,7 +109,6 @@ class read_file(object):
     self.ui = ui
     self.f = open(name, 'rb')
     self.n = 0
-    self.size = size
     self.fmt16 = ('>H', '<H')[mode == 'le']
     self.fmt32 = ('>L', '<L')[mode == 'le']
     # display output
@@ -153,11 +152,6 @@ class read_file(object):
     self.n += 1
     self.progress.update(self.n)
     return struct.unpack('B', val)[0]
-
-  def len32(self):
-    # return the number of 32-bit words in this io object
-    n = util.roundup(self.size, 32)
-    return n / 4
 
 #-----------------------------------------------------------------------------
 
