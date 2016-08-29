@@ -331,18 +331,17 @@ def display_cols(clist, csize = None):
 # -----------------------------------------------------------------------------
 
 class progress:
-  """percent complete and activity indication"""
+  """percent complete indication"""
 
   def __init__(self, ui, div, nmax):
     """
     progress indicator
-    div = slash speed, larger is slower
+    div = update frequency, larger is slower
     nmax = maximum value, 100%
     """
     self.ui = ui
     self.nmax = nmax
     self.progress = ''
-    self.div = div
     self.mask = (1 << div) - 1
 
   def erase(self):
@@ -354,9 +353,7 @@ class progress:
     """update the progress indication"""
     if n & self.mask == 0:
       self.erase()
-      istr = '-\\|/'[(n >> self.div) & 3]
-      pstr = '%d%% ' % ((100 * n) / self.nmax)
-      self.progress = ''.join([pstr, istr])
+      self.progress = '%d%% ' % ((100 * n) / self.nmax)
       self.ui.put(self.progress)
 
 # -----------------------------------------------------------------------------

@@ -111,7 +111,7 @@ class pdrv(object):
       return 'timeout'
     if status & self.SR_WRPRT:
       return 'write protect error'
-    if status & self.SR_PGERR:
+    elif status & self.SR_PGERR:
       return 'programming error'
     # done
     return None
@@ -153,7 +153,7 @@ class pdrv(object):
       # check for errors
       if status & self.SR_WRPRT:
         return 'write protect error'
-      if status & self.SR_PGERR:
+      elif status & self.SR_PGERR:
         return 'programming error'
       # next buffer
       words_to_write -= n
@@ -168,8 +168,8 @@ class pdrv(object):
     """return None if region x meets the flash write requirements"""
     if x.adr & 1:
       return 'memory region is not 16-bit aligned'
-    if x.size & 1:
-      return 'memory region is not a multiple of 16-bits'
+    if x.size & 3:
+      return 'memory region is not a multiple of 32-bits'
     # check that we are within flash
     if self.device.flash_main.contains(x):
       return None
@@ -271,7 +271,7 @@ class sdrv(object):
     self.device = device
     self.hw = self.device.FLASH
     self.sectors = mem.flash_regions(self.device, flash_map[self.device.soc_name])
-    # set an overall voltage to control the erase/write parrallelism
+    # set an overall voltage to control the erase/write parallelism
     self.volts = self.VOLTS_27_36
 
   def __wait4complete(self, timeout = POLL_MAX):
@@ -291,15 +291,15 @@ class sdrv(object):
       return 'timeout'
     if status & self.SR_RDERR:
       return 'read error'
-    if status & self.SR_PGSERR:
+    elif status & self.SR_PGSERR:
       return 'program sequence error'
-    if status & self.SR_PGPERR:
+    elif status & self.SR_PGPERR:
       return 'program parallelism error'
-    if status & self.SR_PGAERR:
+    elif status & self.SR_PGAERR:
       return 'program alignment error'
-    if status & self.SR_WRPERR:
+    elif status & self.SR_WRPERR:
       return 'write protect error'
-    if status & self.SR_OPERR:
+    elif status & self.SR_OPERR:
       return 'operation error'
     # done
     return None
@@ -368,6 +368,43 @@ class sdrv(object):
         self.device.cpu.wr(adr, val, 32)
     # clear the program bit
     self.hw.CR.clr_bit(self.CR_PG)
+
+  def __wr_lib(self, mr, io):
+    """write using asm library code"""
+    # halt the cpu and load the library
+    self.device.cpu.halt()
+    self.device.cpu.loadlib(lib.stm32f4_flash)
+    words_to_write = mr.size / 4
+    words_per_buf = self.device.rambuf.size / 4
+    src = self.device.rambuf.adr
+    dst = mr.adr
+    while words_to_write > 0:
+      # program a full buffer, or whatever is left
+      n = min(words_to_write, words_per_buf)
+      # copy the io buffer to the ram buffer
+      self.device.cpu.wrmem32(src, n, io)
+      # setup the registers and call the library
+      self.device.cpu.wrreg('r0', src)
+      self.device.cpu.wrreg('r1', dst)
+      self.device.cpu.wrreg('r2', n)
+      status = self.device.cpu.runlib(lib.stm32f4_flash)
+      # check for errors
+      if status & self.SR_RDERR:
+        return 'read error'
+      elif status & self.SR_PGSERR:
+        return 'program sequence error'
+      elif status & self.SR_PGPERR:
+        return 'program parallelism error'
+      elif status & self.SR_PGAERR:
+        return 'program alignment error'
+      elif status & self.SR_WRPERR:
+        return 'write protect error'
+      elif status & self.SR_OPERR:
+        return 'operation error'
+      # next buffer
+      words_to_write -= n
+      dst += 4 * n
+    return None
 
   def sector_list(self):
     """return a list of flash sectors"""
