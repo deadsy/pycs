@@ -36,6 +36,7 @@ stm32f3 flash loader
 
 start:
   ldr   r4, FLASH_BASE
+  // convert r2 to the number of 16-bit words
   lsl   r2, #1
   mov   r5, #(SR_EOP | SR_WRPRT | SR_PGERR)
 
@@ -43,7 +44,7 @@ wr16:
   // set the programming bit
   mov   r3, #CR_PG
   str   r3, [r4, #CR]
-  // 16 bit copy from ram to flash
+  // 16-bit copy from ram to flash
   ldrh  r3, [r0], #2
   strh  r3, [r1], #2
 
