@@ -189,6 +189,10 @@ _STM32F407xx_altfunc = (
 )
 
 # port, pin, af, name
+_STM32F429xI_altfunc = (
+)
+
+# port, pin, af, name
 _STM32F303xC_altfunc = (
   # this is a partial list
   ('A', 11, 6, 'TIM1_CH1N'),
@@ -315,6 +319,43 @@ s = soc_info()
 s.name = 'STM32F407xx'
 s.svd = 'STM32F40x'
 s.fixups = (STM32F407xx_fixup, cmregs.cm4_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
+
+def STM32F429xI_fixup(d):
+  d.soc_name = 'STM32F429xI'
+  d.cpu_info.nvicPrioBits = 4
+  d.cpu_info.deviceNumInterrupts = 90
+  # remove some core peripherals - we'll replace them in the cpu fixup
+  d.remove(d.NVIC)
+  # more decode for the DBG registers
+  f = d.DBG.DBGMCU_IDCODE.REV_ID
+  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
+  f = d.DBG.DBGMCU_IDCODE.DEV_ID
+  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # more decode for the GPIO registers
+  # TODO fix up the OSPEEDR label that ST messed up
+  #gpio_decodes(d, ('A','B','C','D','E','F','G','H','I','J','K'), _STM32F429xI_altfunc)
+  # memory and misc periperhals
+  d.insert(soc.make_peripheral('sram', 0x20000000, 256 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 64 << 10, None, 'core coupled memory sram'))
+  d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 30 << 10, None, 'flash system memory'))
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 2 << 20, None, 'flash main memory'))
+  d.insert(soc.make_peripheral('flash_opt_bank1', 0x1fffc000, 16, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('flash_opt_bank2', 0x1ffec000, 16, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('flash_otp', 0x1fff7800, 528, None, 'flash otp memory'))
+  d.insert(soc.make_peripheral('UID', 0x1fff7a10, 12, _uuid_regset, 'Unique Device ID'))
+  d.insert(soc.make_peripheral('FLASH_SIZE', 0x1fff7a22, 2, _flash_size_regset, 'Flash Size'))
+  # the size of this peripheral seems wrong
+  d.OTG_HS_PWRCLK.size = 1 << 10
+  # ram buffer for flash writing
+  d.rambuf = mem.region('rambuf', 0x20000000 + 512, 32 << 10)
+
+s = soc_info()
+s.name = 'STM32F429xI'
+s.svd = 'STM32F429x'
+s.fixups = (STM32F429xI_fixup, cmregs.cm4_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
