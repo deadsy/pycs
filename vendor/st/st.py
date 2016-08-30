@@ -308,6 +308,8 @@ def STM32F407xx_fixup(d):
   # the size of these peripherals seems wrong
   d.OTG_HS_GLOBAL.size = 1 << 10
   d.OTG_HS_PWRCLK.size = 1 << 10
+  # ram buffer for flash writing
+  d.rambuf = mem.region('rambuf', 0x20000000 + 512, 32 << 10)
 
 s = soc_info()
 s.name = 'STM32F407xx'

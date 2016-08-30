@@ -390,6 +390,10 @@ class dbgio(object):
     """disconnect the debugger from the target"""
     self.stlink.close()
 
+  def target_voltage(self):
+    """return the target voltage in mV"""
+    return self.stlink.get_voltage()
+
   def cmd_info(self, ui, args):
     """display stlink information"""
     ui.put('%s\n' % self)

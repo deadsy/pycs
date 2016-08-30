@@ -257,10 +257,10 @@ class sdrv(object):
   CR_SER    = 1 << 1  # Sector Erase
   CR_PG     = 1 << 0  # Programming
   # FLASH.CR.CR_PSIZE voltage ranges
-  VOLTS_18_21     = 0 << 8 # 1.8V to 2.1V
-  VOLTS_21_27     = 1 << 8 # 2.1V to 2.7V
-  VOLTS_27_36     = 2 << 8 # 2.7V to 3.6V
-  VOLTS_27_36_VPP = 3 << 8 # 2.7V to 3.6V + External Vpp
+  VOLTS_18_21     = 0 << 8 # 1.8V to 2.1V, 8-bit writes
+  VOLTS_21_27     = 1 << 8 # 2.1V to 2.7V, 16-bit writes
+  VOLTS_27_36     = 2 << 8 # 2.7V to 3.6V, 32-bit writes
+  VOLTS_27_36_VPP = 3 << 8 # 2.7V to 3.6V + Ext Vpp, 64-bit writes
   # FLASH.CR.CR_PSIZE write size
   PSIZE_BYTE        = 0 << 8 # 8 bits
   PSIZE_HALF_WORD   = 1 << 8 # 16 bits
@@ -271,8 +271,17 @@ class sdrv(object):
     self.device = device
     self.hw = self.device.FLASH
     self.sectors = mem.flash_regions(self.device, flash_map[self.device.soc_name])
-    # set an overall voltage to control the erase/write parallelism
-    self.volts = self.VOLTS_27_36
+    # the target voltage controls the erase/write parallelism
+    v = self.device.cpu.dbgio.target_voltage()
+    if v >= 2700:
+      self.volts = self.VOLTS_27_36
+      self.lib = lib.stm32f4_32_flash
+    elif v >= 2100:
+      self.volts = self.VOLTS_21_27
+      self.lib = lib.stm32f4_16_flash
+    else:
+      self.volts = self.VOLTS_18_21
+      self.lib = lib.stm32f4_8_flash
 
   def __wait4complete(self, timeout = POLL_MAX):
     """wait for flash operation completion"""
@@ -341,39 +350,11 @@ class sdrv(object):
     cr |= n << 3
     self.hw.CR.wr(cr)
 
-  def __wr32(self, adr, val):
-    """write 32 bits to flash"""
-    # set the program bit and write size
-    self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
-    self.device.cpu.wr(adr, val, 32)
-    error = self.__wait4complete()
-    # clear the program bit
-    self.hw.CR.clr_bit(self.CR_PG)
-    return error
-
-  def __wr_slow(self, mr, io):
-    """write slow (1.95 KiB/sec) - correct"""
-    for adr in xrange(mr.adr, mr.end, 4):
-      val = io.rd32()
-      if val != 0xffffffff:
-        self.__wr32(adr, val)
-
-  def __wr_fast(self, mr, io):
-    """write fast (11.89 KiB/sec) - muntzed"""
-    # set the program bit and write size
-    self.hw.CR.wr(self.CR_PG | self.PSIZE_WORD)
-    for adr in xrange(mr.adr, mr.end, 4):
-      val = io.rd32()
-      if val != 0xffffffff:
-        self.device.cpu.wr(adr, val, 32)
-    # clear the program bit
-    self.hw.CR.clr_bit(self.CR_PG)
-
   def __wr_lib(self, mr, io):
-    """write using asm library code"""
+    """write using asm library code (41.20 KiB/sec)"""
     # halt the cpu and load the library
     self.device.cpu.halt()
-    self.device.cpu.loadlib(lib.stm32f4_flash)
+    self.device.cpu.loadlib(self.lib)
     words_to_write = mr.size / 4
     words_per_buf = self.device.rambuf.size / 4
     src = self.device.rambuf.adr
@@ -387,7 +368,7 @@ class sdrv(object):
       self.device.cpu.wrreg('r0', src)
       self.device.cpu.wrreg('r1', dst)
       self.device.cpu.wrreg('r2', n)
-      status = self.device.cpu.runlib(lib.stm32f4_flash)
+      status = self.device.cpu.runlib(self.lib)
       # check for errors
       if status & self.SR_RDERR:
         return 'read error'
@@ -468,8 +449,7 @@ class sdrv(object):
     # unlock the flash
     self.__unlock()
     # write the flash
-    self.__wr_fast(mr, io)
-    #self.__wr_slow(mr, io)
+    self.__wr_lib(mr, io)
     # lock the flash
     self.__lock()
 
