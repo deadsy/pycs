@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-STM32F4 Discovery Board (STM32F429I-DISCO)
+STM32F4 Discovery Board (STM32F429xI)
 
 """
 # -----------------------------------------------------------------------------
@@ -11,14 +11,14 @@ import cli
 import cortexm
 import mem
 import soc
-#import flash
-#import gpio
+import flash
+import gpio
 #import i2c
 import rtt
 
 import vendor.st.st as vendor
-#import vendor.st.flash as flash_driver
-#import vendor.st.gpio as gpio_driver
+import vendor.st.flash as flash_driver
+import vendor.st.gpio as gpio_driver
 #import vendor.st.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
@@ -56,30 +56,30 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    #self.flash = flash.flash(flash_driver.sdrv(self.device), self.device, self.mem)
-    #gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
-    #self.gpio = gpio.gpio(gpio_drv)
+    self.flash = flash.flash(flash_driver.sdrv(self.device), self.device, self.mem)
+    gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
+    self.gpio = gpio.gpio(gpio_drv)
     #self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB9'))
     # setup the rtt client
-    #ram = self.device.sram
-    #self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
+    ram = self.device.sram
+    self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
-#      ('flash', self.flash.menu, 'flash functions'),
+      ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
-#      ('gpio', self.gpio.menu, 'gpio functions'),
+      ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
 #      ('i2c', self.i2c.menu, 'i2c functions'),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
-#      ('program', self.flash.cmd_program, flash.help_program),
+      ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
-#      ('rtt', self.rtt.menu, 'rtt client functions'),
+      ('rtt', self.rtt.menu, 'rtt client functions'),
       ('vtable', self.cpu.cmd_vtable),
     )
 

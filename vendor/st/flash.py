@@ -55,10 +55,19 @@ STM32F303xC_flash = (
   ('flash_option', (16,)),
 )
 
+# TODO fix
+STM32F429xI_flash = (
+  ('flash_main', (2<<20,) * 1),
+  ('flash_system', (30<<10,) * 1),
+  ('flash_opt_bank1', (16,)),
+  ('flash_opt_bank2', (16,)),
+)
+
 # map device.soc_name to the flash map
 flash_map = {
   'STM32F303xC': STM32F303xC_flash,
   'STM32F407xx': STM32F40x_flash,
+  'STM32F429xI': STM32F429xI_flash,
 }
 
 #-----------------------------------------------------------------------------

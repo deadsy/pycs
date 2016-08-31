@@ -382,6 +382,14 @@ class peripheral(object):
     else:
       return 'no registers for %s' % self.name
 
+  def rename_register(self, old, new):
+    """rename a peripheral register old > new"""
+    if old != new and self.registers.has_key(old):
+      r = self.registers[old]
+      del self.registers[old]
+      self.registers[new] = r
+      r.name = new
+
   def __str__(self):
     s = []
     if self.registers is not None:
