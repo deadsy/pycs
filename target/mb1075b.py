@@ -13,13 +13,13 @@ import mem
 import soc
 import flash
 import gpio
-#import i2c
+import i2c
 import rtt
 
 import vendor.st.st as vendor
 import vendor.st.flash as flash_driver
 import vendor.st.gpio as gpio_driver
-#import vendor.st.i2c as i2c_driver
+import vendor.st.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
 
