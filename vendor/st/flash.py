@@ -33,6 +33,8 @@ class meta(object):
   def __str__(self):
     if self.bank is None:
       return 'sector%d' % self.sector
+    elif self.sector is None:
+      return 'bank%d' % self.bank
     else:
       return 'bank%d sector%d' % (self.bank, self.sector)
 
@@ -45,6 +47,18 @@ STM32F40x_flash = (
   ('flash_option', (16,)),
 )
 
+# STM32F42xxx 2MiB dual bank
+STM32F429xI_flash = (
+  ('flash_main', (16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,
+                  16<<10,16<<10,16<<10,16<<10,64<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10,128<<10),
+                 (meta(0,1),meta(1,1),meta(2,1),meta(3,1),meta(4,1),meta(5,1),meta(6,1),meta(7,1),meta(8,1),meta(9,1),meta(10,1),meta(11,1),
+                  meta(12,2),meta(13,2),meta(14,2),meta(15,2),meta(16,2),meta(17,2),meta(18,2),meta(19,2),meta(20,2),meta(21,2),meta(22,2),meta(23,2))),
+  ('flash_system', (30<<10,) * 1),
+  ('flash_otp', (528,)),
+  ('flash_opt_bank1', (16,),(meta(None,1),)),
+  ('flash_opt_bank2', (16,),(meta(None,2),)),
+)
+
 #STM32F303xD/E: Up to 512KiB
 #STM32F303x6/8, STM32F328x8: up to 64 KiB
 
@@ -53,14 +67,6 @@ STM32F303xC_flash = (
   ('flash_main', (2<<10,) * 128),
   ('flash_system', (2<<10,) * 4),
   ('flash_option', (16,)),
-)
-
-# TODO fix
-STM32F429xI_flash = (
-  ('flash_main', (2<<20,) * 1),
-  ('flash_system', (30<<10,) * 1),
-  ('flash_opt_bank1', (16,)),
-  ('flash_opt_bank2', (16,)),
 )
 
 # map device.soc_name to the flash map
