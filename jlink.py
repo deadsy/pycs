@@ -462,6 +462,10 @@ class dbgio(object):
     """return True if target is halted"""
     return self.jlink.is_halted()
 
+  def is_running(self):
+    """return True if target is running"""
+    return not self.jlink.is_halted()
+
   def halt(self):
     """halt the cpu"""
     self.jlink.halt()
