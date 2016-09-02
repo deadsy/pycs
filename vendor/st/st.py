@@ -190,6 +190,40 @@ _STM32F407xx_altfunc = (
 
 # port, pin, af, name
 _STM32F429xI_altfunc = (
+  # this is a partial list
+  ('A', 3, 14, 'LCD_B5'),
+  ('A', 4, 14, 'LCD_VSYNC'),
+  ('A', 5, 1, 'TIM2_CH1/TIM2_ETR'),
+  ('A', 6, 14, 'LCD_G2'),
+  ('A', 8, 14, 'LCD_R6'),
+  ('A', 9, 7, 'USART1_TX'),
+  ('A', 10, 7, 'USART1_RX'),
+  ('A', 11, 14, 'LCD_R4'),
+  ('A', 12, 14, 'LCD_R5'),
+  ('B', 8, 14, 'LCD_B6'),
+  ('B', 9, 14, 'LCD_B7'),
+  ('B', 10, 14, 'LCD_G4'),
+  ('B', 11, 14, 'LCD_G5'),
+  ('C', 6, 14, 'LCD_HSYNC'),
+  ('C', 7, 14, 'LCD_G6'),
+  ('C', 10, 14, 'LCD_R2'),
+  ('D', 3, 14, 'LCD_G7'),
+  ('D', 6, 14, 'LCD_B2'),
+  ('D', 10, 14, 'LCD_B3'),
+  ('E', 4, 14, 'LCD_B0'),
+  ('E', 5, 14, 'LCD_G0'),
+  ('E', 6, 14, 'LCD_G1'),
+  ('E', 11, 14, 'LCD_G3'),
+  ('E', 12, 14, 'LCD_B4'),
+  ('E', 13, 14, 'LCD_DE'),
+  ('E', 14, 14, 'LCD_CLK'),
+  ('E', 15, 14, 'LCD_R7'),
+  ('F', 10, 14, 'LCD_DE'),
+  ('G', 6, 14, 'LCD_R7'),
+  ('G', 7, 14, 'LCD_CLK'),
+  ('G', 10, 14, 'LCD_B2'),
+  ('G', 11, 14, 'LCD_B3'),
+  ('G', 12, 14, 'LCD_B1'),
 )
 
 # port, pin, af, name

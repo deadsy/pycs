@@ -184,7 +184,7 @@ class drv(object):
     """enable the gpio port"""
     assert port in self.ports, 'bad port name'
     port = ord(port[4:]) - ord('A')
-    if self.device.soc_name in ('STM32F407xx',):
+    if self.device.soc_name in ('STM32F407xx','STM32F429xI'):
       hw = self.device.RCC.AHB1ENR
       # bits 0..
     elif self.device.soc_name in ('STM32F303xC',):
