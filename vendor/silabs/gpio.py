@@ -14,6 +14,27 @@ import util
 
 #-----------------------------------------------------------------------------
 
+_modes = {
+  0: 'disabled', # Input disabled. Pullup if DOUT is set
+  1: 'in', # Input enabled. Filter if DOUT is set
+  2: 'in/pull', # Input enabled. DOUT determines pull direction
+  3: 'in/pull/filter', # Input enabled with filter. DOUT determines pull direction
+  4: 'out/push-pull', # Push-pull output
+  5: 'out/push-pull/drive', # Push-pull output with drive-strength set by DRIVEMODE
+  6: 'out/wired-or', # Wired-or output
+  7: 'out/wired-or/pull-down', # Wired-or output with pull-down
+  8: 'out/wired-and', # Open-drain output
+  9: 'out/wired-and/filter', # Open-drain output with filter
+  10: 'out/wired-and/pull-up', # Open-drain output with pullup
+  11: 'out/wired-and/pull-up/filter', #Open-drain output with filter and pullup
+  12: 'out/wired-and/drive', #Open-drain output with drive-strength set by DRIVEMODE
+  13: 'out/wired-and/filter', #Open-drain output with filter and drive-strength set by DRIVEMODE
+  14: 'out/wired-and/drive/pull-up', #Open-drain output with pullup and drive-strength set by DRIVEMODE
+  15: 'out/wired-and/drive/pull-up/filter', #Open-drain output with filter, pullup and drive-strength set by DRIVEMODE
+}
+
+#-----------------------------------------------------------------------------
+
 class drv(object):
   """GPIO driver for silabs devices"""
 
@@ -21,18 +42,31 @@ class drv(object):
     self.cfg = cfg
     self.hw = device.GPIO
     self.ports = ('A','B','C','D','E','F')
+    # work out the pin to name mapping from the configuration
+    self.pin2name = {}
+    for (pin, name) in self.cfg:
+      self.pin2name[pin] = name
 
   def __status(self, port):
     """return a status string for the named gpio port"""
     s = []
+    mode_l = self.hw.registers['P%s_MODEL' % port].rd()
+    mode_h = self.hw.registers['P%s_MODEH' % port].rd()
+    mode_val = (mode_h << 32) | mode_l
     for i in range(16):
       # standard pin name
       pin_name = 'P%s%d' % (port, i)
       # target name
-      tgt_name = ''
+      tgt_name = self.pin2name.get(pin_name, None)
       # mode for this pin
-      mode_name = 'i'
-      val_name = '%d' % self.rd_input(port, i)
+      pin_mode = (mode_val >> (i * 4)) & 0xf
+      mode_name = _modes[pin_mode]
+      if pin_mode == 0:
+        val_name = 'x'
+      elif pin_mode <= 3:
+        val_name = '%d' % self.rd_input(port, i)
+      else:
+        val_name = '%d' % self.rd_output(port, i)
       s.append([pin_name, mode_name, val_name, tgt_name])
     return s
 
