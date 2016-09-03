@@ -227,6 +227,11 @@ _STM32F429xI_altfunc = (
 )
 
 # port, pin, af, name
+_STM32L432KC_altfunc = (
+  # this is a partial list
+)
+
+# port, pin, af, name
 _STM32F303xC_altfunc = (
   # this is a partial list
   ('A', 11, 6, 'TIM1_CH1N'),
@@ -425,6 +430,36 @@ s = soc_info()
 s.name = 'STM32F303xC'
 s.svd = 'STM32F30x'
 s.fixups = (STM32F303xC_fixup, cmregs.cm4_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
+
+def STM32L432KC_fixup(d):
+  d.soc_name = 'STM32L432KC'
+  d.cpu_info.nvicPrioBits = 4
+  d.cpu_info.deviceNumInterrupts = 84
+  # remove some core peripherals - we'll replace them in the cpu fixup
+  d.remove(d.NVIC)
+  # More decode for the DBGMCU registers
+  # There's no DBGMCU in the svd :-(
+  # more decode for the GPIO registers
+  gpio_decodes(d, ('A','B','C','D','E','H'), _STM32L432KC_altfunc)
+  # memory and misc periperhals
+  d.insert(soc.make_peripheral('sram1', 0x20000000, 48 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('sram2', 0x10000000, 16 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 28 << 10, None, 'flash system memory'))
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 256 << 10, None, 'flash main memory'))
+  d.insert(soc.make_peripheral('flash_otp', 0x1fff7000, 1 << 10, None, 'flash otp memory'))
+  d.insert(soc.make_peripheral('flash_option', 0x1fff7800, 16, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('UID', 0x1fff7590, 12, _uuid_regset, 'Unique Device ID'))
+  d.insert(soc.make_peripheral('FLASH_SIZE', 0x1fff75e0, 2, _flash_size_regset, 'Flash Size'))
+  # ram buffer for flash writing
+  d.rambuf = mem.region('rambuf', 0x20000000 + 512, 32 << 10)
+
+s = soc_info()
+s.name = 'STM32L432KC'
+s.svd = 'STM32L4x2'
+s.fixups = (STM32L432KC_fixup, cmregs.cm4_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------

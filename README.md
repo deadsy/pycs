@@ -19,13 +19,16 @@ Python Based ARM CoreSight Debug and Trace Tools
 
     $ ./pycs -l
     supported targets:
-      frdm_k64f : FRDM-K64F Kinetis Development Board (MK64FN1M0VLL12)
-      mb1035b   : STM32F3 Discovery Board (STM32F303xC)
-      mb997c    : STM32F4 Discovery Board (STM32F407xx)
-      nRF51822  : Adafruit BLE USB dongle (nRF51822)
-      nRF52dk   : Nordic nRF52DK Development Board (nRF52832)
-      saml21    : Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B)
-      tepo      : Teenage Engineering Pocket Operator (EFM32LG890F128)
+      efm32lg       : EFM32 Leopard Gecko Starter Kit (EFM32LG990F256)
+      frdm_k64f     : FRDM-K64F Kinetis Development Board (MK64FN1M0VLL12)
+      mb1035b       : STM32F3 Discovery Board (STM32F303xC)
+      mb1075b       : STM32F4 Discovery Board (STM32F429xI)
+      mb997c        : STM32F4 Discovery Board (STM32F407xx)
+      nRF51822      : Adafruit BLE USB dongle (nRF51822)
+      nRF52dk       : Nordic nRF52DK Development Board (nRF52832)
+      nucleo-l432kc : Nucleo-L432KC (STM32L432KC)
+      saml21        : Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B)
+      tepo          : Teenage Engineering Pocket Operator (EFM32LG890F128)
 
 ## Using the Tool
 

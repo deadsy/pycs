@@ -14,11 +14,13 @@ import util
 
 #-----------------------------------------------------------------------------
 
-# map device.soc_name to the set of GPIOs
-gpio_set = {
-  'STM32F303xC': ('A','B','C','D','E','F'),
-  'STM32F407xx': ('A','B','C','D','E','F','G','H','I'),
-  'STM32F429xI': ('A','B','C','D','E','F','G','H','I','J','K'),
+# map device.soc_name to GPIO information
+# ports, rcc_enable, rcc_enable_bit_offset
+gpio_info = {
+  'STM32F303xC': (('A','B','C','D','E','F'), 'AHBENR', 17),
+  'STM32L432KC': (('A','B','C','D','E','H'), 'AHB2ENR', 0),
+  'STM32F407xx': (('A','B','C','D','E','F','G','H','I'), 'AHB1ENR', 0),
+  'STM32F429xI': (('A','B','C','D','E','F','G','H','I','J','K'), 'AHB1ENR', 0),
 }
 
 #-----------------------------------------------------------------------------
@@ -29,7 +31,7 @@ class drv(object):
   def __init__(self, device, cfg = None):
     self.device = device
     self.cfg = cfg
-    self.ports = ['GPIO%s' % x for x in gpio_set[self.device.soc_name]]
+    self.ports = ['GPIO%s' % x for x in gpio_info[self.device.soc_name][0]]
     self.hw_init = False
     # work out the pin to name mapping from the configuration
     self.pin2name = {}
@@ -184,15 +186,9 @@ class drv(object):
     """enable the gpio port"""
     assert port in self.ports, 'bad port name'
     port = ord(port[4:]) - ord('A')
-    if self.device.soc_name in ('STM32F407xx','STM32F429xI'):
-      hw = self.device.RCC.AHB1ENR
-      # bits 0..
-    elif self.device.soc_name in ('STM32F303xC',):
-      hw = self.device.RCC.AHBENR
-      # bits 17..22
-      port += 17
-    else:
-      assert False, 'unknown soc name'
+    (_, reg, ofs) = gpio_info[self.device.soc_name]
+    hw = self.device.RCC.registers[reg]
+    port += ofs
     val = hw.rd()
     val &= ~(1 << port)
     val |= 1 << port
