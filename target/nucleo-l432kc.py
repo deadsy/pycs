@@ -90,7 +90,7 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    #self.flash = flash.flash(flash_driver.pdrv(self.device), self.device, self.mem)
+    self.flash = flash.flash(flash_driver.stm32l4x2(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
     #self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB7'))
@@ -100,7 +100,7 @@ class target(object):
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
-      #('flash', self.flash.menu, 'flash functions'),
+      ('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
@@ -108,7 +108,7 @@ class target(object):
       #('i2c', self.i2c.menu, 'i2c functions'),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
-      #('program', self.flash.cmd_program, flash.help_program),
+      ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )

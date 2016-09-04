@@ -7,10 +7,12 @@ Notes:
 1) Instantiating this driver does not touch the hardware. No reads or writes.
 We only access the hardware when the user wants to do something.
 
-2) Some ST devices talk of "flash pages" others of "flash sectors". Pages
-are small and uniform in size, sectors are larger and variable in size.
-There are two drivers here: one for page based flash, the other the other for
-sector based flash. Each page/sector is an erase unit.
+2) The ST device families have similar and yet different flash controller hardware.
+Each family get's it's own driver class to deal with the differences.
+
+3) You can write the flash directly from Python code, but it is slow. The fast
+approach is to load the data and a flash programming routine into RAM and run it directly
+on the target CPU. This minimises debugger IO transactions.
 
 """
 #-----------------------------------------------------------------------------
@@ -69,17 +71,96 @@ STM32F303xC_flash = (
   ('flash_option', (16,)),
 )
 
+STM32L432KC_flash = (
+  ('flash_main', (2 << 10,) * 128),
+  ('flash_system', (2 << 10,) * 14),
+  ('flash_otp', (1 << 10,)),
+  ('flash_option', (16,)),
+)
+
 # map device.soc_name to the flash map
 flash_map = {
   'STM32F303xC': STM32F303xC_flash,
   'STM32F407xx': STM32F40x_flash,
   'STM32F429xI': STM32F429xI_flash,
+  'STM32L432KC': STM32L432KC_flash,
 }
 
 #-----------------------------------------------------------------------------
 
 POLL_MAX = 5
 POLL_TIME = 0.1
+
+#-----------------------------------------------------------------------------
+
+class stm32l4x2(object):
+  """flash driver for STM32L4x2 devices"""
+
+  # FLASH.SR bits
+  SR_BSY = 1 << 16      # Busy
+  SR_OPTVERR = 1 << 15  # Option validity error
+  SR_RDERR = 1 << 14    # PCROP read error
+  SR_FASTERR = 1 << 9   # Fast programming error
+  SR_MISERR = 1 << 8    # Fast programming data miss error
+  SR_PGSERR = 1 << 7    # Programming sequence error
+  SR_SIZERR = 1 << 6    # Size error
+  SR_PGAERR = 1 << 5    # Programming alignment error
+  SR_WRPERR = 1 << 4    # Write protected error
+  SR_PROGERR = 1 << 3   # Programming error
+  SR_OPERR = 1 << 1     # Operation error
+  SR_EOP = 1 << 0       # End of operation
+
+  # FLASH.CR bits
+  CR_LOCK = 1 << 31       # FLASH_CR Lock
+  CR_OPTLOCK = 1 << 30    # Options Lock
+  CR_OBL_LAUNCH = 1 << 27 # Force the option byte loading
+  CR_RDERRIE = 1 << 26    # PCROP read error interrupt enable
+  CR_ERRIE = 1 << 25      # Error interrupt enable
+  CR_EOPIE = 1 << 24      # End of operation interrupt enable
+  CR_FSTPG = 1 << 18      # Fast programming
+  CR_OPTSTRT = 1 << 17    # Options modification start
+  CR_START = 1 << 16      # Start
+  CR_MER2 = 1 << 15       # Bank 2 Mass erase
+  CR_BKER = 1 << 11       # Bank erase
+  # CR_PNB [10:3] Page number
+  CR_MER1 = 1 << 2        # Bank 1 Mass erase
+  CR_PER = 1 << 1         # Page erase
+  CR_PG = 1 << 0          # Programming
+
+  def __init__(self, device):
+    self.device = device
+    self.hw = self.device.FLASH
+    self.pages = mem.flash_regions(self.device, flash_map[self.device.soc_name])
+
+
+
+
+  def sector_list(self):
+    """return a list of flash pages"""
+    return self.pages
+
+  def check_region(self, x):
+    """return None if region x meets the flash write requirements"""
+    if x.adr & 3:
+      return 'memory region is not 32-bit aligned'
+    if x.size & 3:
+      return 'memory region is not a multiple of 32-bits'
+    # check that we are within flash
+    if self.device.flash_main.contains(x):
+      return None
+    return 'memory region is not within flash'
+
+  def firmware_region(self):
+    """return the name of the flash region used for firmware"""
+    return 'flash_main'
+
+
+
+
+
+
+  def __str__(self):
+    return util.display_cols([x.col_str() for x in self.pages])
 
 #-----------------------------------------------------------------------------
 
