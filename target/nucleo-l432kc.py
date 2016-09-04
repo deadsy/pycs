@@ -39,6 +39,42 @@ default_itf = {
 
 # pin, mode, pupd, otype, ospeed, name
 gpio_cfg = (
+    ('PA0', 'i', None, None, None, 'CN4.12'),
+    ('PA1', 'i', None, None, None, 'CN4.11'),
+    ('PA2', 'i', None, None, None, 'CN4.5/VCP_TX'),
+    ('PA3', 'i', None, None, None, 'CN4.10'),
+    ('PA4', 'i', None, None, None, 'CN4.9'),
+    ('PA5', 'i', None, None, None, 'CN4.8'),
+    ('PA6', 'i', None, None, None, 'CN4.7'),
+    ('PA7', 'i', None, None, None, 'CN4.6'),
+    ('PA8', 'i', None, None, None, 'CN3.12'),
+    ('PA9', 'i', None, None, None, 'CN3.1'),
+    ('PA10', 'i', None, None, None, 'CN3.2'),
+    ('PA11', 'i', None, None, None, 'CN3.13'),
+    ('PA12', 'i', None, None, None, 'CN3.5'),
+    ('PA13', 'i', None, None, None, 'swdio'),
+    ('PA14', 'i', None, None, None, 'swclk'),
+    ('PA15', 'i', None, None, None, 'VCP_RX'),
+
+    ('PB0', 'i', None, None, None, 'CN3.6'),
+    ('PB1', 'i', None, None, None, 'CN3.9'),
+    #('PB2', 'i', None, None, None, ''),
+    ('PB3', 'i', None, None, None, 'CN4.15/LD3 green'),
+    ('PB4', 'i', None, None, None, 'CN3.15'),
+    ('PB5', 'i', None, None, None, 'CN3.14'),
+    ('PB6', 'i', None, None, None, 'CN3.8'),
+    ('PB7', 'i', None, None, None, 'CN3.7'),
+    ('PB8', 'i', None, None, None, 'BOOT0'),
+    #('PB9', 'i', None, None, None, ''),
+    #('PB10', 'i', None, None, None, ''),
+    #('PB11', 'i', None, None, None, ''),
+    #('PB12', 'i', None, None, None, ''),
+    #('PB13', 'i', None, None, None, ''),
+    #('PB14', 'i', None, None, None, ''),
+    #('PB15', 'i', None, None, None, ''),
+
+    ('PF0', 'i', None, None, None, 'CN3.10'),
+    ('PF1', 'i', None, None, None, 'CN3.11'),
 )
 
 # -----------------------------------------------------------------------------

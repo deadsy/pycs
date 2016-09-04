@@ -53,7 +53,24 @@ _dev_id_enumset = (
   ('STM32F42xxx,STM32F43xxx', 0x419, None),
   ('STM32F303xB/C,STM32F358', 0x422, None),
   ('STM32F303x6/8,STM32F328', 0x438, None),
+  ('STM32L4x2', 0x435, None),
   ('STM32F303xD/E,STM32F398xE', 0x446, None),
+)
+
+# Most devices have this in their SVD.
+# STM32L432KC doesn't...
+
+_IDCODE_fieldset = (
+  ('REV_ID', 31, 16, _rev_id_enumset, 'Revision Identifier'),
+  ('DEV_ID', 11, 0, _dev_id_enumset, 'Device Identifier'),
+)
+
+_DBGMCU_regset = (
+  ('IDCODE', 32, 0x00, _IDCODE_fieldset, 'MCU Device ID Code Register'),
+  ('CR', 32, 0x04, None, 'Debug MCU Configuration Register'),
+  ('APB1FZR1', 32, 0x08, None, 'APB1 freeze register1'),
+  ('APB1FZR2', 32, 0x0C, None, 'APB1 freeze register2'),
+  ('APB2FZR', 32, 0x10, None, 'APB2 freeze register'),
 )
 
 #-----------------------------------------------------------------------------
@@ -440,13 +457,15 @@ def STM32L432KC_fixup(d):
   d.cpu_info.deviceNumInterrupts = 84
   # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
-  # More decode for the DBGMCU registers
-  # There's no DBGMCU in the svd :-(
+  # ST didn't put DBGMCU in the SVD, so we will add it.
+  d.insert(soc.make_peripheral('DBGMCU', 0xe0042000, 1 << 10, _DBGMCU_regset, 'Debug support'))
   # more decode for the GPIO registers
   gpio_decodes(d, ('A','B','C','D','E','H'), _STM32L432KC_altfunc)
   # memory and misc periperhals
-  d.insert(soc.make_peripheral('sram1', 0x20000000, 48 << 10, None, 'sram'))
-  d.insert(soc.make_peripheral('sram2', 0x10000000, 16 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('sram1', 0x20000000, 48 << 10, None, 'sram1'))
+  # sram2 is found in 2 regions of the memory map
+  d.insert(soc.make_peripheral('sram2a', 0x2000c000, 16 << 10, None, 'sram2'))
+  d.insert(soc.make_peripheral('sram2b', 0x10000000, 16 << 10, None, 'sram2'))
   d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 28 << 10, None, 'flash system memory'))
   d.insert(soc.make_peripheral('flash_main', 0x08000000, 256 << 10, None, 'flash main memory'))
   d.insert(soc.make_peripheral('flash_otp', 0x1fff7000, 1 << 10, None, 'flash otp memory'))
