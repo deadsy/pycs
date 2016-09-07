@@ -31,10 +31,11 @@ import cortexm
 # -----------------------------------------------------------------------------
 # Memory mapping of Cortex-Mx Hardware
 
+ROMTABLE_BASE = 0xE00FF000
 SCS_BASE = 0xE000E000 # System Control Space Base Address
 ITM_BASE = 0xE0000000 # ITM Base Address
 DWT_BASE = 0xE0001000 # DWT Base Address
-TPI_BASE = 0xE0040000 # TPI Base Address
+TPIU_BASE = 0xE0040000 # TPIU Base Address
 CoreDebug_BASE = 0xE000EDF0 # Core Debug Base Address
 SysTick_BASE = (SCS_BASE + 0x0010) # SysTick Base Address
 NVIC_BASE = (SCS_BASE + 0x0100) # NVIC Base Address
@@ -251,16 +252,36 @@ _cm4_fpu_regset = (
 cm4_fpu = soc.make_peripheral('FPU', FPU_BASE, 1 << 10, _cm4_fpu_regset, 'Floating Point Unit')
 
 # -----------------------------------------------------------------------------
-# Instrumentation Trace Macrocell Unit
-
+# Data Watchpoint and Trace Unit
 # -----------------------------------------------------------------------------
 # Flash Patch and Breakpoint Unit
-
 # -----------------------------------------------------------------------------
-# Data Watchpoint and Trace Unit
-
+# Instrumentation Trace Macrocell Unit
 # -----------------------------------------------------------------------------
 # Trace Port Interface Unit
+# -----------------------------------------------------------------------------
+# Embedded Trace Macrocell Unit
+# -----------------------------------------------------------------------------
+# ROM Table
+
+def _ROM_format(x):
+  if x & 3 != 3:
+    return 'not present'
+  else:
+   return 'base 0x%08x' % ((ROMTABLE_BASE + (x & ~3)) & 0xffffffff)
+
+_cm_romtable_regset = (
+  ('SCS', 32, 0x00, (('SCS',31,0,_ROM_format,None),), 'System Control Space'),
+  ('DWT', 32, 0x04, (('DWT',31,0,_ROM_format,None),), 'Data Watchpoint and Trace Unit'),
+  ('FPB', 32, 0x08, (('FPB',31,0,_ROM_format,None),), 'Flash Patch and Breakpoint Unit'),
+  ('ITM', 32, 0x0C, (('ITM',31,0,_ROM_format,None),), 'Instrumentation Trace Macrocell Unit'),
+  ('TPIU', 32, 0x10, (('TPIU',31,0,_ROM_format,None),), 'Trace Port Interface Unit'),
+  ('ETM', 32, 0x14, (('ETM',31,0,_ROM_format,None),), 'Embedded Trace Macrocell Unit'),
+  ('END_MARKER', 32, 0x18, None, 'End Marker'),
+  ('SYSTEM_ACCESS', 32, 0xfcc, None, None),
+)
+
+cm_romtable = soc.make_peripheral('ROMTABLE', ROMTABLE_BASE, 1 << 10, _cm_romtable_regset, 'ROM Table')
 
 # -----------------------------------------------------------------------------
 # CPU Fixup Functions
@@ -268,6 +289,7 @@ cm4_fpu = soc.make_peripheral('FPU', FPU_BASE, 1 << 10, _cm4_fpu_regset, 'Floati
 def cm0_fixup(d):
   d.cpu_info.name = 'CM0'
   d.cpu_info.nvicPrioBits = 2
+  d.insert(cm_romtable)
   d.insert(systick)
   d.insert(cm0_scb)
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
@@ -276,6 +298,7 @@ def cm0_fixup(d):
 def cm0plus_fixup(d):
   d.cpu_info.name = 'CM0+'
   d.cpu_info.nvicPrioBits = 2
+  d.insert(cm_romtable)
   d.insert(systick)
   d.insert(cm0plus_mpu)
   d.insert(cm0_scb)
@@ -284,6 +307,7 @@ def cm0plus_fixup(d):
 
 def cm3_fixup(d):
   d.cpu_info.name = 'CM3'
+  d.insert(cm_romtable)
   d.insert(systick)
   d.insert(cm3_mpu)
   d.insert(cm3_scb)
@@ -292,6 +316,7 @@ def cm3_fixup(d):
 
 def cm4_fixup(d):
   d.cpu_info.name = 'CM4'
+  d.insert(cm_romtable)
   d.insert(systick)
   d.insert(cm3_mpu)
   d.insert(cm3_scb)
