@@ -44,5 +44,3 @@ The target files specifies which chip is being used and provide target specific 
 ## Guidelines
  * If it's in the vendor datasheet it belongs in the vendor directory.
  * If it's on the schematic it belongs in the target file.
-
-
