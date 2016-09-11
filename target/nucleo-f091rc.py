@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Nucleo-L432KC (STM32L432KC)
+Nucleo-F091RC (STM32F091xC)
 
 """
 # -----------------------------------------------------------------------------
@@ -20,8 +20,8 @@ import vendor.st.gpio as gpio_driver
 
 # -----------------------------------------------------------------------------
 
-soc_name = 'STM32L432KC'
-prompt = 'nucleo-l432kc'
+soc_name = 'STM32F091xC'
+prompt = 'nucleo-f091rc'
 
 # -----------------------------------------------------------------------------
 
@@ -37,48 +37,12 @@ default_itf = {
 
 # pin, mode, pupd, otype, ospeed, name
 gpio_cfg = (
-  ('PA0', 'i', None, None, None, 'CN4.12'),
-  ('PA1', 'i', None, None, None, 'CN4.11'),
-  ('PA2', 'i', None, None, None, 'CN4.5/VCP_TX'),
-  ('PA3', 'i', None, None, None, 'CN4.10'),
-  ('PA4', 'i', None, None, None, 'CN4.9'),
-  ('PA5', 'i', None, None, None, 'CN4.8'),
-  ('PA6', 'i', None, None, None, 'CN4.7'),
-  ('PA7', 'i', None, None, None, 'CN4.6'),
-  ('PA8', 'i', None, None, None, 'CN3.12'),
-  ('PA9', 'i', None, None, None, 'CN3.1'),
-  ('PA10', 'i', None, None, None, 'CN3.2'),
-  ('PA11', 'i', None, None, None, 'CN3.13'),
-  ('PA12', 'i', None, None, None, 'CN3.5'),
-  ('PA13', 'i', None, None, None, 'swdio'),
-  ('PA14', 'i', None, None, None, 'swclk'),
-  ('PA15', 'i', None, None, None, 'VCP_RX'),
-
-  ('PB0', 'i', None, None, None, 'CN3.6'),
-  ('PB1', 'i', None, None, None, 'CN3.9'),
-  #('PB2', 'i', None, None, None, ''),
-  ('PB3', 'i', None, None, None, 'CN4.15/LD3 green'),
-  ('PB4', 'i', None, None, None, 'CN3.15'),
-  ('PB5', 'i', None, None, None, 'CN3.14'),
-  ('PB6', 'i', None, None, None, 'CN3.8'),
-  ('PB7', 'i', None, None, None, 'CN3.7'),
-  ('PB8', 'i', None, None, None, 'BOOT0'),
-  #('PB9', 'i', None, None, None, ''),
-  #('PB10', 'i', None, None, None, ''),
-  #('PB11', 'i', None, None, None, ''),
-  #('PB12', 'i', None, None, None, ''),
-  #('PB13', 'i', None, None, None, ''),
-  #('PB14', 'i', None, None, None, ''),
-  #('PB15', 'i', None, None, None, ''),
-
-  ('PF0', 'i', None, None, None, 'CN3.10'),
-  ('PF1', 'i', None, None, None, 'CN3.11'),
 )
 
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """nucleo-l432kc Nucleo32 Board with STM32L432KCU6 SoC"""
+  """nucleo-f091rc Nucleo64 Board with STM32F091RC SoC"""
 
   def __init__(self, ui, dbgio):
     self.ui = ui
@@ -88,23 +52,23 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    self.flash = flash.flash(flash_driver.stm32l4x2(self.device), self.device, self.mem)
-    gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
-    self.gpio = gpio.gpio(gpio_drv)
+    #self.flash = flash.flash(flash_driver.stm32l4x2(self.device), self.device, self.mem)
+    #gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
+    #self.gpio = gpio.gpio(gpio_drv)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
-      ('flash', self.flash.menu, 'flash functions'),
+      #('flash', self.flash.menu, 'flash functions'),
       ('go', self.cpu.cmd_go),
-      ('gpio', self.gpio.menu, 'gpio functions'),
+      #('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
-      ('program', self.flash.cmd_program, flash.help_program),
+      #('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )

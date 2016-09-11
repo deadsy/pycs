@@ -54,6 +54,11 @@ _dev_id_enumset = (
   ('STM32F303xB/C,STM32F358', 0x422, None),
   ('STM32F303x6/8,STM32F328', 0x438, None),
   ('STM32L4x2', 0x435, None),
+  ('STM32F05x', 0x440, None),
+  ('STM32F09x', 0x442, None),
+  ('STM32F03x', 0x444, None),
+  ('STM32F04x', 0x445, None),
+  ('STM32F07x', 0x448, None),
   ('STM32F303xD/E,STM32F398xE', 0x446, None),
 )
 
@@ -245,6 +250,11 @@ _STM32F429xI_altfunc = (
 
 # port, pin, af, name
 _STM32L432KC_altfunc = (
+  # this is a partial list
+)
+
+# port, pin, af, name
+_STM32F091xC_altfunc = (
   # this is a partial list
 )
 
@@ -479,6 +489,36 @@ s = soc_info()
 s.name = 'STM32L432KC'
 s.svd = 'STM32L4x2'
 s.fixups = (STM32L432KC_fixup, cmregs.cm4_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
+
+def STM32F091xC_fixup(d):
+  d.soc_name = 'STM32F091xC'
+  d.cpu_info.deviceNumInterrupts = 32
+  # remove some core peripherals - we'll replace them in the cpu fixup
+  d.remove(d.NVIC)
+  # More decode for the DBGMCU registers
+  f = d.DBGMCU.IDCODE.REV_ID
+  f.enumvals = soc.make_enumvals(f, _rev_id_enumset)
+  f = d.DBGMCU.IDCODE.DEV_ID
+  f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
+  # more decode for the GPIO registers
+  gpio_decodes(d, ('A','B','C','D','E','F'), _STM32F091xC_altfunc)
+  # memory and misc periperhals
+  d.insert(soc.make_peripheral('sram', 0x20000000, 32 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('flash_system', 0x1fffd800, 8 << 10, None, 'flash system memory'))
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 256 << 10, None, 'flash main memory'))
+  d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 16, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('UID', 0x1ffff7ac, 12, _uuid_regset, 'Unique Device ID'))
+  d.insert(soc.make_peripheral('FLASH_SIZE', 0x1ffff7cc, 2, _flash_size_regset, 'Flash Size'))
+  # ram buffer for flash writing
+  d.rambuf = mem.region('rambuf', 0x20000000 + 512, 24 << 10)
+
+s = soc_info()
+s.name = 'STM32F091xC'
+s.svd = 'STM32F0x1'
+s.fixups = (STM32F091xC_fixup, cmregs.cm0_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
