@@ -505,6 +505,7 @@ def STM32F091xC_fixup(d):
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
   gpio_decodes(d, ('A','B','C','D','E','F'), _STM32F091xC_altfunc)
+  # TODO: RCC.AHBENR.IOPEEN is missing from the svd
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 32 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('flash_system', 0x1fffd800, 8 << 10, None, 'flash system memory'))
