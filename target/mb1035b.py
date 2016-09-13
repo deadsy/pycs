@@ -84,7 +84,7 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
-    self.flash = flash.flash(flash_driver.pdrv(self.device), self.device, self.mem)
+    self.flash = flash.flash(flash_driver.stm32f0xx(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
     self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB7'))

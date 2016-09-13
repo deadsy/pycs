@@ -1,7 +1,7 @@
 //-----------------------------------------------------------------------------
 /*
 
-stm32f4 flash loader: 32-bit flash writes
+Flash programmer for STM32F0xx, STM32F3xxx devices
 
 */
 //-----------------------------------------------------------------------------
@@ -14,27 +14,17 @@ stm32f4 flash loader: 32-bit flash writes
 .global write
 
 // register offsets
-#define CR 0x10
 #define SR 0x0c
+#define CR 0x10
 
-// FLASH.CR bits
-#define CR_PG                (1 << 0) // Programming
-#define CR_PSIZE_BYTE        (0 << 8) // 8 bits
-#define CR_PSIZE_HALF_WORD   (1 << 8) // 16 bits
-#define CR_PSIZE_WORD        (2 << 8) // 32 bits
-#define CR_PSIZE_DOUBLE_WORD (3 << 8) // 64 bits
+// Flash.CR bits
+#define CR_PG (1 << 0)
 
-// FLASH.SR bits
-#define SR_BSY    (1 << 16) // Busy
-#define SR_RDERR  (1 << 8)  // Read error
-#define SR_PGSERR (1 << 7)  // Programming sequence error
-#define SR_PGPERR (1 << 6)  // Programming parallelism error
-#define SR_PGAERR (1 << 5)  // Programming alignment error
-#define SR_WRPERR (1 << 4)  // Write protection error
-#define SR_OPERR  (1 << 1)  // Operation error
-#define SR_EOP    (1 << 0)  // End of operation
-
-#define SR_ERR (SR_RDERR | SR_PGSERR | SR_PGPERR | SR_PGAERR | SR_WRPERR | SR_OPERR)
+// Flash.SR bits
+#define SR_EOP (1 << 5)
+#define SR_WRPRT (1 << 4)
+#define SR_PGERR (1 << 2)
+#define SR_BSY (1 << 0)
 
 // r0 = src address in ram, return code (ok == 0)
 // r1 = dst address in flash
@@ -46,14 +36,17 @@ stm32f4 flash loader: 32-bit flash writes
 
 start:
   ldr   r4, FLASH_BASE
-  ldr   r5, SR_CLR
+  // convert r2 to the number of 16-bit words
+  lsl   r2, #1
+  mov   r5, #(SR_EOP | SR_WRPRT | SR_PGERR)
 
-wr32:
-  ldr   r3, CR_PG_U32
+wr16:
+  // set the programming bit
+  mov   r3, #CR_PG
   str   r3, [r4, #CR]
-  // 32-bit copy from ram to flash
-  ldr   r3, [r0], #4
-  str   r3, [r1], #4
+  // 16-bit copy from ram to flash
+  ldrh  r3, [r0], #2
+  strh  r3, [r1], #2
 
 wait:
   // wait for programming completion
@@ -63,11 +56,11 @@ wait:
   // clear the status bits
   str   r5, [r4, #SR]
   // check for errors
-  ands  r3, #SR_ERR
+  ands  r3, #(SR_PGERR | SR_WRPRT)
   bne   exit
   // next write
   subs  r2, #1
-  bne   wr32
+  bne   wr16
 
 exit:
   mov   r0, r3
@@ -76,10 +69,8 @@ exit:
 .align 2
 
 FLASH_BASE:
-  .word 0x40023c00
-CR_PG_U32:
-  .word (CR_PG | CR_PSIZE_WORD)
-SR_CLR:
-  .word (SR_ERR | SR_EOP)
+  .word 0x40022000
 
 //-----------------------------------------------------------------------------
+
+
