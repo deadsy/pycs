@@ -82,6 +82,8 @@ class cs43l22(object):
     self.wr(0x32, self.rd(0x32) | (1 << 7))
     self.wr(0x32, self.rd(0x32) & ~(1 << 7))
     self.wr(0x00,0x00)
+    # TODO setup the clocking
+    self.wr(0x02,0x9e)
 
   def cmd_init(self, ui, args):
     """initialise dac hardware"""
