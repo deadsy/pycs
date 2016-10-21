@@ -145,7 +145,7 @@ class read_file(object):
     return struct.unpack(self.fmt16, val)[0]
 
   def rd8(self):
-    val = self.file.read(1)
+    val = self.f.read(1)
     n = len(val)
     if n == 0:
       val = '\xff'

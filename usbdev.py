@@ -32,7 +32,7 @@ def find(vps, sn = None):
         s.append('%04x:%04x sn %r' % (d[0], d[1], d[2]))
       return None, '\n'.join(s)
     else:
-      devices = device_sn
+      devices = devices_sn
   # no devices
   if len(devices) == 0:
     return None, 'no device found'
