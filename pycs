@@ -26,13 +26,14 @@ _target = None
 # -----------------------------------------------------------------------------
 
 def target_description(target):
-    module = importlib.import_module('target.%s' % target)
-    doc = module.__doc__
-    lines = doc.split('\n')
-    # find the first non-null line
-    for l in lines:
-      if len(l):
-        return l
+  """return the target description"""
+  module = importlib.import_module('target.%s' % target)
+  doc = module.__doc__
+  lines = doc.split('\n')
+  # find the first non-null line
+  for l in lines:
+    if len(l):
+      return l
 
 def supported_targets():
   """return a list of supported targets"""
@@ -62,11 +63,11 @@ def vid_pid_arg(arg):
   if len(x) != 2:
     return None
   # convert and check the vid
-  vid = int_arg(x[0], (0,0xffff), 16)
+  vid = int_arg(x[0], (0, 0xffff), 16)
   if vid is None:
     return None
   # convert and check the pid
-  pid = int_arg(x[1], (0,0xffff), 16)
+  pid = int_arg(x[1], (0, 0xffff), 16)
   if pid is None:
     return None
   return (vid, pid)
@@ -95,7 +96,7 @@ def Process_Options(argv):
   vp_arg = None
 
   try:
-    (opts, args) = getopt.getopt(sys.argv[1:], "t:d:l")
+    (opts, args) = getopt.getopt(argv[1:], "t:d:l")
   except getopt.GetoptError, err:
     error(str(err), True)
   # process options
@@ -116,7 +117,7 @@ def Process_Options(argv):
   if _target is None:
     error('must specify a target', True)
 
-  if not _target in [t[0].strip() for t in targets]:
+  if _target not in [t[0].strip() for t in targets]:
     error('supported targets:\n%s' % util.display_cols(targets))
 
   if vp_arg is not None:
@@ -134,9 +135,9 @@ def get_dbgio(target):
   if itf['name'] == 'jlink':
     return jlink.dbgio()
   elif itf['name'] == 'stlink':
-    (dev, msg) = stlink.find()
+    (dev, _) = stlink.find()
     assert dev is not None
-    return stlink.dbgio(vid = dev[0], pid = dev[1], sn = dev[2])
+    return stlink.dbgio(vid=dev[0], pid=dev[1], sn=dev[2])
   else:
     return None
 

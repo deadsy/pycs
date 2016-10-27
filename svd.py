@@ -80,14 +80,14 @@ class svd_object(object):
 # xs:boolean = boolean
 # scaledNonNegativeInteger = integer
 
-def get_string(node, tag, default = None):
+def get_string(node, tag, default=None):
   """Get the text string for the tag from the node"""
   try:
     return node.find(tag).text
   except AttributeError:
     return default
 
-def get_integer(node, tag, default = None):
+def get_integer(node, tag, default=None):
   text_value = get_string(node, tag, default)
   try:
     if text_value != default:
@@ -115,7 +115,7 @@ def get_integer(node, tag, default = None):
     return default
   return default
 
-def get_boolean(node, tag, default = None):
+def get_boolean(node, tag, default=None):
   n = get_integer(node, tag, default)
   if n is None:
     return default
@@ -123,13 +123,13 @@ def get_boolean(node, tag, default = None):
 
 # -----------------------------------------------------------------------------
 
-def string_node(node, tag, default = None):
+def string_node(node, tag, default=None):
   return (tag, get_string(node, tag, default))
 
-def boolean_node(node, tag, default = None):
+def boolean_node(node, tag, default=None):
   return (tag, get_boolean(node, tag, default))
 
-def integer_node(node, tag, default = None):
+def integer_node(node, tag, default=None):
   return (tag, get_integer(node, tag, default))
 
 # -----------------------------------------------------------------------------

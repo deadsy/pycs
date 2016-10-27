@@ -93,7 +93,7 @@ def dict_arg(ui, arg, d):
 
 def file_arg(ui, name):
   """return the size of a file or None"""
-  if os.path.isfile(name) == False:
+  if not os.path.isfile(name):
     ui.put('%s does not exist\n' % name)
     return None
   size = os.path.getsize(name)
@@ -243,6 +243,7 @@ def bitfield_h(val, fields):
 # -----------------------------------------------------------------------------
 
 def format_bit(x, c):
+  """return a character to represent a bit state"""
   if x == 0:
     return '.'
   elif x == 1:
@@ -252,6 +253,7 @@ def format_bit(x, c):
 # -----------------------------------------------------------------------------
 
 def rm_prefix(names, prefix_set):
+  """remove a common prefix from a list of names"""
   if prefix_set is None:
     return
   # find the longest matching prefix for all names
@@ -271,6 +273,7 @@ def rm_prefix(names, prefix_set):
       names[i] = names[i][n:]
 
 def rm_suffix(names, suffix_set):
+  """remove a common suffix from a list of names"""
   if suffix_set is None:
     return
   # find the longest matching suffix for all names
@@ -291,7 +294,7 @@ def rm_suffix(names, suffix_set):
 
 # -----------------------------------------------------------------------------
 
-def display_cols(clist, csize = None):
+def display_cols(clist, csize=None):
   """
     return a string for a list of columns
     each element in clist is [col0_str, col1_str, col2_str, ...]
@@ -320,17 +323,17 @@ def display_cols(clist, csize = None):
       if csize[i] <= len(l[i]):
         csize[i] = len(l[i]) + cmargin
   # build the format string
-  fmt = []
+  fmts = []
   for n in csize:
-    fmt.append('%%-%ds' % n)
-  fmt = ''.join(fmt)
+    fmts.append('%%-%ds' % n)
+  fmt = ''.join(fmts)
   # generate the string
   s = [(fmt % tuple(l)) for l in clist]
   return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
 
-class progress:
+class progress(object):
   """percent complete indication"""
 
   def __init__(self, ui, div, nmax):
