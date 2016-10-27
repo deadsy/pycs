@@ -168,7 +168,7 @@ class target(object):
       #('i2c', self.i2c.menu, 'i2c functions'),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
-      ('program', self.flash.cmd_program, flash.help_program),
+      #('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
       ('vtable', self.cpu.cmd_vtable),
     )
