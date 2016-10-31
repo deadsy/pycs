@@ -29,15 +29,15 @@ import util
 # common help for cli leaf functions
 
 cr_help = (
-    ('<cr>', 'perform the function'),
+  ('<cr>', 'perform the function'),
 )
 
 general_help = (
-    ('?', 'display command help - Eg. ?, show ?, s?'),
-    ('<up>', 'go backwards in command history'),
-    ('<dn>', 'go forwards in command history'),
-    ('<tab>', 'auto complete commands'),
-    ('* note', 'commands can be incomplete - Eg. sh = sho = show'),
+  ('?', 'display command help - Eg. ?, show ?, s?'),
+  ('<up>', 'go backwards in command history'),
+  ('<dn>', 'go forwards in command history'),
+  ('<tab>', 'auto complete commands'),
+  ('* note', 'commands can be incomplete - Eg. sh = sho = show'),
 )
 
 help_fmt = '  %-20s: %s\n'
@@ -45,6 +45,7 @@ help_fmt = '  %-20s: %s\n'
 #-----------------------------------------------------------------------------
 
 class cli(object):
+  """command line interface"""
 
   def __init__(self, ui, history=None):
     self.ui = ui
@@ -52,6 +53,8 @@ class cli(object):
     self.ln.set_completion_callback(self.completion_callback)
     self.ln.set_hotkey('?')
     self.ln.history_load(history)
+    self.poll = None
+    self.root = None
     self.prompt = '> '
     self.running = True
 
@@ -70,8 +73,8 @@ class cli(object):
   def display_error(self, msg, cmds, idx):
     """display a parse error string"""
     marker = []
-    for i in range(len(cmds)):
-      l = len(cmds[i])
+    for (i, cmd) in enumerate(cmds):
+      l = len(cmd)
       if i == idx:
         marker.append('^' * l)
       else:
@@ -80,6 +83,7 @@ class cli(object):
     self.ui.put('%s\n' % s)
 
   def display_function_help(self, help_info):
+    """display function help"""
     s = []
     for (parm, descr) in help_info:
       if parm is None:
@@ -88,7 +92,7 @@ class cli(object):
         s.append([parm, ''])
       else:
         s.append([parm, ': %s' % descr])
-    self.ui.put('%s\n' % util.display_cols(s, [16,0]))
+    self.ui.put('%s\n' % util.display_cols(s, [16, 0]))
 
   def command_help(self, cmd, menu):
     """display help results for a command at a menu level"""
@@ -163,8 +167,7 @@ class cli(object):
       return ''
     # trace each command through the menu tree
     menu = self.root
-    for idx in range(len(cmd_list)):
-      cmd = cmd_list[idx]
+    for (idx, cmd) in enumerate(cmd_list):
       # A trailing '?' means the user wants help for this command
       if cmd[-1] == '?':
         # strip off the '?'
