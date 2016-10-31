@@ -115,33 +115,39 @@ class cli(object):
     """display general help"""
     self.display_function_help(general_help)
 
-  def completion_callback(self, s):
-    """return a tuple of line completions for s"""
-    # scan the command line into a list of tokens
-    cmd_list = [x for x in s.split(' ') if x != '']
-    # if there are no commands return no matches
-    if len(cmd_list) == 0:
-      return []
-
+  def completion_callback(self, line):
+    """return a tuple of line completions for the line"""
+    # split the command line into a list of tokens
+    cmd_list = [x for x in line.split(' ') if x != '']
     # trace each command through the menu tree
     menu = self.root
-    for idx in range(len(cmd_list)):
-      cmd = cmd_list[idx]
-
-      # try to match the cmd with a unique menu item
-      matches = []
-      for item in menu:
-        if item[0] == cmd:
-          # accept an exact match
-          matches = [item]
-          break
-        if item[0].startswith(cmd):
-          matches.append(item)
-
-    # WIP
-    return []
-
-
+    for cmd in cmd_list:
+      # How many items does this token match at this level of the menu?
+      matches = [x for x in menu if x[0].startswith(cmd)]
+      if len(matches) == 0:
+        # no matches, no completions
+        return None
+      elif len(matches) == 1:
+        # one match - is this a submenu or leaf?
+        item = matches[0]
+        if isinstance(item[1], tuple):
+          # submenu: switch to the submenu and continue parsing
+          menu = item[1]
+          continue
+        else:
+          # leaf function: return it as the only match
+          # TODO
+          return None
+      else:
+        # multiple matches at this level.
+        # return the matches.
+        # TODO
+        return None
+    # We've made it here without returning a completion list.
+    # The prior set of tokens have all matched single submenu items.
+    # The completions are all of the items at the current menu level.
+    # TODO
+    return None
 
   def parse_cmdline(self, line):
     """
@@ -178,7 +184,10 @@ class cli(object):
       if len(matches) == 0:
         # no matches - unknown command
         self.display_error('unknown command', cmd_list, idx)
-        return line
+        # add it to history in case the user wants to edit this junk
+        self.ln.history_add(line)
+        # go back to an empty prompt
+        return ''
       if len(matches) == 1:
         # one match - submenu/leaf
         item = matches[0]
@@ -197,8 +206,10 @@ class cli(object):
               # strip off the '?', repeat the command
               return line[:-1]
           # call the leaf function
-          self.ln.history_add(line)
           item[1](self.ui, args)
+          # add the command to history
+          self.ln.history_add(line)
+          # return to an empty prompt
           return ''
       else:
         # multiple matches - ambiguous command
