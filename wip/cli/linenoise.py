@@ -470,6 +470,7 @@ class linenoise(object):
     self.orig_termios = None        # saved termios attributes
     self.completion_callback = None # callback function for tab completion
     self.hints_callback = None      # callback function for hints
+    self.hotkey = None              # character for hotkey
 
   def enable_rawmode(self, fd):
     """Enable raw mode"""
@@ -525,9 +526,6 @@ class linenoise(object):
     ls.edit_set(s)
     # The latest history entry is always our current buffer
     self.history_add(str(ls))
-    # output the prompt
-    #if os.write(ofd, prompt) != len(prompt):
-    #  return None
     while True:
       c = _getc(ifd)
       if c == _KEY_NULL:
@@ -540,7 +538,7 @@ class linenoise(object):
         if c == _KEY_NULL:
           continue
       # handle the key code
-      if c == _KEY_ENTER:
+      if c == _KEY_ENTER or c == self.hotkey:
         self.history.pop()
         if self.hints_callback:
           # Refresh the line without hints to leave the
@@ -549,7 +547,7 @@ class linenoise(object):
           self.hints_callback = None
           ls.refresh_line()
           self.hints_callback = hcb
-        return str(ls)
+        return str(ls) + ('', self.hotkey)[c == self.hotkey]
       elif c == _KEY_BS:
         # backspace: remove the character to the left of the cursor
         ls.edit_backspace()
@@ -716,6 +714,13 @@ class linenoise(object):
   def set_multiline(self, mode):
     """set multiline mode"""
     self.mlmode = mode
+
+  def set_hotkey(self, key):
+    """
+    Set the hotkey. A hotkey will cause line editing to exit.
+    The hotkey will be appended to the line buffer but not displayed.
+    """
+    self.hotkey = key
 
   def history_set(self, idx, line):
     """set a history entry by index number"""

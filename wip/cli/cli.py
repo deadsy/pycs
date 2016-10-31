@@ -50,13 +50,10 @@ class cli(object):
     self.ui = ui
     self.ln = linenoise.linenoise()
     self.ln.set_completion_callback(self.completion_callback)
+    self.ln.set_hotkey('?')
     self.ln.history_load(history)
     self.prompt = '> '
     self.running = True
-
-  def completion_callback(self, s):
-    """return a tuple of line completions for s"""
-    pass
 
   def set_root(self, root):
     """set the menu root"""
@@ -80,7 +77,7 @@ class cli(object):
       else:
         marker.append(' ' * l)
     s = '\n'.join([msg, ' '.join(cmds), ' '.join(marker)])
-    self.ui.put('\n%s\n' % s)
+    self.ui.put('%s\n' % s)
 
   def display_function_help(self, help_info):
     s = []
@@ -95,7 +92,6 @@ class cli(object):
 
   def command_help(self, cmd, menu):
     """display help results for a command at a menu level"""
-    self.ui.put('\n')
     for item in menu:
       name = item[0]
       if name.startswith(cmd):
@@ -119,6 +115,34 @@ class cli(object):
     """display general help"""
     self.display_function_help(general_help)
 
+  def completion_callback(self, s):
+    """return a tuple of line completions for s"""
+    # scan the command line into a list of tokens
+    cmd_list = [x for x in s.split(' ') if x != '']
+    # if there are no commands return no matches
+    if len(cmd_list) == 0:
+      return []
+
+    # trace each command through the menu tree
+    menu = self.root
+    for idx in range(len(cmd_list)):
+      cmd = cmd_list[idx]
+
+      # try to match the cmd with a unique menu item
+      matches = []
+      for item in menu:
+        if item[0] == cmd:
+          # accept an exact match
+          matches = [item]
+          break
+        if item[0].startswith(cmd):
+          matches.append(item)
+
+    # WIP
+    return []
+
+
+
   def parse_cmdline(self, line):
     """
     parse and process the current command line
@@ -128,16 +152,13 @@ class cli(object):
     """
     # scan the command line into a list of tokens
     cmd_list = [x for x in line.split(' ') if x != '']
-
     # if there are no commands, print a new empty prompt
     if len(cmd_list) == 0:
       return ''
-
     # trace each command through the menu tree
     menu = self.root
     for idx in range(len(cmd_list)):
       cmd = cmd_list[idx]
-
       # A trailing '?' means the user wants help for this command
       if cmd[-1] == '?':
         # strip off the '?'
@@ -145,7 +166,6 @@ class cli(object):
         self.command_help(cmd, menu)
         # strip off the '?' and recycle the command
         return line[:-1]
-
       # try to match the cmd with a unique menu item
       matches = []
       for item in menu:
@@ -173,22 +193,19 @@ class cli(object):
           del args[0]
           if len(args) != 0:
             if args[-1][-1] == '?':
-              self.ui.put('\n')
               self.function_help(item)
               # strip off the '?', repeat the command
               return line[:-1]
           # call the leaf function
           self.ln.history_add(line)
-          self.ui.put('\n')
           item[1](self.ui, args)
           return ''
       else:
         # multiple matches - ambiguous command
         self.display_error('ambiguous command', cmd_list, idx)
         return ''
-
     # reached the end of the command list with no errors and no leaf function.
-    self.ui.put('\nadditional input needed\n')
+    self.ui.put('additional input needed\n')
     return line
 
   def run(self):
