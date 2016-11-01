@@ -122,6 +122,7 @@ class cli(object):
   def completion_callback(self, line):
     """return a tuple of line completions for the line"""
     # split the command line into a list of tokens
+    line = line.strip()
     cmd_list = [x for x in line.split(' ') if x != '']
     # trace each command through the menu tree
     menu = self.root
@@ -140,18 +141,16 @@ class cli(object):
           continue
         else:
           # leaf function: return it as the only match
-          # TODO
-          return None
+          return ['%s%s' % (line, item[0][len(cmd):]),]
       else:
-        # multiple matches at this level.
-        # return the matches.
-        # TODO
-        return None
+        # Multiple matches at this level. Return the matches.
+        completions = [x[0][len(cmd):] for x in menu]
+        return ['%s%s' % (line, x) for x in completions]
     # We've made it here without returning a completion list.
     # The prior set of tokens have all matched single submenu items.
     # The completions are all of the items at the current menu level.
-    # TODO
-    return None
+    line += (' ', '')[line == '']
+    return ['%s%s' % (line, x[0]) for x in menu]
 
   def parse_cmdline(self, line):
     """

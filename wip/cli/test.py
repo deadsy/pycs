@@ -36,6 +36,7 @@ cmd2_menu = (
 )
 
 cmd1_menu = (
+  ('acmd1.1', cmd11_func),
   ('cmd1.1', cmd11_func),
   ('cmd1.2', cmd12_func),
   ('cmd1.3', cmd13_func),
