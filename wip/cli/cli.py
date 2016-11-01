@@ -44,6 +44,26 @@ help_fmt = '  %-20s: %s\n'
 
 #-----------------------------------------------------------------------------
 
+def split_index(s):
+  """split a string on whitespace and return the substring indices"""
+  # start and end with whitespace
+  ws = True
+  s += ' '
+  start = []
+  end = []
+  for (i, c) in enumerate(s):
+    if not ws and c == ' ':
+      # non-whitespace to whitespace
+      end.append(i)
+      ws = True
+    elif ws and c != ' ':
+      # whitespace to non-whitespace
+      start.append(i)
+      ws = False
+  return zip(start, end)
+
+#-----------------------------------------------------------------------------
+
 class cli(object):
   """command line interface"""
 
