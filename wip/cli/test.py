@@ -30,9 +30,15 @@ def cmd22_func(ui, args):
   """cmd22 help"""
   ui.put('%s\n' % str(args))
 
+cmd3_menu = (
+  ('cmd3.1', cmd21_func),
+  ('cmd3.2', cmd22_func),
+)
+
 cmd2_menu = (
   ('cmd2.1', cmd21_func),
   ('cmd2.2', cmd22_func),
+  ('cmd2.3', cmd3_menu, 'cmd3 functions'),
 )
 
 cmd1_menu = (
