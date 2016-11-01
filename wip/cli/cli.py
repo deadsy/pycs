@@ -140,22 +140,24 @@ class cli(object):
     self.display_function_help(general_help)
 
   @staticmethod
-  def completions(line, cmd, names):
+  def completions(line, minlen, cmd, names):
     """return the list of line completions"""
-    n = len(line)
-    line = line.rstrip()
     line += ('', ' ')[cmd == '' and line != '']
     lines = ['%s%s' % (line, x[len(cmd):]) for x in names]
-    # pad the lines to a minimum length
-    return [l + ' ' * max(0, n - len(l)) for l in lines]
+    # pad the lines to a minimum length, we don't want
+    # the cursor to move about unecessarily
+    return [l + ' ' * max(0, minlen - len(l)) for l in lines]
 
-  def completion_callback(self, line):
-    """return a tuple of line completions for the line"""
-    # split the command line into a list of tokens
-    cmd_list = [x for x in line.split(' ') if x != '']
+  def completion_callback(self, cmd_line):
+    """return a tuple of line completions for the command line"""
+    line = ''
+    # split the command line into a list of command indices
+    cmd_list = split_index(cmd_line)
     # trace each command through the menu tree
     menu = self.root
-    for cmd in cmd_list:
+    for (start, end) in cmd_list:
+      cmd = cmd_line[start:end]
+      line = cmd_line[:end]
       # How many items does this token match at this level of the menu?
       matches = [x for x in menu if x[0].startswith(cmd)]
       if len(matches) == 0:
@@ -170,14 +172,14 @@ class cli(object):
           continue
         else:
           # leaf function: return it as the only match
-          return self.completions(line, cmd, [item[0],])
+          return self.completions(line, len(cmd_line), cmd, [item[0],])
       else:
         # Multiple matches at this level. Return the matches.
-        return self.completions(line, cmd, [x[0] for x in matches])
+        return self.completions(line, len(cmd_line), cmd, [x[0] for x in matches])
     # We've made it here without returning a completion list.
     # The prior set of tokens have all matched single submenu items.
     # The completions are all of the items at the current menu level.
-    return self.completions(line, '', [x[0] for x in menu])
+    return self.completions(line, len(cmd_line), '', [x[0] for x in menu])
 
   def parse_cmdline(self, line):
     """
@@ -214,7 +216,7 @@ class cli(object):
         # no matches - unknown command
         self.display_error('unknown command', cmd_list, idx)
         # add it to history in case the user wants to edit this junk
-        self.ln.history_add(line)
+        self.ln.history_add(line.strip())
         # go back to an empty prompt
         return ''
       if len(matches) == 1:
@@ -237,7 +239,7 @@ class cli(object):
           # call the leaf function
           item[1](self.ui, args)
           # add the command to history
-          self.ln.history_add(line)
+          self.ln.history_add(line.strip())
           # return to an empty prompt
           return ''
       else:
