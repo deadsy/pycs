@@ -85,10 +85,6 @@ def would_block(fd, timeout):
   (rd, _, _) = select.select((fd,), (), (), timeout)
   return len(rd) == 0
 
-def poll(timeout=0):
-  """poll for character input during an operation"""
-  return _getc(_STDIN, timeout)
-
 # -----------------------------------------------------------------------------
 
 # Use this value if we can't work out how many columns the terminal has.
@@ -677,6 +673,27 @@ class linenoise(object):
       return s
     else:
       return self.read_raw(prompt, s)
+
+  def loop(self, fn, exit_key=_KEY_CTRL_D):
+    """
+    Call the provided function in a loop.
+    Exit when the function returns True or when the exit key is pressed.
+    Returns True when the loop function completes, False for early exit.
+    """
+    if self.enable_rawmode(_STDIN) == -1:
+      return
+    rc = None
+    while True:
+      if fn():
+        # the loop function has completed
+        rc = True
+        break
+      if _getc(_STDIN, timeout=0.01) == exit_key:
+        # the loop has been cancelled
+        rc = False
+        break
+    self.disable_rawmode(_STDIN)
+    return rc
 
   def print_keycodes(self):
     """Print scan codes on screen for debugging/development purposes"""
