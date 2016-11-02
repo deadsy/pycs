@@ -6,7 +6,6 @@ EFM32 Leopard Gecko Starter Kit (EFM32LG990F256)
 """
 # -----------------------------------------------------------------------------
 
-import conio
 import cli
 import cortexm
 import mem
@@ -193,7 +192,7 @@ class target(object):
 
   def set_prompt(self):
     indicator = ('*', '')[self.dbgio.is_halted()]
-    self.ui.cli.set_prompt('\n%s%s> ' % (prompt, indicator))
+    self.ui.cli.set_prompt('%s%s> ' % (prompt, indicator))
 
   def cmd_exit(self, ui, args):
     """exit application"""

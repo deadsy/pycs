@@ -11,7 +11,6 @@ This code finds the buffers in RAM and then reads them as the target code runs.
 
 import util
 import iobuf
-import conio
 
 #-----------------------------------------------------------------------------
 
@@ -19,6 +18,8 @@ sizeof_SEGGER_RTT_CB_header = 24
 sizeof_SEGGER_RTT_RING_BUFFER = 24
 
 _not_initialised = 'rtt is not initialised'
+
+_CTRL_D = chr(4) # exit rtt monitoring
 
 #-----------------------------------------------------------------------------
 
@@ -172,7 +173,7 @@ class rtt(object):
     ui.put('Monitoring target to host RTT buffers\nCtrl-D to exit\n')
     while True:
       c = ui.poll()
-      if c == conio.CHAR_CTRLD:
+      if c == _CTRL_D:
         break
       else:
         # read the target to host buffers
