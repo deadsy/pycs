@@ -779,6 +779,8 @@ class linenoise(object):
     """Add a new entry to the history"""
     if self.history_maxlen == 0:
       return
+    # remove any leading/trailing white space
+    line = line.strip()
     # don't add duplicate lines
     for l in self.history:
       if l == line:

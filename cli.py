@@ -164,15 +164,19 @@ class cli(object):
         # no matches, no completions
         return None
       elif len(matches) == 1:
-        # one match - is this a submenu or leaf?
         item = matches[0]
-        if isinstance(item[1], tuple):
-          # submenu: switch to the submenu and continue parsing
-          menu = item[1]
-          continue
-        else:
-          # leaf function: return it as the only match
+        if len(cmd) < len(item[0]):
+          # it's an unambiguous single match, but we still complete it
           return self.completions(line, len(cmd_line), cmd, [item[0],])
+        else:
+          # we have the whole command - is this a submenu or leaf?
+          if isinstance(item[1], tuple):
+            # submenu: switch to the submenu and continue parsing
+            menu = item[1]
+            continue
+          else:
+            # leaf function: no completions to offer
+            return None
       else:
         # Multiple matches at this level. Return the matches.
         return self.completions(line, len(cmd_line), cmd, [x[0] for x in matches])
@@ -216,7 +220,7 @@ class cli(object):
         # no matches - unknown command
         self.display_error('unknown command', cmd_list, idx)
         # add it to history in case the user wants to edit this junk
-        self.ln.history_add(line.strip())
+        self.ln.history_add(line)
         # go back to an empty prompt
         return ''
       if len(matches) == 1:
@@ -239,7 +243,7 @@ class cli(object):
           # call the leaf function
           item[1](self.ui, args)
           # add the command to history
-          self.ln.history_add(line.strip())
+          self.ln.history_add(line)
           # return to an empty prompt
           return ''
       else:
