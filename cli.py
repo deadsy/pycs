@@ -139,6 +139,16 @@ class cli(object):
     """display general help"""
     self.display_function_help(general_help)
 
+  def display_history(self):
+    """display the command history"""
+    h = self.ln.history_all()
+    n = len(h)
+    if n:
+      s = ['%-3d: %s' % (n - i - 1, l) for (i, l) in enumerate(h)]
+      self.ui.put('%s\n' % '\n'.join(s))
+    else:
+      self.ui.put('no history\n')
+
   @staticmethod
   def completions(line, minlen, cmd, names):
     """return the list of line completions"""

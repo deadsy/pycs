@@ -751,6 +751,10 @@ class linenoise(object):
     """get a history entry by index number"""
     return self.history[len(self.history) - 1 - idx]
 
+  def history_all(self):
+    """return the entire history list"""
+    return self.history
+
   def history_next(self, ls):
     """return next history item"""
     if len(self.history) == 0:
