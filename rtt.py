@@ -19,8 +19,6 @@ sizeof_SEGGER_RTT_RING_BUFFER = 24
 
 _not_initialised = 'rtt is not initialised'
 
-_CTRL_D = chr(4) # exit rtt monitoring
-
 #-----------------------------------------------------------------------------
 
 class rtt_buf(object):
@@ -101,17 +99,12 @@ class rtt_buf(object):
       # no data
       return None
 
-  def text_dump(self, ui, delimiter = '\r'):
+  def text_dump(self, ui):
     """assume the buffer contains null delimited text"""
     buf = self.read()
     if buf is None:
       return
     ui.put(buf.to_str())
-    #s = buf.to_str()
-    #print s
-
-    #s = s.split('\r')
-    #ui.put('%s\n' % str(s))
 
   def __str__(self):
     return '%s %d bytes @ 0x%08x' % (self.name, self.buf_size, self.buf_adr)
@@ -165,20 +158,18 @@ class rtt(object):
       adr -= 16
     return (adr, state)
 
+  def monitor(self, ui):
+    """rtt monitor function called by loop"""
+    for b in self.t2h:
+      b.text_dump(ui)
+
   def cmd_mon(self, ui, args):
     """monitor and display the rtt buffers"""
     if self.adr is None:
       ui.put('%s\n' % _not_initialised)
       return
     ui.put('Monitoring target to host RTT buffers\nCtrl-D to exit\n')
-    while True:
-      c = ui.poll()
-      if c == _CTRL_D:
-        break
-      else:
-        # read the target to host buffers
-        for b in self.t2h:
-          b.text_dump(ui)
+    ui.cli.ln.loop(lambda : self.monitor(ui))
 
   def cmd_init(self, ui, args):
     """initialise the rtt client"""
