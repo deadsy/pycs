@@ -101,6 +101,7 @@ class target(object):
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
+      ('history', self.ui.cmd_history, cli.history_help),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
       ('program', self.flash.cmd_program, flash.help_program),

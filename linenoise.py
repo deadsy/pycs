@@ -747,15 +747,13 @@ class linenoise(object):
     """set a history entry by index number"""
     self.history[len(self.history) - 1 - idx] = line
 
-  def history_get(self, idx=None):
-    """
-    get a history entry by index number
-    """
-    if idx is None:
-      # return all history
-      return self.history
-    else:
-      return self.history[len(self.history) - 1 - idx]
+  def history_get(self, idx):
+    """get a history entry by index number"""
+    return self.history[len(self.history) - 1 - idx]
+
+  def history_list(self):
+    """return the full history list"""
+    return self.history
 
   def history_next(self, ls):
     """return next history item"""
@@ -785,8 +783,6 @@ class linenoise(object):
     """Add a new entry to the history"""
     if self.history_maxlen == 0:
       return
-    # remove any leading/trailing white space
-    line = line.strip()
     # don't add duplicate lines
     for l in self.history:
       if l == line:

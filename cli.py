@@ -40,6 +40,11 @@ general_help = (
   ('* note', 'commands can be incomplete - Eg. sh = sho = show'),
 )
 
+history_help = (
+  ('<cr>', 'display all history'),
+  ('<index>', 'recall history entry <index>'),
+)
+
 help_fmt = '  %-20s: %s\n'
 
 #-----------------------------------------------------------------------------
@@ -142,15 +147,19 @@ class cli(object):
   def display_history(self, args):
     """display the command history"""
     # get the history
-    h = self.ln.history_get()
+    h = self.ln.history_list()
     n = len(h)
     if len(args) == 1:
       # retrieve a specific history entry
       idx = util.int_arg(self.ui, args[0], (0, n - 1), 10)
       if idx is None:
         return
-      # return the next line buffer
-      return h[n - idx - 1]
+      # Return the next line buffer.
+      # Note: linenoise wants to add the line buffer as the zero-th history entry.
+      # It can only do this if it's unique- and this isn't because it's a prior
+      # history entry. Make it unique by adding a trailing whitespace. The other
+      # entries have been stripped prior to being added to history.
+      return h[n - idx - 1] + ' '
     else:
       # display all history
       if n:
@@ -241,7 +250,7 @@ class cli(object):
         # no matches - unknown command
         self.display_error('unknown command', cmd_list, idx)
         # add it to history in case the user wants to edit this junk
-        self.ln.history_add(line)
+        self.ln.history_add(line.strip())
         # go back to an empty prompt
         return ''
       if len(matches) == 1:
@@ -270,7 +279,7 @@ class cli(object):
             return rc
           else:
             # add the command to history
-            self.ln.history_add(line)
+            self.ln.history_add(line.strip())
             # return to an empty line
             return ''
       else:

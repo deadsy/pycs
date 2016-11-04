@@ -164,6 +164,7 @@ class target(object):
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
+      ('history', self.ui.cmd_history, cli.history_help),
       ('i2c', self.i2c.menu, 'i2c functions'),
       ('map', self.device.cmd_map),
       ('mem', self.mem.menu, 'memory functions'),
