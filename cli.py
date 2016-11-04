@@ -139,15 +139,26 @@ class cli(object):
     """display general help"""
     self.display_function_help(general_help)
 
-  def display_history(self):
+  def display_history(self, args):
     """display the command history"""
-    h = self.ln.history_all()
+    # get the history
+    h = self.ln.history_get()
     n = len(h)
-    if n:
-      s = ['%-3d: %s' % (n - i - 1, l) for (i, l) in enumerate(h)]
-      self.ui.put('%s\n' % '\n'.join(s))
+    if len(args) == 1:
+      # retrieve a specific history entry
+      idx = util.int_arg(self.ui, args[0], (0, n - 1), 10)
+      if idx is None:
+        return
+      # return the next line buffer
+      return h[n - idx - 1]
     else:
-      self.ui.put('no history\n')
+      # display all history
+      if n:
+        s = ['%-3d: %s' % (n - i - 1, l) for (i, l) in enumerate(h)]
+        self.ui.put('%s\n' % '\n'.join(s))
+      else:
+        self.ui.put('no history\n')
+      return ''
 
   @staticmethod
   def completions(line, minlen, cmd, names):
@@ -251,11 +262,17 @@ class cli(object):
               # strip off the '?', repeat the command
               return line[:-1]
           # call the leaf function
-          item[1](self.ui, args)
-          # add the command to history
-          self.ln.history_add(line)
-          # return to an empty prompt
-          return ''
+          rc = item[1](self.ui, args)
+          # post leaf function actions
+          if rc is not None:
+            # currently only history retrieval returns not None
+            # the return code is the next line buffer
+            return rc
+          else:
+            # add the command to history
+            self.ln.history_add(line)
+            # return to an empty line
+            return ''
       else:
         # multiple matches - ambiguous command
         self.display_error('ambiguous command', cmd_list, idx)

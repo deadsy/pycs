@@ -176,7 +176,7 @@ class user_interface(object):
 
   def cmd_history(self, ui, args):
     """command history"""
-    self.cli.display_history()
+    return self.cli.display_history(args)
 
 #-----------------------------------------------------------------------------
 
