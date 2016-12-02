@@ -37,6 +37,26 @@ conn.close()
 
 
 """
+
+testbuf = (
+  "+"
+  "$qSupported:multiprocess+;swbreak+;hwbreak+;qRelocInsn+#c9"
+  "$qSupported:multiprocess+;swbreak+;hwbreak+;qRelocInsn+#c9"
+  "$qSupported:multiprocess+;swbreak+;hwbreak+;qRelocInsn+#c9"
+  "$qSupported:multiprocess+;swbreak+;hwbreak+;qRelocInsn+#c9"
+  "---+"
+  "$Hg0#df"
+  "$Hg0#df"
+  "$Hg0#df"
+  "$Hg0#df"
+  "---+"
+  "$qTStatus#49"
+  "$qTStatus#49"
+  "$qTStatus#49"
+  "$qTStatus#49"
+  "---+"
+)
+
 #-----------------------------------------------------------------------------
 
 class gdb(object):
@@ -97,5 +117,12 @@ class gdb(object):
       self.rx_state(c)
 
 
+
+#-----------------------------------------------------------------------------
+
+def main():
+  print testbuf
+
+main()
 
 #-----------------------------------------------------------------------------
