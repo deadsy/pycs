@@ -14,6 +14,7 @@ import flash
 import gpio
 import i2c
 import rtt
+import gdb
 
 import vendor.st.st as vendor
 import vendor.st.flash as flash_driver
@@ -105,6 +106,8 @@ class target(object):
     # setup the rtt client
     ram = self.device.sram
     self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
+    # setup the gdb server
+    self.gdb = gdb.gdb(self.cpu)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -113,6 +116,7 @@ class target(object):
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
       ('flash', self.flash.menu, 'flash functions'),
+      ('gdb', self.gdb.run),
       ('go', self.cpu.cmd_go),
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),

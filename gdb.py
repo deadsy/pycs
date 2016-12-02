@@ -35,7 +35,6 @@ while True:
 
 conn.close()
 
-
 """
 
 testbuf = (
@@ -61,15 +60,35 @@ testbuf = (
 
 class gdb(object):
 
-  def __init__(self, port):
-    self.port = port                  # gdb listening port
+  def __init__(self, cpu):
+    self.cpu = cpu
+    self.port = 3333                  # gdb listening port
     self.rx_state = self.wait4_start  # receive packet state
     self.rx_cs = []                   # receive packet checksum
     self.rx_data = []                 # receive packet data
 
+  def rx_ack(self):
+    print('ack')
+
+  def rx_nak(self):
+    print('nak')
+
+  def rx_cmd(self, cmd):
+    print('%s' % cmd)
+
+  def csum_good(self, data, cs):
+    csum = 0
+    for c in data:
+      csum += ord(c)
+    return int(cs, 16) == csum % 256
+
   def wait4_start(self, c):
     """wait for the packet start delimiter"""
-    if c == '$':
+    if c == '+':
+      self.rx_ack()
+    elif c == '-':
+      self.rx_nak()
+    elif c == '$':
       # get the packet data
       self.rx_data = []
       self.rx_state = self.wait4_end
@@ -82,7 +101,7 @@ class gdb(object):
     if c == '#':
       # get the checksum
       self.rx_cs = []
-      self.rx_state == self.wait4_checksum
+      self.rx_state = self.wait4_checksum
     else:
       # accumulate the packet data
       self.rx_data.append(c)
@@ -95,34 +114,20 @@ class gdb(object):
       # we have the checksum
       cs = ''.join(self.rx_cs)
       data = ''.join(self.rx_data)
-      # TODO process the checksum
-      self.ui.put('data: %s cs %s' % (data, cs))
-      self.rx_state == self.wait4_start
-
-  def wait4_ack(self, c):
-    """wait for an acknowledgement"""
-    if c == '+':
-      # ack TODO clear the packet
-      pass
-    elif c == '-':
-      # nack TODO retransmit
-      pass
-    else:
-      # what is this?
-      pass
+      if self.csum_good(data, cs):
+        self.rx_cmd(data)
+      else:
+        # TODO: bad checksum - send a nak
+        pass
+      self.rx_state = self.wait4_start
 
   def rx(self, buf):
     """receive a buffer of characters"""
     for c in buf:
       self.rx_state(c)
 
-
-
-#-----------------------------------------------------------------------------
-
-def main():
-  print testbuf
-
-main()
+  def run(self, ui, args):
+    """run the gdb server"""
+    self.rx(testbuf)
 
 #-----------------------------------------------------------------------------
