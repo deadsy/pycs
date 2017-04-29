@@ -358,5 +358,6 @@ class progress(object):
       self.erase()
       self.progress = '%d%% ' % ((100 * n) / self.nmax)
       self.ui.put(self.progress)
+      self.ui.flush()
 
 # -----------------------------------------------------------------------------

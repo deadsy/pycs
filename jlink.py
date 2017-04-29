@@ -1,7 +1,6 @@
 # ----------------------------------------------------------------------------
 
 import sys
-import time
 import os
 import ctypes
 import struct
@@ -23,9 +22,9 @@ _JLINKARM_TIF_C2 = 6
 # map register names to jlink register numbers
 
 regmap = {
-  'r0':0,'r1':1,'r2':2,'r3':3,'r4':4,'r5':5,'r6':6,'r7':7,
-  'r8':8,'r9':9,'r10':10,'r11':11,'r12':12,'r13':13,'r14':14,'r15':15,
-  'lr':14,'pc':15,'psr':16,'msp':13,
+  'r0':0, 'r1':1, 'r2':2, 'r3':3, 'r4':4, 'r5':5, 'r6':6, 'r7':7,
+  'r8':8, 'r9':9, 'r10':10, 'r11':11, 'r12':12, 'r13':13, 'r14':14, 'r15':15,
+  'lr':14, 'pc':15, 'psr':16, 'msp':13,
   # psp
   # primask
   # faultmask
@@ -75,8 +74,7 @@ def locate_library(libname, paths=sys.path, loader=None):
     if os.path.exists(library):
       sys.stderr.write('using %r\n' % library)
       return loader.LoadLibrary(library), library
-  else:
-    raise IOError('%s not found' % libname)
+  raise IOError('%s not found' % libname)
 
 def get_jlink_dll():
   # what kind of system am I?
@@ -90,8 +88,7 @@ def get_jlink_dll():
     raise Exception(repr(platform.architecture()))
 
   # start with the script path
-  search_path = [os.path.join(os.path.dirname(
-      os.path.realpath(__file__)), libpath)]
+  search_path = [os.path.join(os.path.dirname(os.path.realpath(__file__)), libpath)]
   search_path += sys.path[:]  # copy sys.path list
 
   # if environment variable is set, insert this path first
@@ -106,18 +103,16 @@ def get_jlink_dll():
   if sys.platform == 'win32':
     jlink, backend_info = locate_library('jlinkarm.dll', search_path)
   elif sys.platform == 'linux2':
-    jlink, backend_info = locate_library(
-        'libjlinkarm.so.5', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.5', search_path, ctypes.cdll)
   elif sys.platform == 'darwin':
-    jlink, backend_info = locate_library(
-        'libjlinkarm.so.5.dylib', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.5.dylib', search_path, ctypes.cdll)
   return jlink, backend_info
 
 # ----------------------------------------------------------------------------
 
 class JLink(object):
 
-  def __init__(self, idx = 0):
+  def __init__(self, idx=0):
     self.usb_idx = idx
     # load the library
     self.jl, self.jlink_lib_name = get_jlink_dll()
@@ -291,7 +286,7 @@ class JLink(object):
     # void JLINKARM_WriteReg(int reg, uint32_t val);
     fn = self.jl.JLINKARM_WriteReg
     fn.restype = None
-    fn.argtypes = [c_int,c_uint32]
+    fn.argtypes = [c_int, c_uint32]
     fn(c_int(reg), c_uint32(val))
 
   def cp15_is_present(self):
@@ -305,7 +300,7 @@ class JLink(object):
     # int JLINKARM_CP15_ReadEx(uint32_t crn, uint32_t crm, uint32_t op1, uint32_t op2, uint32_t *val)
     fn = self.jl.JLINKARM_CP15_ReadEx
     fn.restype = c_int
-    fn.argtypes = [c_uint32,c_uint32,c_uint32,c_uint32,c_void_p]
+    fn.argtypes = [c_uint32, c_uint32, c_uint32, c_uint32, c_void_p]
     val = c_uint32()
     rc = fn(c_uint32(crn), c_uint32(crm), c_uint32(op1), c_uint32(op2), ctypes.byref(val))
     assert rc == 0, 'JLINKARM_CP15_ReadEx returned %d' % rc
@@ -315,7 +310,7 @@ class JLink(object):
     # int JLINKARM_CP15_WriteEx(uint32_t crn, uint32_t crm, uint32_t op1, uint32_t op2, uint32_t val)
     fn = self.jl.JLINKARM_CP15_WriteEx
     fn.restype = c_int
-    fn.argtypes = [c_uint32,c_uint32,c_uint32,c_uint32,c_uint32]
+    fn.argtypes = [c_uint32, c_uint32, c_uint32, c_uint32, c_uint32]
     rc = fn(c_uint32(crn), c_uint32(crm), c_uint32(op1), c_uint32(op2), c_uint32(val))
     assert rc == 0, 'JLINKARM_CP15_WriteEx returned %d' % rc
 
@@ -428,7 +423,7 @@ class JLink(object):
 class dbgio(object):
   """JLink implementation of dbgio cpu interface"""
 
-  def __init__(self, idx = 0):
+  def __init__(self, idx=0):
     """no actual operations, record the selected usb device"""
     self.usb_idx = idx
     self.menu = (
@@ -446,7 +441,7 @@ class dbgio(object):
     # setup the jlink interface
     self.jlink.exec_command('device=%s' % cpu_names[cpu_name])
     self.jlink.set_speed(4000)
-    itf = {'swd':_JLINKARM_TIF_SWD,'jtag':_JLINKARM_TIF_JTAG}[itf]
+    itf = {'swd':_JLINKARM_TIF_SWD, 'jtag':_JLINKARM_TIF_JTAG}[itf]
     self.jlink.tif_select(itf)
     self.jlink.jlink_connect()
 
@@ -517,11 +512,11 @@ class dbgio(object):
 
   def rdmem(self, adr, n, io):
     """read a buffer from memory starting at adr"""
-    if io.width == 32:
+    if io.has_wr(32):
       self.rdmem32(adr, n, io)
-    elif io.width == 16:
+    elif io.has_wr(16):
       self.rdmem16(adr, n, io)
-    elif io.width == 8:
+    elif io.has_wr(8):
       self.rdmem8(adr, n, io)
     else:
       assert False, 'bad buffer width'
@@ -540,11 +535,11 @@ class dbgio(object):
 
   def wrmem(self, adr, n, io):
     """write a buffer to memory starting at adr"""
-    if io.width == 32:
+    if io.has_rd(32):
       self.wrmem32(adr, n, io)
-    elif io.width == 16:
+    elif io.has_rd(16):
       self.wrmem16(adr, n, io)
-    elif io.width == 8:
+    elif io.has_rd(8):
       self.wrmem8(adr, n, io)
     else:
       assert False, 'bad buffer width'

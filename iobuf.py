@@ -67,6 +67,14 @@ class arm_disassemble:
     self.emit16(data & 0xffff)
     self.emit16(data >> 16)
 
+  def has_rd(self, n):
+    """no read supported"""
+    return False
+
+  def has_wr(self, n):
+    """wr32 supported"""
+    return n == 32
+
 #-----------------------------------------------------------------------------
 
 class write_file(object):
@@ -100,6 +108,14 @@ class write_file(object):
     self.f.write(struct.pack('B', val))
     self.n += 1
     self.progress.update(self.n)
+
+  def has_rd(self, n):
+    """no read supported"""
+    return False
+
+  def has_wr(self, n):
+    """wr8/16/32 supported"""
+    return n == 32 or n == 16 or n == 8
 
 #-----------------------------------------------------------------------------
 
@@ -153,6 +169,14 @@ class read_file(object):
     self.progress.update(self.n)
     return struct.unpack('B', val)[0]
 
+  def has_rd(self, n):
+    """rd8/16/32 supported"""
+    return n == 32 or n == 16 or n == 8
+
+  def has_wr(self, n):
+    """no write supported"""
+    return False
+
 #-----------------------------------------------------------------------------
 
 class verify_file(object):
@@ -189,6 +213,14 @@ class verify_file(object):
       self.diff.append((self.n, val, x))
     self.n += 4
     self.progress.update(self.n)
+
+  def has_rd(self, n):
+    """no read supported"""
+    return False
+
+  def has_wr(self, n):
+    """wr32 supported"""
+    return n == 32
 
 #-----------------------------------------------------------------------------
 
@@ -249,6 +281,14 @@ class data_buffer(object):
   def wr8(self, val):
     assert self.width == 8
     self.write(val)
+
+  def has_rd(self, n):
+    """rdN supported"""
+    return n == self.width
+
+  def has_wr(self, n):
+    """wrN supported"""
+    return n == self.width
 
   def convert8(self, mode):
     """convert the buffer to 8 bit values"""

@@ -64,7 +64,7 @@ _CHAR_TIMEOUT = 0.02 # 20 ms
 
 def _getc(fd, timeout=-1):
   """
-    read a single character from a file (with timeout)
+    read a single character string from a file (with timeout)
     timeout = 0 : return immediately
     timeout < 0 : wait for the character (block)
     timeout > 0 : wait for timeout seconds
@@ -78,7 +78,10 @@ def _getc(fd, timeout=-1):
   c = os.read(fd, 1)
   if c == '':
     return _KEY_NULL
-  return c
+  return c.decode('utf8')
+
+def _puts(fd, s):
+  return os.write(fd, s.encode('utf8'))
 
 def would_block(fd, timeout):
   """if fd is not readable within timeout seconds - return True"""
@@ -93,7 +96,7 @@ _DEFAULT_COLS = 80
 def get_cursor_position(ifd, ofd):
   """Get the horizontal cursor position"""
   # query the cursor location
-  if os.write(ofd, '\x1b[6n') != 4:
+  if _puts(ofd, '\x1b[6n') != 4:
     return -1
   # read the response: ESC [ rows ; cols R
   # rows/cols are decimal number strings
@@ -131,14 +134,14 @@ def get_columns(ifd, ofd):
     if start < 0:
       return _DEFAULT_COLS
     # Go to right margin and get position
-    if os.write(ofd, '\x1b[999C') != 6:
+    if _puts(ofd, '\x1b[999C') != 6:
       return _DEFAULT_COLS
     cols = get_cursor_position(ifd, ofd)
     if cols < 0:
       return _DEFAULT_COLS
     # restore the position
     if cols > start:
-      os.write(ofd, '\x1b[%dD' % (cols - start))
+      _puts(ofd, '\x1b[%dD' % (cols - start))
   return cols
 
 # -----------------------------------------------------------------------------
@@ -201,7 +204,7 @@ class line_state(object):
     if bold and color < 0:
       color = 37
     if color >= 0 or bold:
-      seq.append('\033[%d;%d;49m' % ((0,1)[bold], color))
+      seq.append('\033[%d;%d;49m' % ((0, 1)[bold], color))
     seq.append(hint[:hlen])
     if color >= 0 or bold:
       seq.append('\033[0m')
@@ -234,7 +237,7 @@ class line_state(object):
     # Move cursor to original position
     seq.append('\r\x1b[%dC' % (plen + pos))
     # write it out
-    os.write(self.ofd, ''.join(seq))
+    _puts(self.ofd, ''.join(seq))
 
   def refresh_multiline(self):
     """multiline refresh"""
@@ -253,7 +256,7 @@ class line_state(object):
       logging.debug('go down %d' % (old_rows - rpos))
       seq.append('\x1b[%dB' % (old_rows - rpos))
     # Now for every row clear it, go up.
-    for j in xrange(old_rows-1):
+    for j in range(int(old_rows-1)):
       logging.debug('clear+up')
       seq.append('\r\x1b[0K\x1b[1A')
     # Clear the top line.
@@ -290,7 +293,7 @@ class line_state(object):
     logging.debug('\n')
     self.oldpos = self.pos
     # write it out
-    os.write(self.ofd, ''.join(seq))
+    _puts(self.ofd, ''.join(seq))
 
   def refresh_line(self):
     """refresh the edit line"""
@@ -397,7 +400,7 @@ class line_state(object):
       idx = 0
       while not stop:
         if idx < len(lc):
-          # show the completion
+          # save the line buffer
           saved_buf = self.buf
           saved_pos = self.pos
           # show the completion

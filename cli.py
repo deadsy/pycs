@@ -13,12 +13,22 @@ Implements a CLI with:
 Notes:
 
 Menu Tuple Format:
-(name, descr, submenu) - submenu
-(name, descr, leaf) - leaf command with generic <cr> help
-(name, descr, leaf, help) - leaf command with specific help
+  (name, submenu, description) - submenu
+  (name, leaf) - leaf command with generic <cr> help
+  (name, leaf, help) - leaf command with specific argument help
 
 Help Format:
-(parm, descr)
+  (parm, descr)
+
+Leaf Functions:
+
+def leaf_function(ui, args):
+ .....
+
+ui: the ui object passed by the application to cli()
+args: the argument list from the command line
+
+The general help for a leaf function is the docstring for that function.
 """
 #-----------------------------------------------------------------------------
 
@@ -44,8 +54,6 @@ history_help = (
   ('<cr>', 'display all history'),
   ('<index>', 'recall history entry <index>'),
 )
-
-help_fmt = '  %-20s: %s\n'
 
 #-----------------------------------------------------------------------------
 
@@ -111,16 +119,15 @@ class cli(object):
     """display function help"""
     s = []
     for (parm, descr) in help_info:
-      if parm is None:
-        s.append(['', ''])
-      elif descr is None:
-        s.append([parm, ''])
-      else:
-        s.append([parm, ': %s' % descr])
-    self.ui.put('%s\n' % util.display_cols(s, [16, 0]))
+      p_str = (parm, '')[parm is None]
+      d_fmt = (': %s', '  %s')[parm is None]
+      d_str = (d_fmt % descr, '')[descr is None]
+      s.append(['  ', p_str, d_str])
+    self.ui.put('%s\n' % util.display_cols(s, [0, 16, 0]))
 
   def command_help(self, cmd, menu):
     """display help results for a command at a menu level"""
+    s = []
     for item in menu:
       name = item[0]
       if name.startswith(cmd):
@@ -130,7 +137,8 @@ class cli(object):
         else:
           # command: docstring is the help
           descr = item[1].__doc__
-        self.ui.put(help_fmt % (name, descr))
+        s.append(['  ', name, ': %s' % descr])
+    self.ui.put('%s\n' % util.display_cols(s, [0, 16, 0]))
 
   def function_help(self, item):
     """display help for a leaf function"""

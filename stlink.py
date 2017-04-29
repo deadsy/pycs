@@ -19,9 +19,7 @@ it with a ram loaded library routine. (E.g. flash burning)
 
 import struct
 from array import array as Array
-import time
 
-from usbtools.usbtools import UsbTools
 import usbdev
 import cortexm
 import iobuf
@@ -42,7 +40,7 @@ def itf_lookup(vid, pid):
       return i
   return None
 
-def find(vps = None, sn = None):
+def find(vps=None, sn=None):
   """find an stlink device based on vid, pid and serial number"""
   if vps is None:
     # look for any stlink device
@@ -114,9 +112,9 @@ STLINK_CORE_HALTED  = 0x81
 # map register names to stlink register numbers
 
 regmap = {
-  'r0':0,'r1':1,'r2':2,'r3':3,'r4':4,'r5':5,'r6':6,'r7':7,
-  'r8':8,'r9':9,'r10':10,'r11':11,'r12':12,'r13':13,'r14':14,'r15':15,
-  'lr':14,'pc':15,'psr':16,'msp':17,'psp':18,
+  'r0':0, 'r1':1, 'r2':2, 'r3':3, 'r4':4, 'r5':5, 'r6':6, 'r7':7,
+  'r8':8, 'r9':9, 'r10':10, 'r11':11, 'r12':12, 'r13':13, 'r14':14, 'r15':15,
+  'lr':14, 'pc':15, 'psr':16, 'msp':17, 'psp':18,
   # primask
   # faultmask
   # basepri
@@ -150,7 +148,7 @@ class stlink(object):
     self.sn = sn
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
-    self.usb.open(self.vid, self.pid, interface = itf, serial = self.sn)
+    self.usb.open(self.vid, self.pid, interface=itf, serial=self.sn)
     # get the interface information
     ver = self.get_version()
     assert ver['stlink_v'] == 2, 'only version 2 of stlink is supported'
@@ -210,7 +208,7 @@ class stlink(object):
         return 'running'
     else:
       x = self.send_recv(Array('B', (STLINK_DEBUG_COMMAND, STLINK_DEBUG_GETSTATUS)), 2)
-      return {STLINK_CORE_RUNNING:'running',STLINK_CORE_HALTED:'halted'}.get(x[0], None)
+      return {STLINK_CORE_RUNNING:'running', STLINK_CORE_HALTED:'halted'}.get(x[0], None)
 
   def get_core_id(self):
     """get the core id"""
@@ -220,7 +218,7 @@ class stlink(object):
   def get_current_mode(self):
     """get the current mode"""
     x = self.send_recv(Array('B', (STLINK_GET_CURRENT_MODE,)), 2)
-    return {0:'dfu',1:'mass',2:'debug',3:'swim',4:'bootloader'}.get(x[0], None)
+    return {0:'dfu', 1:'mass', 2:'debug', 3:'swim', 4:'bootloader'}.get(x[0], None)
 
   def enter_mode(self, mode):
     """enter mode"""
@@ -311,7 +309,7 @@ class stlink(object):
     append_u32(cmd, adr)
     append_u16(cmd, nbytes)
     x = self.send_recv(cmd, nbytes)
-    return [read_u32(x[i:i+4]) for i in xrange(0,nbytes,4)]
+    return [read_u32(x[i:i+4]) for i in xrange(0, nbytes, 4)]
 
   def wr_mem32(self, adr, buf):
     """write 32-bit buffer to memory address"""
@@ -365,7 +363,7 @@ class stlink(object):
 class dbgio(object):
   """ST-Link implementation of dbgio cpu interface"""
 
-  def __init__(self, vid = None, pid = None, idx = None, sn = None):
+  def __init__(self, vid=None, pid=None, idx=None, sn=None):
     """no actual operations, record the selected usb device"""
     self.vid = vid
     self.pid = pid
@@ -460,11 +458,11 @@ class dbgio(object):
 
   def rdmem(self, adr, n, io):
     """read a buffer from memory starting at adr"""
-    if io.width == 32:
+    if io.has_wr(32):
       self.rdmem32(adr, n, io)
-    elif io.width == 16:
+    elif io.has_wr(16):
       self.rdmem16(adr, n, io)
-    elif io.width == 8:
+    elif io.has_wr(8):
       self.rdmem8(adr, n, io)
     else:
       assert False, 'bad buffer width'
@@ -499,11 +497,11 @@ class dbgio(object):
 
   def wrmem(self, adr, n, io):
     """write a buffer to memory starting at adr"""
-    if io.width == 32:
+    if io.has_rd(32):
       self.wrmem32(adr, n, io)
-    elif io.width == 16:
+    elif io.has_rd(16):
       self.wrmem16(adr, n, io)
-    elif io.width == 8:
+    elif io.has_rd(8):
       self.wrmem8(adr, n, io)
     else:
       assert False, 'bad buffer width'

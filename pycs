@@ -159,6 +159,9 @@ class user_interface(object):
   def put(self, s):
     sys.stdout.write(s)
 
+  def flush(self):
+    sys.stdout.flush()
+
   def poll(self):
     # poll the input during an operation
     # use a short timeout so we don't peg the cpu

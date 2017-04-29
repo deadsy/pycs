@@ -136,7 +136,7 @@ class flash(object):
 
   def write(self, mr, io):
     """write memory region with data from an io buffer"""
-    assert io.width == 32, 'bad buffer width'
+    assert io.has_rd(32), 'bad buffer width'
     # write enable
     self.hw.CONFIG.wr(CONFIG_WEN)
     self.__wait4ready()
