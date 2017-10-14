@@ -786,10 +786,9 @@ class linenoise(object):
     """Add a new entry to the history"""
     if self.history_maxlen == 0:
       return
-    # don't add duplicate lines
-    for l in self.history:
-      if l == line:
-        return
+    # don't re-add the last entry
+    if len(self.history) and line == self.history[-1]:
+      return
     # add the line to the history
     if len(self.history) == self.history_maxlen:
       # remove the first entry
