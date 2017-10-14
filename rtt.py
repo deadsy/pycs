@@ -40,6 +40,7 @@ class rtt_buf(object):
     self.rd_ofs_adr = self.adr + 16
 
   def get_name(self, adr):
+    """read and return the buffer name"""
     if adr == 0:
       return ''
     s = []
@@ -105,6 +106,7 @@ class rtt_buf(object):
     if buf is None:
       return
     ui.put(buf.to_str())
+    ui.flush()
 
   def __str__(self):
     return '%s %d bytes @ 0x%08x' % (self.name, self.buf_size, self.buf_adr)
@@ -112,6 +114,7 @@ class rtt_buf(object):
 #-----------------------------------------------------------------------------
 
 class rtt(object):
+  """rtt buffer operations"""
 
   def __init__(self, cpu, mem):
     self.cpu = cpu
@@ -120,6 +123,7 @@ class rtt(object):
     assert (mem.adr & 3 == 0) and (mem.size & 3 == 0), 'rtt ram must be 32 bit aligned'
     self.mem = mem
     self.adr = None
+    self.t2h = self.h2t = None
     self.menu = (
       ('init', self.cmd_init),
       ('info', self.cmd_info),
@@ -166,10 +170,11 @@ class rtt(object):
   def cmd_mon(self, ui, args):
     """monitor and display the rtt buffers"""
     if self.adr is None:
-      ui.put('%s\n' % _not_initialised)
-      return
+      self.cmd_init(ui, None)
+      if self.adr is None:
+        return
     ui.put('Monitoring target to host RTT buffers\nCtrl-D to exit\n')
-    ui.cli.ln.loop(lambda : self.monitor(ui))
+    ui.cli.ln.loop(lambda: self.monitor(ui))
 
   def cmd_init(self, ui, args):
     """initialise the rtt client"""
@@ -204,8 +209,9 @@ class rtt(object):
   def cmd_info(self, ui, args):
     """show rtt information"""
     if self.adr is None:
-      ui.put('%s\n' % _not_initialised)
-      return
+      self.cmd_init(ui, None)
+      if self.adr is None:
+        return
     # print the rtt info
     cols = []
     cols.append(['rtt address', ': 0x%08x' % self.adr])
