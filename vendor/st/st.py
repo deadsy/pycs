@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------
 """
 
-SoC file for stm32 devices
+SoC file for STM32 devices
 
 Read in the SVD file for a named SoC.
 Run fixup functions to correct any SVD inadequacies.
@@ -18,7 +18,9 @@ import cmregs
 
 class soc_info(object):
   def __init__(self):
-    pass
+    self.svd = None
+    self.name = None
+    self.fixups = None
 
 soc_db = {}
 
@@ -356,7 +358,7 @@ def gpio_decodes(d, ports, altfunc):
 def STM32F407xx_fixup(d):
   d.soc_name = 'STM32F407xx'
   d.cpu_info.nvicPrioBits = 4
-  d.cpu_info.deviceNumInterrupts = 80
+  d.cpu_info.deviceNumInterrupts = 82
   # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
   # more decode for the DBG registers
@@ -365,7 +367,10 @@ def STM32F407xx_fixup(d):
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A','B','C','D','E','F','G','H','I'), _STM32F407xx_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), _STM32F407xx_altfunc)
+  # additional interrupts
+  d.insert(soc.make_interrupt('HASH_RNG_IRQ', 80, 'Hash and RNG global interrupt'))
+  d.insert(soc.make_interrupt('FPU_IRQ', 81, 'FPU global interrupt'))
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 128 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
@@ -401,10 +406,10 @@ def STM32F429xI_fixup(d):
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # fix up the OSPEEDR labels ST messed up
-  for x in ('A','B','C','D','E','F','G','H','I','J','K'):
+  for x in ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'):
     d.peripherals['GPIO%c' % x].rename_register('GPIOB_OSPEEDR', 'OSPEEDR')
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A','B','C','D','E','F','G','H','I','J','K'), _STM32F429xI_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'), _STM32F429xI_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 256 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 64 << 10, None, 'core coupled memory sram'))
@@ -441,7 +446,7 @@ def STM32F303xC_fixup(d):
   f = d.DBGMCU.IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A','B','C','D','E','F'), _STM32F303xC_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F'), _STM32F303xC_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 40 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 8 << 10, None, 'core coupled memory sram'))
@@ -470,7 +475,7 @@ def STM32L432KC_fixup(d):
   # ST didn't put DBGMCU in the SVD, so we will add it.
   d.insert(soc.make_peripheral('DBGMCU', 0xe0042000, 1 << 10, _DBGMCU_regset, 'Debug support'))
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A','B','C','D','E','H'), _STM32L432KC_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'H'), _STM32L432KC_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram1', 0x20000000, 48 << 10, None, 'sram1'))
   # sram2 is found in 2 regions of the memory map
@@ -504,7 +509,7 @@ def STM32F091xC_fixup(d):
   f = d.DBGMCU.IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A','B','C','D','E','F'), _STM32F091xC_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F'), _STM32F091xC_altfunc)
   # TODO: RCC.AHBENR.IOPEEN is missing from the svd
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 32 << 10, None, 'sram'))

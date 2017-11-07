@@ -30,7 +30,7 @@ def description_cleanup(s):
   if s is None:
     return None
   # remove non-ascii characters
-  s = s.encode('ascii', errors = 'ignore')
+  s = s.encode('ascii', errors='ignore')
   s = s.strip('."')
   # remove un-needed white space
   return ' '.join([x.strip() for x in s.split()])
@@ -110,6 +110,7 @@ def build_indices(dim, dimIndex):
 # -----------------------------------------------------------------------------
 
 def attribute_string(s):
+  """return a python code string for a string variable"""
   if s is None:
     return 'None'
   # escape any ' characters
@@ -117,11 +118,13 @@ def attribute_string(s):
   return "'%s'" % s
 
 def attribute_hex32(x):
+  """return a python code string for a 32 bit hex value"""
   if x is None:
     return 'None'
   return '0x%08x' % x
 
 def attribute_hex(x):
+  """return a python code string for a hex value"""
   if x is None:
     return 'None'
   return '0x%x' % x
@@ -129,9 +132,13 @@ def attribute_hex(x):
 # -----------------------------------------------------------------------------
 
 class interrupt(object):
+  """interrupt information"""
 
   def __init__(self):
-    pass
+    self.name = None
+    self.description = None
+    self.irq = None
+    self.parent = None
 
   def __str__(self):
     s = []
@@ -145,9 +152,14 @@ class interrupt(object):
 # -----------------------------------------------------------------------------
 
 class enumval(object):
+  """associate a name string with a bitfield value"""
 
   def __init__(self):
-    pass
+    self.name = None
+    self.description = None
+    self.value = None
+    self.isDefault = None
+    self.parent = None
 
   def __str__(self):
     s = []
@@ -161,9 +173,13 @@ class enumval(object):
 # -----------------------------------------------------------------------------
 
 class enumvals(object):
+  """a set of enumvals for a given register bitfield"""
 
   def __init__(self):
-    pass
+    self.name = None
+    self.enumval = None
+    self.usage = None
+    self.parent = None
 
   def __str__(self):
     s = []
@@ -171,7 +187,7 @@ class enumvals(object):
       # dump the enumerate values in name order
       s.append('enumval = {}')
       e_list = self.enumval.values()
-      e_list.sort(key = lambda x : x.name)
+      e_list.sort(key=lambda x: x.name)
       for e in e_list:
         s.append('%s' % e)
     s.append('e = soc.enumvals()')
@@ -184,8 +200,15 @@ class enumvals(object):
 # -----------------------------------------------------------------------------
 
 class field(object):
+  """information for a set of bits within a register"""
 
   def __init__(self):
+    self.name = None
+    self.description = None
+    self.msb = None
+    self.lsb = None
+    self.enumvals = None
+    self.parent = None
     self.fmt = None
     self.cached_val = None
 
@@ -241,7 +264,7 @@ class field(object):
       # dump the enumerate values in name order
       s.append('enumvals = []')
       e_list = self.enumvals
-      e_list.sort(key = lambda x : x.usage)
+      e_list.sort(key=lambda x: x.usage)
       for e in e_list:
         s.append('%s' % e)
     s.append('f = soc.field()')
@@ -256,8 +279,16 @@ class field(object):
 # -----------------------------------------------------------------------------
 
 class register(object):
+  """a peripheral register"""
 
   def __init__(self):
+    self.name = None
+    self.description = None
+    self.size = None
+    self.offset = None
+    self.fields = None
+    self.parent = None
+    self.cpu = None
     self.cached_val = None
 
   def __getattr__(self, name):
@@ -271,26 +302,26 @@ class register(object):
   def adr(self, idx, size):
     return self.parent.address + self.offset + (idx * (size / 8))
 
-  def rd(self, idx = 0):
+  def rd(self, idx=0):
     return self.cpu.rd(self.adr(idx, self.size), self.size)
 
-  def rd8(self, idx = 0):
+  def rd8(self, idx=0):
     return self.cpu.rd(self.adr(idx, 8), 8)
 
-  def wr(self, val, idx = 0):
+  def wr(self, val, idx=0):
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
-  def set_bit(self, val, idx = 0):
+  def set_bit(self, val, idx=0):
     self.wr(self.rd(idx) | val, idx)
 
-  def clr_bit(self, val, idx = 0):
+  def clr_bit(self, val, idx=0):
     self.wr(self.rd(idx) & ~val, idx)
 
   def field_list(self):
     """return an ordered fields list"""
     # build a list of fields in most significant bit order
     f_list = self.fields.values()
-    f_list.sort(key = lambda x : x.msb, reverse = True)
+    f_list.sort(key=lambda x: x.msb, reverse=True)
     return f_list
 
   def display(self, display_fields):
@@ -324,7 +355,7 @@ class register(object):
       # dump the fields in most significant bit order
       s.append('fields = {}')
       f_list = self.fields.values()
-      f_list.sort(key = lambda x : x.msb, reverse = True)
+      f_list.sort(key=lambda x: x.msb, reverse=True)
       for f in f_list:
         s.append('%s' % f)
     s.append('r = soc.register()')
@@ -339,9 +370,17 @@ class register(object):
 # -----------------------------------------------------------------------------
 
 class peripheral(object):
+  """a set of registers for an SoC peripheral"""
 
   def __init__(self):
-    pass
+    self.name = None
+    self.description = None
+    self.address = None
+    self.size = None
+    self.default_register_size = None
+    self.registers = None
+    self.cpu = None
+    self.parent = None
 
   def __getattr__(self, name):
     """make the register name a class attribute"""
@@ -363,10 +402,10 @@ class peripheral(object):
     # build a list of registers in address offset order
     # tie break with the name to give a well-defined sort order
     r_list = self.registers.values()
-    r_list.sort(key = lambda x : (x.offset << 16) + sum(bytearray(x.name)))
+    r_list.sort(key=lambda x: (x.offset << 16) + sum(bytearray(x.name)))
     return r_list
 
-  def display(self, register_name = None, fields= False):
+  def display(self, register_name=None, fields=False):
     """return a display string for this peripheral"""
     if self.registers:
       clist = []
@@ -378,7 +417,7 @@ class peripheral(object):
         # decode all registers
         for r in self.register_list():
           clist.extend(r.display(fields))
-      return util.display_cols(clist, [0,0,0,0])
+      return util.display_cols(clist, [0, 0, 0, 0])
     else:
       return 'no registers for %s' % self.name
 
@@ -418,9 +457,24 @@ class peripheral(object):
 # -----------------------------------------------------------------------------
 
 class cpu_info(object):
+  """CPU information for the SoC"""
 
   def __init__(self):
-    pass
+    self.vendorSystickConfig = None
+    self.fpuPresent = None
+    self.mpuPresent = None
+    self.name = None
+    self.dtcmPresent = None
+    self.vtorPresent = None
+    self.nvicPrioBits = None
+    self.fpuDP = None
+    self.dcachePresent = None
+    self.itcmPresent = None
+    self.deviceNumInterrupts = None
+    self.parent = None
+    self.endian = None
+    self.icachePresent = None
+    self.revision = None
 
   def __str__(self):
     s = []
@@ -444,9 +498,16 @@ class cpu_info(object):
 # -----------------------------------------------------------------------------
 
 class device(object):
+  """Information for the SoC device"""
 
   def __init__(self):
-    pass
+    self.svdpath = None
+    self.vendor = None
+    self.name = None
+    self.description = None
+    self.series = None
+    self.version = None
+    self.cpu = None
 
   def __getattr__(self, name):
     """make the peripheral name a class attribute"""
@@ -458,15 +519,20 @@ class device(object):
     for p in self.peripherals.values():
       p.bind_cpu(cpu)
 
-  def insert(self, p):
-    """insert a peripheral into the device"""
-    assert self.peripherals.has_key(p.name) == False, 'device already has peripheral %s' % p.name
-    p.parent = self
-    self.peripherals[p.name] = p
+  def insert(self, x):
+    """insert a peripheral or interrupt into the device"""
+    if isinstance(x, interrupt):
+      assert not self.interrupts.has_key(x.name), 'device already has interrupt %s' % x.name
+      x.parent = self
+      self.interrupts[x.name] = x
+    elif isinstance(x, peripheral):
+      assert not self.peripherals.has_key(x.name), 'device already has peripheral %s' % x.name
+      x.parent = self
+      self.peripherals[x.name] = x
 
   def remove(self, p):
     """remove a peripheral from the device"""
-    assert self.peripherals.has_key(p.name) == True, 'device does not have peripheral %s' % p.name
+    assert self.peripherals.has_key(p.name), 'device does not have peripheral %s' % p.name
     del self.peripherals[p.name]
 
   def peripheral_list(self):
@@ -475,14 +541,14 @@ class device(object):
     # base addresses for peripherals are not always unique. e.g. nordic chips
     # so tie break with the name to give a well-defined sort order
     p_list = self.peripherals.values()
-    p_list.sort(key = lambda x : (x.address << 16) + sum(bytearray(x.name)))
+    p_list.sort(key=lambda x: (x.address << 16) + sum(bytearray(x.name)))
     return p_list
 
   def interrupt_list(self):
     """return an ordered interrupt list"""
     # sort by irq order
     i_list = self.interrupts.values()
-    i_list.sort(key = lambda x : x.irq)
+    i_list.sort(key=lambda x: x.irq)
     return i_list
 
   def cmd_map(self, ui, args):
@@ -496,26 +562,26 @@ class device(object):
       else:
         region = ': %08x %08x %s' % (start, start + size - 1, util.memsize(size))
       clist.append([p.name, region, p.description])
-    ui.put('%s\n' % util.display_cols(clist, [0,0,0]))
+    ui.put('%s\n' % util.display_cols(clist, [0, 0, 0]))
 
   def cmd_regs(self, ui, args):
     """display peripheral registers"""
-    if util.wrong_argc(ui, args, (1,2)):
+    if util.wrong_argc(ui, args, (1, 2)):
       return
     if not self.peripherals.has_key(args[0]):
       ui.put("no peripheral named '%s' (run 'map' command for the names)\n" % args[0])
       return
     p = self.peripherals[args[0]]
     if len(args) == 1:
-      ui.put('%s\n' % p.display(fields = False))
+      ui.put('%s\n' % p.display(fields=False))
       return
     if args[1] == '*':
-      ui.put('%s\n' % p.display(fields = True))
+      ui.put('%s\n' % p.display(fields=True))
       return
     if not p.registers.has_key(args[1]):
       ui.put("no register named '%s' (run 'regs %s' command for the names)\n" % (args[1], args[0]))
       return
-    ui.put('%s\n' % p.display(args[1], fields = True))
+    ui.put('%s\n' % p.display(args[1], fields=True))
 
   def __str__(self):
     s = []
@@ -646,7 +712,7 @@ def build_registers(p, svd_p):
         svd_name = name_cleanup(svd_r.name)
         for i in range(svd_r.dim):
           r = register()
-          r.name =  svd_name % indices[i]
+          r.name = svd_name % indices[i]
           r.description = description_cleanup(svd_r.description)
           r.size = (svd_r.size, p.default_register_size)[svd_r.size is None]
           if r.size is None:
@@ -800,5 +866,12 @@ def make_peripheral(name, address, size, register_set, description):
   p.size = size
   p.registers = make_registers(p, register_set)
   return p
+
+def make_interrupt(name, irq, description):
+  i = interrupt()
+  i.name = name
+  i.irq = irq
+  i.description = description
+  return i
 
 # -----------------------------------------------------------------------------
