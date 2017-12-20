@@ -223,6 +223,10 @@ _STM32F407xx_altfunc = (
   ('C', 12, 12, 'SDIO_CK'),
   ('C', 12, 13, 'DCMI_D9'),
   ('C', 12, 15, 'EVENTOUT'),
+  ('I', 0, 5, 'SPI2_NSS/I2S2_WS'),
+  ('I', 1, 5, 'SPI2_SCK/I2S2_CK'),
+  ('I', 2, 5, 'SPI2_MISO'),
+  ('I', 3, 5, 'SPI2_MOSI/I2S2_SD'),
 )
 
 # port, pin, af, name
