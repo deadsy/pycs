@@ -229,13 +229,9 @@ _STM32F407xx_altfunc = (
   ('I', 3, 5, 'SPI2_MOSI/I2S2_SD'),
 )
 
+# STM32F427xx, STM32F429xx
 # port, pin, af, name
 _STM32F427xx_altfunc = (
-  # this is a partial list
-)
-
-# port, pin, af, name
-_STM32F429xI_altfunc = (
   # this is a partial list
   ('A', 3, 14, 'LCD_B5'),
   ('A', 4, 14, 'LCD_VSYNC'),
@@ -417,9 +413,7 @@ soc_db[s.name] = s
 #-----------------------------------------------------------------------------
 
 def STM32F427xx_fixup(d):
-
   # TODO - review and modify
-
   d.soc_name = 'STM32F427xx'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 103
@@ -431,7 +425,7 @@ def STM32F427xx_fixup(d):
   f = d.DBG.DBGMCU_IDCODE.DEV_ID
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'), _STM32F427xx_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'), _STM32F427xx_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 256 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 64 << 10, None, 'core coupled memory sram'))
@@ -470,7 +464,7 @@ def STM32F429xI_fixup(d):
   for x in ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'):
     d.peripherals['GPIO%c' % x].rename_register('GPIOB_OSPEEDR', 'OSPEEDR')
   # more decode for the GPIO registers
-  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'), _STM32F429xI_altfunc)
+  gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'), _STM32F427xx_altfunc)
   # memory and misc periperhals
   d.insert(soc.make_peripheral('sram', 0x20000000, 256 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 64 << 10, None, 'core coupled memory sram'))

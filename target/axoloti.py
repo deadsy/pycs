@@ -43,53 +43,111 @@ default_itf = {
 
 # pin, mode, pupd, otype, ospeed, name
 gpio_cfg = (
-  #('PA0', 'i', None, None, None, 'ADC1_IN0'),
-  #('PA1', 'i', None, None, None, 'ADC1_IN1'),
-  #('PA2', 'i', None, None, None, 'ADC1_IN2'),
-  #('PA3', 'i', None, None, None, 'ADC1_IN3'),
-  #('PA4', 'i', None, None, None, 'ADC1_IN4/DAC_OUT1/SPI_NSS'),
-  #('PA5', 'i', None, None, None, 'ADC1_IN5/DAC_OUT2/SPI_SCK'),
-  #('PA6', 'i', None, None, None, 'ADC1_IN6/SPI_MISO'),
-  #('PA7', 'i', None, None, None, 'ADC1_IN7/SPI_MOSI'),
-
+  ('PA0', 'i', None, None, None, 'tp37'), # ADC1_IN0
+  ('PA1', 'i', None, None, None, 'tp38'), # ADC1_IN1
+  ('PA2', 'i', None, None, None, 'tp39'), # ADC1_IN2
+  ('PA3', 'i', None, None, None, 'tp40'), # ADC1_IN3
+  ('PA4', 'i', None, None, None, 'tp41'), # ADC1_IN4/DAC_OUT1/SPI_NSS
+  ('PA5', 'i', None, None, None, 'tp42'), # ADC1_IN5/DAC_OUT2/SPI_SCK
+  ('PA6', 'i', None, None, None, 'tp43'), # ADC1_IN6/SPI_MISO
+  ('PA7', 'i', None, None, None, 'tp44'), # ADC1_IN7/SPI_MOSI
   ('PA8', 'i', None, None, None, 'I2S_MCLK'), # codec
+
   ('PA10', 'i', None, None, None, 'SW_PUSH'),
+  ('PA11', 'i', None, None, None, 'OTG_FS_DM'),
+  ('PA12', 'i', None, None, None, 'OTG_FS_DP'),
   ('PA13', 'af0', None, None, None, 'SWDIO'), # swd
   ('PA14', 'af0', None, None, None, 'SWCLK'), # swd
 
-  #('PB0', 'i', None, None, None, 'ADC1_IN8'),
-  #('PB1', 'i', None, None, None, 'ADC1_IN9'),
-  #('PB6', 'i', None, None, None, 'UART_TX'),
-  #('PB7', 'i', None, None, None, 'UART_RX'),
-  #('PB8', 'i', None, None, None, 'I2C1_SCL'),
-  #('PB9', 'i', None, None, None, 'I2C1_SDA'),
+  ('PB0', 'i', None, None, None, 'tp45'), # ADC1_IN8
+  ('PB1', 'i', None, None, None, 'tp46'), # ADC1_IN9
 
-  #('PC0', 'i', None, None, None, 'ADC1_IN10'),
-  #('PC1', 'i', None, None, None, 'ADC1_IN11'),
-  #('PC2', 'i', None, None, None, 'ADC1_IN12'),
-  #('PC3', 'i', None, None, None, 'ADC1_IN13'),
-  #('PC4', 'i', None, None, None, 'ADC1_IN14'),
-  #('PC5', 'i', None, None, None, 'ADC1_IN15'),
+  ('PB6', 'i', None, None, None, 'tp47'), # UART_TX
+  ('PB7', 'i', None, None, None, 'tp48'), # UART_RX
+  ('PB8', 'i', None, None, None, 'tp49'), # I2C1_SCL
+  ('PB9', 'i', None, None, None, 'tp50'), # I2C1_SDA
+
+  ('PB14', 'i', None, None, None, 'HS_DM'), # usb1
+  ('PB15', 'i', None, None, None, 'HS_DP'), # usb1
+
+  ('PC0', 'i', None, None, None, 'tp51'), # ADC1_IN10
+  ('PC1', 'i', None, None, None, 'tp52'), # ADC1_IN11
+  ('PC2', 'i', None, None, None, 'tp53'), # ADC1_IN12
+  ('PC3', 'i', None, None, None, 'tp54'), # ADC1_IN13
+  ('PC4', 'i', None, None, None, 'tp55'), # ADC1_IN14
+  ('PC5', 'i', None, None, None, 'tp56'), # ADC1_IN15
 
   ('PC6', '0', None, 'pp', 'f', 'LED_RED'),
+
   ('PC8', 'i', None, None, None, 'SDIO_D0'), # sdio
   ('PC9', 'i', None, None, None, 'SDIO_D1'), # sdio
   ('PC10', 'i', None, None, None, 'SDIO_D2'), # sdio
   ('PC11', 'i', None, None, None, 'SDIO_D3'), # sdio
   ('PC12', 'i', None, None, None, 'SDIO_CK'), # sdio
 
+  ('PD0', 'i', None, None, None, 'sdram_d2'),
+  ('PD1', 'i', None, None, None, 'sdram_d3'),
   ('PD2', 'i', None, None, None, 'SDIO_CMD'), # sdio
+
+  ('PD7', 'i', None, None, None, 'usb_en'), # active low USB1 power enable
+  ('PD8', 'i', None, None, None, 'sdram_d13'),
+  ('PD9', 'i', None, None, None, 'sdram_d14'),
+  ('PD10', 'i', None, None, None, 'sdram_d15'),
+
+  ('PD13', 'i', None, None, None, 'SDIO_CD1'), # sdio card detect 1
+  ('PD14', 'i', None, None, None, 'sdram_d0'),
+  ('PD15', 'i', None, None, None, 'sdram_d1'),
+
+  ('PE0', 'i', None, None, None, 'sdram_ldqm'),
+  ('PE1', 'i', None, None, None, 'sdram_udqm'),
 
   ('PE3', 'i', None, None, None, 'I2S_SD2'), # codec
   ('PE4', 'i', None, None, None, 'I2S_LRCLK'), # codec
   ('PE5', 'i', None, None, None, 'I2S_BCLK'), # codec
   ('PE6', 'i', None, None, None, 'I2S_SD1'), # codec
+  ('PE7', 'i', None, None, None, 'sdram_d4'),
+  ('PE8', 'i', None, None, None, 'sdram_d5'),
+  ('PE9', 'i', None, None, None, 'sdram_d6'),
+  ('PE10', 'i', None, None, None, 'sdram_d7'),
+  ('PE11', 'i', None, None, None, 'sdram_d8'),
+  ('PE12', 'i', None, None, None, 'sdram_d9'),
+  ('PE13', 'i', None, None, None, 'sdram_d10'),
+  ('PE14', 'i', None, None, None, 'sdram_d11'),
+  ('PE15', 'i', None, None, None, 'sdram_d12'),
+
+  ('PF0', 'i', None, None, None, 'sdram_a0'),
+  ('PF1', 'i', None, None, None, 'sdram_a1'),
+  ('PF2', 'i', None, None, None, 'sdram_a2'),
+  ('PF3', 'i', None, None, None, 'sdram_a3'),
+  ('PF4', 'i', None, None, None, 'sdram_a4'),
+  ('PF5', 'i', None, None, None, 'sdram_a5'),
 
   ('PF10', 'i', None, None, None, 'ADC3_IN8'), # power monitor
+  ('PF11', 'i', None, None, None, 'sdram_ras'),
+  ('PF12', 'i', None, None, None, 'sdram_a6'),
+  ('PF13', 'i', None, None, None, 'sdram_a7'),
+  ('PF14', 'i', None, None, None, 'sdram_a8'),
+  ('PF15', 'i', None, None, None, 'sdram_a9'),
 
+  ('PG0', 'i', None, None, None, 'sdram_a10'),
+  ('PG1', 'i', None, None, None, 'sdram_a11'),
+  ('PG2', 'i', None, None, None, 'sdram_a12'),
+
+  ('PG4', 'i', None, None, None, 'sdram_ba0'),
+  ('PG5', 'i', None, None, None, 'sdram_ba1'),
   ('PG6', '0', None, 'pp', 'f', 'LED_GREEN'),
-  ('PG9', 'i', None, None, None, 'UART_RX'), # midi
-  ('PG14', 'i', None, None, None, 'UART_TX'), # midi
+
+  ('PG8', 'i', None, None, None, 'sdram_clk'),
+  ('PG9', 'i', None, None, None, 'UART_RX'), # midi in
+
+  ('PG13', 'i', None, None, None, 'usb_flg'), # fault report on USB1
+  ('PG14', 'i', None, None, None, 'UART_TX'), # midi out
+  ('PG15', 'i', None, None, None, 'sdram_cas'),
+
+  ('PH2', 'i', None, None, None, 'sdram_cke'),
+  ('PH3', 'i', None, None, None, 'sdram_cs0'),
+
+  ('PH5', 'i', None, None, None, 'sdram_we'),
 
   ('PH7', 'i', None, None, None, 'I2C_SCL'), # codec
   ('PH8', 'i', None, None, None, 'I2C_SDA'), # codec
