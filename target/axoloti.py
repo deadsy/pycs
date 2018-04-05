@@ -5,6 +5,10 @@ Axoloti Synth Board (STM32F427xx)
 
 http://www.axoloti.com/
 
+CPU: STM32F427IGH6 (G=1MiB flash)
+Codec: ADAU1361BCPZ (96kHz, 24 bit stereo codec)
+SDRAM: AS4C4M16SA-7BCN (4Mx16bit SDRAM)
+
 """
 # -----------------------------------------------------------------------------
 
