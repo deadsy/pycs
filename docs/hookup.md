@@ -18,7 +18,12 @@ You need to adapt between the two - it's a re-wiring job.
 
 ## ST Development Boards
 
-![mb1035b_image](https://github.com/deadsy/pycs/blob/master/docs/pics/mb1035b.jpg "mb1035b_image")
+The ST development boards typically have a built-in ST-Link microcontroller.
+This is the simplest option, that is: connect the board to the host computer using a USB cable.
+
+If you want to connect the boards directly to an offboard debugger that is also possible.
+
+![mb1035b_image](docs/pics/mb1035b.jpg "mb1035b_image")
 
 The ST boards have a 6 pin SWD debug connector.
 The JLINK has a 20 pin connector.
@@ -32,3 +37,19 @@ The JLINK has a 20 pin connector.
  * Board 3V Vdd - JLINK Pin 1 (VTref)
 
 Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to the Discovery CPU.
+
+## Axoloti Board
+
+![axoloti_image](docs/pics/axoloti.jpg "axoloti_image")
+
+The Axoloti boards have a 5 pin SWD debug connector (JP1).
+
+ * JP1 Pin 1 (VCC)
+ * JP1 Pin 2 (SWCLK)
+ * JP1 Pin 3 (GND)
+ * JP1 Pin 4 (SWDIO)
+ * JP1 Pin 5 (NRST)
+
+The Axoloti board needs to be used with an external SWD debug dongle connected to these pins.
+
+
