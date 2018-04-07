@@ -49,32 +49,28 @@ class drv(object):
       # standard pin name
       pin_name = 'P%s%d' % (port[4:], i)
       # target name
-      tgt_name = self.pin2name.get(pin_name, None)
+      tgt_name = self.pin2name.get(pin_name, '?')
       # mode for this pin
       mode_name = hw.MODER.fields['MODER%d' % i].field_name(mode_val)
       val_name = ''
       af_name = None
       if mode_name == 'analog':
-        mode_name = 'a'
+        mode_name = 'an'
       if mode_name == 'altfunc':
-        mode_name = 'f'
         if i < 8:
+          mode_name = 'af%d' % ((hw.AFRL.rd() >> (i << 2)) & 15)
           af_name = hw.AFRL.fields['AFRL%d' % i].field_name(hw.AFRL.rd())
         else:
+          mode_name = 'af%d' % ((hw.AFRH.rd() >> ((i - 8) << 2)) & 15)
           af_name = hw.AFRH.fields['AFRH%d' % i].field_name(hw.AFRH.rd())
       elif mode_name == 'output':
-        mode_name = 'o'
-        val_name = '%d' % self.rd_output(port, i)
+        mode_name = 'out(%d)' % self.rd_output(port, i)
       elif mode_name == 'input':
-        mode_name = 'i'
-        val_name = '%d' % self.rd_input(port, i)
+        mode_name = 'in(%d)' % self.rd_input(port, i)
       # combine the target and alternate function name
-      if tgt_name:
-        if af_name:
-          tgt_name += ' (%s)' % af_name
-      else:
-        tgt_name = (af_name, '')[af_name is None]
-      s.append([pin_name, mode_name, val_name, tgt_name])
+      if af_name:
+        tgt_name += ' (%s)' % af_name
+      s.append([pin_name, mode_name, tgt_name])
     return s
 
   # The following functions are the common API

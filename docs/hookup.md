@@ -71,11 +71,11 @@ Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to
 
 The Axoloti boards have a 5 pin SWD debug connector (JP1).
 
- * JP1 Pin 1 (VCC)
- * JP1 Pin 2 (SWCLK)
- * JP1 Pin 3 (GND)
- * JP1 Pin 4 (SWDIO)
- * JP1 Pin 5 (NRST)
+ * 5-NRST (Closest to X3)
+ * 4-SWDIO
+ * 3-GND
+ * 2-SWCLK
+ * 1-VCC (3v3)
 
 The Axoloti board needs to be used with an external SWD debug dongle connected to these pins.
 
