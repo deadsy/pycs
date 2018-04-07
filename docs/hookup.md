@@ -1,5 +1,33 @@
 # HOWTO Hookup Development Boards
 
+## USB SWD Connectivity
+
+The SWD signals used to access the ARM coresight features are standard and defined by ARM.
+To create those signals a USB to SWD debug probe is used. The specifics of these are different from vendor to vendor.
+
+### ST Link
+
+Typically found as a built in feature of ST development boards.
+
+Also available as a separate USB dongle.
+ * http://www.st.com/en/development-tools/st-link-v2.html
+ * https://www.adafruit.com/product/2548
+
+### Segger JLINK
+
+Typically found as a built in feature of Nordic development boards.
+
+Also available as a separate USB dongle.
+ * https://www.segger.com/products/debug-probes/j-link/models/model-overview/
+
+### CMSIS-DAP
+
+Typically found as a built in feature of Freescale/NXP development boards.
+
+Also available as a separate USB dongle.
+ * https://www.tindie.com/products/hnhoan/cmsis-dap-arm-debug-jtagswd-microsd-drag-and-drop/
+ * https://1bitsquared.com/products/black-magic-probe
+
 ## Connectors
 
 [More information here](http://infocenter.arm.com/help/topic/com.arm.doc.faqs/attached/13634/cortex_debug_connectors.pdf)
@@ -18,10 +46,9 @@ You need to adapt between the two - it's a re-wiring job.
 
 ## ST Development Boards
 
-The ST development boards typically have a built-in ST-Link microcontroller.
-This is the simplest option, that is: connect the board to the host computer using a USB cable.
-
-If you want to connect the boards directly to an offboard debugger that is also possible.
+The ST development boards typically have a built-in ST-Link debug probe.
+This is the simplest option to use: just connect the board to the host computer using a USB cable.
+Its also possible to connect the boards to an offboard debugger.
 
 ![mb1035b](pics/mb1035b.jpg "mb1035b_image")
 
