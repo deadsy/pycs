@@ -23,7 +23,7 @@ This is the simplest option, that is: connect the board to the host computer usi
 
 If you want to connect the boards directly to an offboard debugger that is also possible.
 
-![mb1035b_image](docs/pics/mb1035b.jpg "mb1035b_image")
+![mb1035b](pics/mb1035b.jpg "mb1035b_image")
 
 The ST boards have a 6 pin SWD debug connector.
 The JLINK has a 20 pin connector.
@@ -40,7 +40,7 @@ Leave the ST-Link/Discovery jumpers installed so the debug signals are passed to
 
 ## Axoloti Board
 
-![axoloti_image](docs/pics/axoloti.jpg "axoloti_image")
+![axoloti](pics/axoloti.jpg "axoloti_image")
 
 The Axoloti boards have a 5 pin SWD debug connector (JP1).
 
