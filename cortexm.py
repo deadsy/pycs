@@ -117,7 +117,7 @@ class cortexm(object):
     self.menu = (
       ('cpuid', self.cmd_cpuid),
       ('rate', self.cmd_systick_rate),
-      ('test', self.cmd_test),
+      #('test', self.cmd_test),
     )
 
   def cmd_test(self, ui, args):

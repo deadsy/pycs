@@ -491,8 +491,6 @@ soc_db[s.name] = s
 #-----------------------------------------------------------------------------
 
 def STM32F427xx_fixup(d):
-  # TODO - review and modify
-  d.soc_name = 'STM32F427xx'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 106
   # remove some core peripherals - we'll replace them in the cpu fixup
@@ -504,14 +502,11 @@ def STM32F427xx_fixup(d):
   f.enumvals = soc.make_enumvals(f, _dev_id_enumset)
   # more decode for the GPIO registers
   gpio_decodes(d, ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'), _STM32F427xx_altfunc)
-  # additional interrupts
-  d.insert(soc.make_interrupt('DMA2D_IRQn', 90, 'DMA2D global Interrupt'))
   # sram
   d.insert(soc.make_peripheral('sram', 0x20000000, 256 << 10, None, 'sram'))
   d.insert(soc.make_peripheral('ccm_sram', 0x10000000, 64 << 10, None, 'core coupled memory sram'))
   d.insert(soc.make_peripheral('BKPSRAM', 0x40024000, 4 << 10, None, 'backup sram'))
   # flash (rm0090 3.4 table 6))
-  d.insert(soc.make_peripheral('flash_main', 0x08000000, 2 << 20, None, 'flash main memory'))
   d.insert(soc.make_peripheral('flash_otp', 0x1fff7800, 528, None, 'flash otp memory'))
   d.insert(soc.make_peripheral('flash_system', 0x1fff0000, 30 << 10, None, 'flash system memory'))
   d.insert(soc.make_peripheral('flash_opt_bank1', 0x1fffc000, 16, None, 'flash option memory'))
@@ -524,10 +519,15 @@ def STM32F427xx_fixup(d):
   # ram buffer for flash writing
   d.rambuf = mem.region('rambuf', 0x20000000 + 512, 32 << 10)
 
+def STM32F427xG_fixup(d):
+  d.soc_name = 'STM32F427xG'
+  # 1 MiB of flash for G devices
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 1 << 20, None, 'flash main memory'))
+
 s = soc_info()
-s.name = 'STM32F427xx'
+s.name = 'STM32F427xG'
 s.svd = 'STM32F427x'
-s.fixups = (STM32F427xx_fixup, cmregs.cm4_fixup)
+s.fixups = (STM32F427xx_fixup, STM32F427xG_fixup, cmregs.cm4_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------

@@ -29,7 +29,7 @@ import vendor.st.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
 
-soc_name = 'STM32F427xx'
+soc_name = 'STM32F427xG'
 prompt = 'axoloti'
 
 # -----------------------------------------------------------------------------
@@ -171,6 +171,8 @@ class target(object):
     self.ui = ui
     self.dbgio = dbgio
     self.device = vendor.get_device(self.ui, soc_name)
+    # add the 8MiB SDRAM
+    self.device.insert(soc.make_peripheral('sdram', 0xc0000000, 8 << 20, None, 'external sdram'))
     self.dbgio.connect(self.device.cpu_info.name, 'swd')
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
@@ -182,8 +184,6 @@ class target(object):
     # setup the rtt client
     ram = self.device.sram
     self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
-    # setup the gdb server
-    self.gdb = gdb.gdb(self.cpu)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -191,7 +191,6 @@ class target(object):
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
       ('flash', self.flash.menu, 'flash functions'),
-      ('gdb', self.gdb.run),
       ('go', self.cpu.cmd_go),
       ('gpio', self.gpio.menu, 'gpio functions'),
       ('halt', self.cpu.cmd_halt),

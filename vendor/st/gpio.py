@@ -20,7 +20,7 @@ gpio_info = {
   'STM32F303xC': (('A','B','C','D','E','F'), 'AHBENR', 17),
   'STM32L432KC': (('A','B','C','D','E','H'), 'AHB2ENR', 0),
   'STM32F407xx': (('A','B','C','D','E','F','G','H','I'), 'AHB1ENR', 0),
-  'STM32F427xx': (('A','B','C','D','E','F','G','H','I'), 'AHB1ENR', 0),
+  'STM32F427xG': (('A','B','C','D','E','F','G','H','I'), 'AHB1ENR', 0),
   'STM32F429xI': (('A','B','C','D','E','F','G','H','I','J','K'), 'AHB1ENR', 0),
   'STM32F091xC': (('A','B','C','D','E','F'), 'AHBENR', 17),
 }
