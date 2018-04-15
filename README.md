@@ -19,7 +19,7 @@ Python Based ARM CoreSight Debug and Trace Tools
 
     $ ./pycs -l
     supported targets:
-      axoloti       : Axoloti Synth Board (STM32F427xx)                          
+      axoloti       : Axoloti Synth Board (STM32F427xG)
       efm32lg       : EFM32 Leopard Gecko Starter Kit (EFM32LG990F256)
       frdm_k64f     : FRDM-K64F Kinetis Development Board (MK64FN1M0VLL12)
       mb1035b       : STM32F3 Discovery Board (STM32F303xC)

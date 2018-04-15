@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Axoloti Synth Board (STM32F427xx)
+Axoloti Synth Board (STM32F427xG)
 
 http://www.axoloti.com/
 
