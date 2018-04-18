@@ -57,7 +57,7 @@ gpio_cfg = (
   ('PA7', 'i', 'pd', None, None, 'tp44'), # ADC1_IN7/SPI_MOSI
   ('PA8', 'af0', None, None, None, 'codec_mclk, x4_2'),
 
-  ('PA10', 'i', 'pd', None, None, 's2'),
+  ('PA10', 'i', 'pd', None, None, 'sw2'),
   ('PA11', 'af10', None, None, None, 'fs_dm'),
   ('PA12', 'af10', None, None, None, 'fs_dp'),
   ('PA13', 'af0', None, None, None, 'swdio'), # swd
@@ -69,7 +69,7 @@ gpio_cfg = (
 
   ('PB3', 'i', 'pd', None, None, 'x3_5'),
   ('PB4', 'i', 'pd', None, None, 'x3_7'),
-  ('PB5', 'i', 'pd', None, None, 'boot0'), # same signal as the boot0 pin
+  ('PB5', 'i', 'pd', None, None, 'sw1/boot0'), # same signal as the boot0 pin
   ('PB6', 'i', 'pd', None, None, 'tp47'), # UART_TX
   ('PB7', 'i', 'pd', None, None, 'tp48'), # UART_RX
   ('PB8', 'i', 'pd', None, None, 'tp49'), # I2C1_SCL
