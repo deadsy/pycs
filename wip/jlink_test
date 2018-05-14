@@ -14,7 +14,9 @@ def main():
 
   logging.basicConfig(filename='test.log', level=logging.DEBUG)
 
-  jlink_drv = jlink.jtag(None)
+  #jlink_drv = jlink.jtag()
+  jlink_drv = jlink.swd()
+
   print(jlink_drv)
 
   chspec = chain.bcm49408
@@ -26,8 +28,6 @@ def main():
   dp = jtag_dp.jtag_dp(jtag_drv.device[0])
 
   aps = adiv5.probe_mem_ap(dp, 256)
-
-
 
   sys.exit(0)
 

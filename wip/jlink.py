@@ -29,16 +29,41 @@ _KHz = 1000.0
 _FREQ = 12.0 * _MHz
 
 #------------------------------------------------------------------------------
-# usb vendor:product IDs
+# Known JLINK Devices
 
-_jlink_vps = (
-  (0x1366, 0x0101), # J-Link Base
-  (0x1366, 0x0102), # ?
-  (0x1366, 0x0103), # ?
-  (0x1366, 0x0104), # ?
-  (0x1366, 0x0105), # ?
-  (0x1366, 0x1015), # As seen on Nordic nRF52DK
-)
+class jlink_device(object):
+  def __init__(self, vid=0x1366, pid=0, itf=1):
+    self.vid = vid # vendor id
+    self.pid = pid # product id
+    self.itf = itf # interface to use
+
+class jlink_database(object):
+
+  def __init__(self):
+    self.db = []
+
+  def add(self, x):
+    """add a device to the database"""
+    self.db.append(x)
+
+  def vps(self):
+    """return the set of vid/pid values"""
+    return [(x.vid, x.pid) for x in self.db]
+
+  def get_itf(self, vid, pid):
+    """return the configured interface for a device"""
+    for x in self.db:
+      if x.vid == vid and x.pid == pid:
+        return x.itf
+    return None
+
+jlink_db = jlink_database()
+jlink_db.add(jlink_device(pid=0x0101)) # J-Link Base
+jlink_db.add(jlink_device(pid=0x0102)) # ?
+jlink_db.add(jlink_device(pid=0x0103)) # ?
+jlink_db.add(jlink_device(pid=0x0104)) # ?
+jlink_db.add(jlink_device(pid=0x0105)) # ?
+jlink_db.add(jlink_device(pid=0x1015, itf=3)) # As seen on Nordic nRF52DK
 
 #------------------------------------------------------------------------------
 
@@ -219,7 +244,7 @@ class JLink(object):
 
   # --- Public API -------------------------------------------------------
 
-  def open(self, vendor, product, interface=1, index=0, serial=None, description=None):
+  def open(self, vendor, product, interface, index=0, serial=None, description=None):
     """Open a new interface to the specified J-Link device"""
     self.usb_dev = UsbTools.get_device(vendor, product, index, serial, description)
     config = self.usb_dev.get_active_configuration()
@@ -522,7 +547,7 @@ class swd(object):
   """SWD Interface Object"""
 
   def __init__(self, sn=None):
-    devices = UsbTools.find_all(_jlink_vps)
+    devices = UsbTools.find_all(jlink_db.vps())
     if sn is not None:
       # filter based on device serial number
       devices = [dev for dev in devices if dev[2] == sn]
@@ -531,8 +556,9 @@ class swd(object):
     self.vid = devices[0][0]
     self.pid = devices[0][1]
     self.sn = devices[0][2]
+    itf = jlink_db.get_itf(self.vid, self.pid)
     self.jlink = JLink()
-    self.jlink.open(self.vid, self.pid, serial=self.sn)
+    self.jlink.open(self.vid, self.pid, itf, serial=self.sn)
     state = self.jlink.get_state()
     # check VREF and SRST
     assert state['vref'] > 1500, 'Vref is too low. Check target power.'
@@ -575,7 +601,7 @@ class jtag(object):
   """JTAG Interface Object"""
 
   def __init__(self, sn=None):
-    devices = UsbTools.find_all(_jlink_vps)
+    devices = UsbTools.find_all(jlink_db.vps())
     if sn is not None:
       # filter based on device serial number
       devices = [dev for dev in devices if dev[2] == sn]
@@ -584,8 +610,9 @@ class jtag(object):
     self.vid = devices[0][0]
     self.pid = devices[0][1]
     self.sn = devices[0][2]
+    itf = jlink_db.get_itf(self.vid, self.pid)
     self.jlink = JLink()
-    self.jlink.open(self.vid, self.pid, serial=self.sn)
+    self.jlink.open(self.vid, self.pid, itf, serial=self.sn)
     state = self.jlink.get_state()
     # check VREF and SRST
     assert state['vref'] > 1500, 'Vref is too low. Check target power.'
