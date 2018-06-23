@@ -149,7 +149,7 @@ class target(object):
     self.flash = flash.flash(flash_driver.sdrv(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
-    self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PA8', 'PC9'))
+    self.i2c = i2c.i2c(i2c_driver.bitbang(gpio_drv, 'PA8', 'PC9'))
     # setup the rtt client
     ram = self.device.sram
     self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))

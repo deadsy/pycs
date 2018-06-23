@@ -14,7 +14,7 @@ and the gpio API.
 """
 #-----------------------------------------------------------------------------
 
-class gpio(object):
+class bitbang(object):
   """glue layer between bit banged i2c and the gpio pins"""
 
   def __init__(self, gpio, scl, sda):
@@ -27,13 +27,26 @@ class gpio(object):
     self.sda_bit = bit
     self.hw_init = False
 
+  def pin_init(self, port, bit):
+    """setup the gpio for an i2c pin"""
+    # normally the pin is an input with a pull-up
+    self.gpio.set_mode(port, bit, 'i')
+    self.gpio.set_pupd(port, bit, 'pu')
+    # setting the pin to an output drives it low
+    self.gpio.clr_bit(port, bit)
+    self.gpio.set_otype(port, bit, 'pp')
+    self.gpio.set_ospeed(port, bit, 'l')
+
   def cmd_init(self, ui, args):
     """initialise i2c hardware"""
     if self.hw_init:
       return
+    # do a gpio init - there may be some device gpio lines that need to be set/reset
     self.gpio.cmd_init(ui, args)
-    self.hw_init = True
+    self.pin_init(self.scl_port, self.scl_bit)
+    self.pin_init(self.sda_port, self.sda_bit)
     ui.put('i2c init: ok\n')
+    self.hw_init = True
 
   def sda_lo(self):
     """drive sda low"""

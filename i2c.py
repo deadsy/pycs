@@ -10,6 +10,7 @@ import util
 # I2C Exceptions
 
 class Error(Exception):
+  """i2c errors"""
   pass
 
 _I2C_ERR_BUS = 'bus error'
@@ -31,7 +32,7 @@ _help_write = (
 
 #-----------------------------------------------------------------------------
 
-class i2c:
+class i2c(object):
   """Generic I2C Bit-Bang Driver"""
 
   def __init__(self, io):
@@ -108,7 +109,7 @@ class i2c:
     """
     val = 0
     self.io.sda_rel()
-    for i in range(8):
+    for _ in range(8):
       val <<= 1
       val |= self.clock()
     return val
@@ -135,7 +136,7 @@ class i2c:
     """
     # start a read cycle
     self.start()
-    self.wr_byte(adr | 1)
+    self.wr_byte((adr << 1) | 1)
     if not self.rd_ack():
       self.stop()
       raise Error, _I2C_ERR_ADR
@@ -155,13 +156,13 @@ class i2c:
     """
     # start a write cycle
     self.start()
-    self.wr_byte(adr & ~1)
+    self.wr_byte((adr << 1) | 0)
     if not self.rd_ack():
       self.stop()
       raise Error, _I2C_ERR_ADR
     # write data
-    for i in range(len(buf)):
-      self.wr_byte(buf[i])
+    for c in buf:
+      self.wr_byte(c)
       if not self.rd_ack():
         # no ack from slave
         self.stop()
@@ -169,23 +170,25 @@ class i2c:
     self.stop()
     return True
 
-  def adr_args(self, ui, args):
-    adr = util.int_arg(ui, args[0], (0, 254), 16)
-    if adr == None:
+  @staticmethod
+  def adr_args(ui, args):
+    """validate an i2c address argument"""
+    adr = util.int_arg(ui, args[0], (0, 127), 16)
+    if adr is None:
       return
-    return adr & ~1
+    return adr
 
   def cmd_rd(self, ui, args):
     """read bytes from a device"""
     if util.wrong_argc(ui, args, (1, 2)):
       return
     adr = self.adr_args(ui, args)
-    if adr == None:
+    if adr is None:
       return
     n = 1
     if len(args) == 2:
       n = util.int_arg(ui, args[1], (1, 256), 16)
-      if n == None:
+      if n is None:
         return
     try:
       self.io.cmd_init(ui, None)
@@ -202,12 +205,12 @@ class i2c:
       ui.put(util.bad_argc)
       return
     adr = self.adr_args(ui, args)
-    if adr == None:
+    if adr is None:
       return
     buf = []
     for arg in args[1:]:
       val = util.int_arg(ui, arg, (0, 255), 16)
-      if val == None:
+      if val is None:
         return
       buf.append(val)
     try:
@@ -223,14 +226,16 @@ class i2c:
     """scan for i2c devices"""
     self.io.cmd_init(ui, None)
     found = []
-    for adr in range(0, 255, 2):
+    for adr in range(128):
+      if adr != 0 and adr % 32 == 0:
+        ui.put('\n')
       try:
         self.rd(adr, 1)
         found.append(adr)
-        msg = 'device found'
+        ui.put('X')
       except Error, e:
-        msg = e
-      ui.put('0x%02x: %s\n' % (adr, msg))
+        ui.put('.')
+      ui.flush()
     if found:
       ui.put('\ndevices at: %s\n' % ' '.join(['0x%02x' % adr for adr in found]))
     else:

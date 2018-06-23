@@ -86,7 +86,7 @@ class target(object):
     self.flash = flash.flash(flash_driver.stm32f0xx(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
-    self.i2c = i2c.i2c(i2c_driver.gpio(gpio_drv, 'PB6', 'PB7'))
+    self.i2c = i2c.i2c(i2c_driver.bitbang(gpio_drv, 'PB6', 'PB7'))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
