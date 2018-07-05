@@ -251,6 +251,7 @@ _STM32F427xx_altfunc = (
   ('B', 4, 6, 'SPI3_MISO'),
   ('B', 5, 6, 'SPI3_MOSI/I2S3_SD'),
   ('B', 6, 12, 'FMC_SDNE1'),
+  ('B', 8, 4, 'I2C1_SCL'),
   ('B', 8, 14, 'LCD_B6'),
   ('B', 9, 4, 'I2C1_SDA'),
   ('B', 9, 14, 'LCD_B7'),
