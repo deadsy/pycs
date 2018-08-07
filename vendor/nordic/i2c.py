@@ -14,7 +14,7 @@ and the gpio API.
 """
 #-----------------------------------------------------------------------------
 
-class gpio(object):
+class bitbang(object):
   """glue layer between bit banged i2c and the gpio pins"""
 
   def __init__(self, gpio, scl, sda):
@@ -32,8 +32,8 @@ class gpio(object):
     if self.hw_init:
       return
     self.gpio.cmd_init(ui, args)
-    self.hw_init = True
     ui.put('i2c init: ok\n')
+    self.hw_init = True
 
   def sda_lo(self):
     """drive sda low"""
