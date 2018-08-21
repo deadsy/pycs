@@ -50,12 +50,12 @@ I'm setting them per the default pin selects in the SDK (used for logging).
 
 """
 
-# pin, sense, drive, pupd, in_enable, dirn, name
+# pin, sense_mode, drive_mode, pull_mode, input_mode, dir_mode, name
 gpio_cfg = (
   #('P0.1', None, None, None, None, None, '',),
   #('P0.2', None, None, None, None, None, '',),
   #('P0.3', None, None, None, None, None, '',),
-  #('P0.4', '',),
+  #('P0.4', None, None, None, None, None, '',),
   ('P0.5', None, None, None, None, None, 'UART_RTS',),
   ('P0.6', None, None, None, None, None, 'UART_TX',),
   ('P0.7', None, None, None, None, None, 'UART_CTS',),
@@ -64,10 +64,10 @@ gpio_cfg = (
   #('P0.10', None, None, None, None, None, '',),
   #('P0.11', None, None, None, None, None, '',),
   #('P0.12', None, None, None, None, None, '',),
-  ('P0.13', None, None, None, True, 'i', 'BUTTON_1 (no shield)',),
-  ('P0.14', None, None, None, True, 'i', 'BUTTON_2 (no shield)',),
-  ('P0.15', None, None, None, True, 'i', 'BUTTON_3 (no shield)',),
-  ('P0.16', None, None, None, True, 'i', 'BUTTON_4 (no shield)',),
+  ('P0.13', None, None, 'pu', 'connect', 'i', 'BUTTON_1 (no shield)',),
+  ('P0.14', None, None, 'pu', 'connect', 'i', 'BUTTON_2 (no shield)',),
+  ('P0.15', None, None, 'pu', 'connect', 'i', 'BUTTON_3 (no shield)',),
+  ('P0.16', None, None, 'pu', 'connect', 'i', 'BUTTON_4 (no shield)',),
   ('P0.17', None, None, None, None, None, 'LED_1 (no shield) INT_EXT (shield)',),
   ('P0.18', None, None, None, None, None, 'LED_2 (no shield)',),
   ('P0.19', None, None, None, None, None, 'LED_3 (no shield)',),

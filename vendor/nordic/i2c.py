@@ -27,21 +27,35 @@ class bitbang(object):
     self.sda_bit = bit
     self.hw_init = False
 
+  def pin_init(self, port, bit):
+    """setup the gpio for an i2c pin"""
+    # normally the pin is an input with a pull-up
+    self.gpio.set_dir(port, bit, 'i')
+    self.gpio.set_input(port, bit, 'connect')
+    self.gpio.set_pull(port, bit, 'pu')
+    self.gpio.set_sense(port, bit, 'disable')
+    # setting the pin to an output drives it low
+    self.gpio.clr_bit(port, bit)
+    self.gpio.set_drive(port, bit, 'h0d1')
+
   def cmd_init(self, ui, args):
     """initialise i2c hardware"""
     if self.hw_init:
       return
+    # do a gpio init - there may be some device gpio lines that need to be set/reset
     self.gpio.cmd_init(ui, args)
+    self.pin_init(self.scl_port, self.scl_bit)
+    self.pin_init(self.sda_port, self.sda_bit)
     ui.put('i2c init: ok\n')
     self.hw_init = True
 
   def sda_lo(self):
     """drive sda low"""
-    self.gpio.set_dirn_out(self.sda_port, self.sda_bit)
+    self.gpio.set_dir(self.sda_port, self.sda_bit, 'o')
 
   def sda_rel(self):
     """release sda"""
-    self.gpio.set_dirn_in(self.sda_port, self.sda_bit)
+    self.gpio.set_dir(self.sda_port, self.sda_bit, 'i')
 
   def sda_rd(self):
     """sda read"""
@@ -49,11 +63,11 @@ class bitbang(object):
 
   def scl_lo(self):
     """drive scl low"""
-    self.gpio.set_dirn_out(self.scl_port, self.scl_bit)
+    self.gpio.set_dir(self.scl_port, self.scl_bit, 'o')
 
   def scl_rel(self):
     """release scl"""
-    self.gpio.set_dirn_in(self.scl_port, self.scl_bit)
+    self.gpio.set_dir(self.scl_port, self.scl_bit, 'i')
 
   def scl_rd(self):
     """scl read"""

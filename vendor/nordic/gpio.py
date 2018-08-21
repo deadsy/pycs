@@ -54,21 +54,13 @@ class drv(object):
     """initialise gpio hardware"""
     if self.hw_init:
       return
-
-    for (pin, sense, drive, pupd, in_enable, dirn, name) in self.cfg:
+    for (pin, sense_mode, drive_mode, pull_mode, input_mode, dir_mode, name) in self.cfg:
       (port, bit) = self.pin_arg(pin)
-      # pin direction
-      if dirn == 'o':
-        self.set_dirn_out(port, bit)
-      else:
-        self.set_dirn_in(port, bit)
-      # pin input connect/disconnect
-      if in_enable:
-        self.set_input_enable(port, bit)
-      else:
-        self.set_input_disable(port, bit)
-
-
+      self.set_dir(port, bit, dir_mode)
+      self.set_input(port, bit, input_mode)
+      self.set_pull(port, bit, pull_mode)
+      self.set_drive(port, bit, drive_mode)
+      self.set_sense(port, bit, sense_mode)
     self.hw_init = True
     ui.put('gpio init: ok\n')
 
@@ -130,28 +122,62 @@ class drv(object):
   # The following functions are Nordic specific
   # They can be called from target code - but not from generic drivers.
 
-  def set_dirn_out(self, port, bit):
-    """set the pin direction to output"""
-    hw = self.device.peripherals[port].DIRSET
-    hw.wr(1 << bit)
+  def set_dir(self, port, bit, mode):
+    """set the DIR field of the PIN_CNF[bit] register"""
+    if mode is None:
+      return
+    hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
+    val = hw.rd()
+    val &= ~(1 << 0)
+    val |= {'i':(0 << 0), 'o':(1 << 0)}[mode]
+    hw.wr(val)
 
-  def set_dirn_in(self, port, bit):
-    """set the pin direction to input"""
-    hw = self.device.peripherals[port].DIRCLR
-    hw.wr(1 << bit)
-
-  def set_input_enable(self, port, bit):
-    """enable input for the pin"""
+  def set_input(self, port, bit, mode):
+    """set the INPUT field of the PIN_CNF[bit] register"""
+    if mode is None:
+      return
     hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
     val = hw.rd()
     val &= ~(1 << 1)
+    val |= {'connect':(0 << 1), 'disconnect':(1 << 1)}[mode]
     hw.wr(val)
 
-  def set_input_disable(self, port, bit):
-    """disable input for the pin"""
+  def set_pull(self, port, bit, mode):
+    """set the PULL field of the PIN_CNF[bit] register"""
+    if mode is None:
+      return
     hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
     val = hw.rd()
-    val |= 1 << 1
+    val &= ~(3 << 2)
+    val |= {'disable':(0 << 2), 'pd':(1 << 2), 'pu':(3 << 2)}[mode]
+    hw.wr(val)
+
+  def set_drive(self, port, bit, mode):
+    """set the DRIVE field of the PIN_CNF[bit] register"""
+    if mode is None:
+      return
+    hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
+    val = hw.rd()
+    val &= ~(7 << 8)
+    val |= {'s0s1':(0 << 8),
+            'h0s1':(1 << 8),
+            's0h1':(2 << 8),
+            'h0h1':(3 << 8),
+            'd0s1':(4 << 8),
+            'd0h1':(5 << 8),
+            's0d1':(6 << 8),
+            'h0d1':(7 << 8),
+            }[mode]
+    hw.wr(val)
+
+  def set_sense(self, port, bit, mode):
+    """set the SENSE field of the PIN_CNF[bit] register"""
+    if mode is None:
+      return
+    hw = self.device.peripherals[port].registers['PIN_CNF%d' % bit]
+    val = hw.rd()
+    val &= ~(3 << 16)
+    val |= {'disable':(0 << 16), 'hi':(2 << 16), 'lo':(3 << 16)}[mode]
     hw.wr(val)
 
 #-----------------------------------------------------------------------------
