@@ -130,7 +130,7 @@ class mem(object):
       return
     adr = util.align(adr, n)
     ui.put('[0x%08x] = ' % adr)
-    ui.put('0x%%0%dx\n' % (n/4) % self.cpu.rd(adr, n))
+    ui.put('0x%%0%dx\n' % (n >> 2) % self.cpu.rd(adr, n))
 
   def cmd_rd8(self, ui, args):
     """read 8 bits"""
@@ -160,7 +160,7 @@ class mem(object):
     val = util.mask_val(val, n)
     self.cpu.wr(adr, val, n)
     ui.put('[0x%08x] = ' % adr)
-    ui.put('0x%%0%dx\n' % (n/4) % val)
+    ui.put('0x%%0%dx\n' % (n >> 2) % val)
 
   def cmd_wr8(self, ui, args):
     """write 8 bits"""
@@ -241,7 +241,7 @@ class mem(object):
     else:
       assert False, 'bad width'
     # read and print the data
-    for i in range(n/16):
+    for i in range(n >> 4):
       # read 4, 32-bit words (16 bytes per line)
       io = iobuf.data_buffer(32)
       self.cpu.rdmem(adr, 4, io)
@@ -309,8 +309,8 @@ class mem(object):
     # bytes per row
     bpr = cols * bps
     # work out the none padding
-    nwords = n / 4
-    nwords_displayed = (((cols * rows * bps) + 3) & ~3) / 4
+    nwords = n >> 2
+    nwords_displayed = (((cols * rows * bps) + 3) & ~3) >> 2
     none_pad = [None,] * ((nwords_displayed - nwords) * 4)
     # read the memory
     if n > (16 << 10):
@@ -354,7 +354,7 @@ class mem(object):
       ui.put('reading memory ...\n')
     data = iobuf.data_buffer(32)
     t_start = time.time()
-    self.cpu.rdmem(adr, n/4, data)
+    self.cpu.rdmem(adr, n >> 2, data)
     t_end = time.time()
     ui.put('%s\n' % data.md5('le'))
     ui.put('%.2f KiB/sec\n' % (float(n)/((t_end - t_start) * 1024.0)))
@@ -374,7 +374,7 @@ class mem(object):
     # round up n to an integral multiple of 4 bytes
     n = (n + 3) & ~3
     # convert to n 32/16/8-bit units
-    nx = n / (width / 8)
+    nx = int(n / (width >> 3))
     maxval = (1 << width) - 1
     # we will typically be testing ram, so halt the cpu.
     self.cpu.halt()

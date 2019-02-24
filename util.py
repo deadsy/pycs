@@ -52,9 +52,8 @@ def wrong_argc(ui, args, valid):
   argc = len(args)
   if argc in valid:
     return False
-  else:
-    ui.put(bad_argc)
-    return True
+  ui.put(bad_argc)
+  return True
 
 # -----------------------------------------------------------------------------
 
@@ -85,9 +84,8 @@ def dict_arg(ui, arg, d):
   """argument to value through a dictionary - or None"""
   if arg in d:
     return d[arg]
-  else:
-    ui.put(inv_arg)
-    return None
+  ui.put(inv_arg)
+  return None
 
 # ----------------------------------------------------------------------------
 
@@ -195,8 +193,7 @@ def maskshift(field):
   """return a mask and shift defined by field"""
   if len(field) == 1:
     return (1 << field[0], field[0])
-  else:
-    return (((1 << (field[0] - field[1] + 1)) - 1) << field[1], field[1])
+  return (((1 << (field[0] - field[1] + 1)) - 1) << field[1], field[1])
 
 def bits(val, field):
   """return the bits (masked and shifted) from the value"""
@@ -246,7 +243,7 @@ def format_bit(x, c):
   """return a character to represent a bit state"""
   if x == 0:
     return '.'
-  elif x == 1:
+  if x == 1:
     return c
   return ' '
 
@@ -269,7 +266,7 @@ def rm_prefix(names, prefix_set):
   # remove the prefix
   if n:
     #print('removing prefix %s' % names[0][:n])
-    for i in range(len(names)):
+    for i, _ in enumerate(names):
       names[i] = names[i][n:]
 
 def rm_suffix(names, suffix_set):
@@ -289,19 +286,8 @@ def rm_suffix(names, suffix_set):
   # remove the suffix
   if n:
     #print('removing suffix %s' % names[0][-n:])
-    for i in range(len(names)):
+    for i, _ in enumerate(names):
       names[i] = names[i][:-n]
-
-# -----------------------------------------------------------------------------
-
-def rm_non_ascii(s):
-  """remove non-ascii characters from a string"""
-  for i in range(len(s)):
-    try:
-      s[i].encode('ascii')
-    except:
-      s = s[i].replace(' ')
-  return s
 
 # -----------------------------------------------------------------------------
 
@@ -311,7 +297,7 @@ def display_cols(clist, csize=None):
     each element in clist is [col0_str, col1_str, col2_str, ...]
     csize is a list of column width minimums
   """
-  if len(clist) == 0:
+  if not clist:
     return ''
   # how many columns?
   ncols = len(clist[0])

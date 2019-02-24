@@ -29,7 +29,6 @@ def description_cleanup(s):
   """cleanup a description string"""
   if s is None:
     return None
-  s = util.rm_non_ascii(s)
   s = s.strip('."')
   # remove un-needed white space
   return ' '.join([x.strip() for x in s.split()])
@@ -299,7 +298,7 @@ class register(object):
     self.cpu = cpu
 
   def adr(self, idx, size):
-    return self.parent.address + self.offset + (idx * (size / 8))
+    return self.parent.address + self.offset + (idx * (size >> 3))
 
   def rd(self, idx=0):
     return self.cpu.rd(self.adr(idx, self.size), self.size)
@@ -319,9 +318,7 @@ class register(object):
   def field_list(self):
     """return an ordered fields list"""
     # build a list of fields in most significant bit order
-    f_list = self.fields.values()
-    f_list.sort(key=lambda x: x.msb, reverse=True)
-    return f_list
+    return sorted(self.fields.values(), key = lambda x : x.msb, reverse=True)
 
   def display(self, display_fields):
     """return display columns (name, adr, val, descr) for this register"""
@@ -400,9 +397,7 @@ class peripheral(object):
     """return an ordered register list"""
     # build a list of registers in address offset order
     # tie break with the name to give a well-defined sort order
-    r_list = self.registers.values()
-    r_list.sort(key=lambda x: (x.offset << 16) + sum(bytearray(x.name)))
-    return r_list
+    return sorted(self.registers.values(), key = lambda x : (x.offset << 16) + sum(bytearray(x.name.encode('utf8'))))
 
   def display(self, register_name=None, fields=False):
     """return a display string for this peripheral"""
@@ -539,16 +534,12 @@ class device(object):
     # build a list of peripherals in base address order
     # base addresses for peripherals are not always unique. e.g. nordic chips
     # so tie break with the name to give a well-defined sort order
-    p_list = self.peripherals.values()
-    p_list.sort(key=lambda x: (x.address << 16) + sum(bytearray(x.name)))
-    return p_list
+    return sorted(self.peripherals.values(), key = lambda x : (x.address << 16) + sum(bytearray(x.name.encode('utf8'))))
 
   def interrupt_list(self):
     """return an ordered interrupt list"""
     # sort by irq order
-    i_list = self.interrupts.values()
-    i_list.sort(key=lambda x: x.irq)
-    return i_list
+    return sorted(self.interrupts.values(), key = lambda x : x.irq)
 
   def cmd_map(self, ui, args):
     """display memory map"""
