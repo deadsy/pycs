@@ -75,7 +75,7 @@ class flash(object):
 
   def __wait4ready(self):
     """wait for flash operation completion"""
-    for i in xrange(5):
+    for i in range(5):
       if self.hw.READY.rd() & 1:
         # operation completed
         return

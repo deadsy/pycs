@@ -241,7 +241,7 @@ class mem(object):
     else:
       assert False, 'bad width'
     # read and print the data
-    for i in xrange(n/16):
+    for i in range(n/16):
       # read 4, 32-bit words (16 bytes per line)
       io = iobuf.data_buffer(32)
       self.cpu.rdmem(adr, 4, io)
@@ -380,7 +380,7 @@ class mem(object):
     self.cpu.halt()
     # build a random write buffer
     wrbuf = iobuf.data_buffer(width)
-    [wrbuf.write(random.randint(0, maxval)) for i in xrange(nx)]
+    [wrbuf.write(random.randint(0, maxval)) for i in range(nx)]
     # write it to memory
     t_start = time.time()
     self.cpu.wrmem(adr, nx, wrbuf)

@@ -115,7 +115,6 @@ class flash(object):
     # make sure the flash is not busy
     self.__wait4complete()
     # set the row address
-    print '%08x' % row.adr
     self.hw.ADDR.wr(row.adr)
     # issue the row erase command
     self.hw.CTRLA.wr(self.CMDEX_KEY | self.CMD_ER)

@@ -60,7 +60,7 @@ class jtag:
         for idcode in chain_idcodes:
             (name, irlen, mask) = lookup_device(idcode)
             if name == 'unknown':
-                raise Error, 'unknown device on jtag chain - idcode 0x%08x' % idcode
+                raise Error('unknown device on jtag chain - idcode 0x%08x' % idcode)
             if idcode_x == idcode & mask:
                 # found the target device
                 found = True
@@ -77,9 +77,9 @@ class jtag:
               self.irlen_before += irlen
               self.ndevs_before += 1
         if not found:
-            raise Error, 'unable to find idcode 0x%08x on jtag chain (found %s)' % (idcode_x, ', '.join(['0x%08x' % v for v in chain_idcodes]))
+            raise Error('unable to find idcode 0x%08x on jtag chain (found %s)' % (idcode_x, ', '.join(['0x%08x' % v for v in chain_idcodes])))
         if (self.irlen_before + self.irlen + self.irlen_after) != self.irlen_total:
-            raise Error, 'incorrect ir lengths - %d + (%d) + %d != %d' % (self.irlen_before, self.irlen, self.irlen_after, self.irlen_total)
+            raise Error('incorrect ir lengths - %d + (%d) + %d != %d' % (self.irlen_before, self.irlen, self.irlen_after, self.irlen_total))
 
     def num_devices(self):
         """return the number of JTAG devices in the chain"""
@@ -105,7 +105,7 @@ class jtag:
         s = tdo.bit_str()
         s = s.lstrip('0')
         if len(s.replace('0', '')) != 1:
-            raise Error, 'unexpected result from jtag chain - multiple 1\'s'
+            raise Error('unexpected result from jtag chain - multiple 1\'s')
         return len(s) - 1
 
     def dr_length(self):

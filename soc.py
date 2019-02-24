@@ -29,8 +29,7 @@ def description_cleanup(s):
   """cleanup a description string"""
   if s is None:
     return None
-  # remove non-ascii characters
-  s = s.encode('ascii', errors='ignore')
+  s = util.rm_non_ascii(s)
   s = s.strip('."')
   # remove un-needed white space
   return ' '.join([x.strip() for x in s.split()])
@@ -225,7 +224,7 @@ class field(object):
         for e in self.enumvals:
           if e.usage == 'read':
             break
-        if e.enumval.has_key(val):
+        if val in e.enumval:
           val_name = e.enumval[val].name
     return val_name
 
@@ -253,7 +252,7 @@ class field(object):
         for e in self.enumvals:
           if e.usage == 'read':
             break
-        if e.enumval.has_key(val):
+        if val in e.enumval:
           val_name = e.enumval[val].name
     val_str = (': 0x%x %s%s' % (val, val_name, changed), ': %d %s%s' % (val, val_name, changed))[val < 10]
     return [name, val_str, '', self.description]
@@ -423,7 +422,7 @@ class peripheral(object):
 
   def rename_register(self, old, new):
     """rename a peripheral register old > new"""
-    if old != new and self.registers.has_key(old):
+    if old != new and old in self.registers:
       r = self.registers[old]
       del self.registers[old]
       self.registers[new] = r
@@ -522,17 +521,17 @@ class device(object):
   def insert(self, x):
     """insert a peripheral or interrupt into the device"""
     if isinstance(x, interrupt):
-      assert not self.interrupts.has_key(x.name), 'device already has interrupt %s' % x.name
+      assert not x.name in self.interrupts, 'device already has interrupt %s' % x.name
       x.parent = self
       self.interrupts[x.name] = x
     elif isinstance(x, peripheral):
-      assert not self.peripherals.has_key(x.name), 'device already has peripheral %s' % x.name
+      assert not x.name in self.peripherals, 'device already has peripheral %s' % x.name
       x.parent = self
       self.peripherals[x.name] = x
 
   def remove(self, p):
     """remove a peripheral from the device"""
-    assert self.peripherals.has_key(p.name), 'device does not have peripheral %s' % p.name
+    assert p.name in self.peripherals, 'device does not have peripheral %s' % p.name
     del self.peripherals[p.name]
 
   def peripheral_list(self):
@@ -568,7 +567,7 @@ class device(object):
     """display peripheral registers"""
     if util.wrong_argc(ui, args, (1, 2)):
       return
-    if not self.peripherals.has_key(args[0]):
+    if not args[0] in self.peripherals:
       ui.put("no peripheral named '%s' (run 'map' command for the names)\n" % args[0])
       return
     p = self.peripherals[args[0]]
@@ -578,7 +577,7 @@ class device(object):
     if args[1] == '*':
       ui.put('%s\n' % p.display(fields=True))
       return
-    if not p.registers.has_key(args[1]):
+    if not args[1] in p.registers:
       ui.put("no register named '%s' (run 'regs %s' command for the names)\n" % (args[1], args[0]))
       return
     ui.put('%s\n' % p.display(args[1], fields=True))
@@ -746,7 +745,7 @@ def build_interrupts(d, svd_device):
     if svd_p.interrupts is None:
       continue
     for svd_i in svd_p.interrupts:
-      if not d.interrupts.has_key(svd_i.name):
+      if not svd_i.name in d.interrupts:
         # add the interrupt
         i = interrupt()
         i.name = svd_i.name

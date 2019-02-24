@@ -523,15 +523,15 @@ class dbgio(object):
 
   def wrmem32(self, adr, n, io):
     """write n 32-bit words to memory starting at adr"""
-    self.jlink.wrmem32(adr, [io.rd32() for i in xrange(n)])
+    self.jlink.wrmem32(adr, [io.rd32() for i in range(n)])
 
   def wrmem16(self, adr, n, io):
     """write n 16-bit words to memory starting at adr"""
-    self.jlink.wrmem16(adr, [io.rd16() for i in xrange(n)])
+    self.jlink.wrmem16(adr, [io.rd16() for i in range(n)])
 
   def wrmem8(self, adr, n, io):
     """write n 8-bit words to memory starting at adr"""
-    self.jlink.wrmem8(adr, [io.rd8() for i in xrange(n)])
+    self.jlink.wrmem8(adr, [io.rd8() for i in range(n)])
 
   def wrmem(self, adr, n, io):
     """write a buffer to memory starting at adr"""

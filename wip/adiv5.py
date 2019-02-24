@@ -382,7 +382,7 @@ class mem_ap(object):
     oadr = adr
     self.mem_setup(adr, size)
     self.dp.rw_apacc(AP_RD, APACC_DRW, 0)
-    for _ in xrange(n - 1):
+    for _ in range(n - 1):
       val = self.dp.rw_apacc(AP_RD, APACC_DRW, 0)
       rd.append(extract(val, adr, size))
       adr += (size >> 3)
@@ -476,7 +476,7 @@ class mem_ap(object):
 def probe_mem_ap(dp, n=256):
   """return a list of MEM-APs available on the debug port"""
   aps = []
-  for apnum in xrange(n):
+  for apnum in range(n):
     idr = dp.rd_apacc(apnum, APACC_IDR)
     if idr != 0 and is_mem_ap(idr):
       x = mem_ap(dp, apnum, idr)
@@ -501,7 +501,7 @@ class jtag_ap(object):
 def probe_jtag_ap(dp, n=256):
   """return a list of JTAG-APs available on the debug port"""
   aps = []
-  for apnum in xrange(n):
+  for apnum in range(n):
     idr = dp.rd_apacc(apnum, APACC_IDR)
     if idr != 0 and is_jtag_ap(idr):
       x = jtag_ap(dp, apnum, idr)

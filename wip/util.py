@@ -83,7 +83,7 @@ def int_arg(ui, arg, limits, base):
 
 def dict_arg(ui, arg, d):
   """argument to value through a dictionary - or None"""
-  if d.has_key(arg):
+  if arg in d:
     return d[arg]
   else:
     ui.put(inv_arg)
@@ -150,7 +150,7 @@ def mem_args(ui, args, device):
   if wrong_argc(ui, args, (1, 2)):
     return None
 
-  if device.peripherals.has_key(args[0]):
+  if args[0] in device.peripherals:
     # args[0] is a peripheral name
     p = device.peripherals[args[0]]
     adr = p.address
@@ -271,7 +271,7 @@ def rm_prefix(names, prefix_set):
   # remove the prefix
   if n:
     #print('removing prefix %s' % names[0][:n])
-    for i in xrange(len(names)):
+    for i in range(len(names)):
       names[i] = names[i][n:]
 
 def rm_suffix(names, suffix_set):
@@ -291,7 +291,7 @@ def rm_suffix(names, suffix_set):
   # remove the suffix
   if n:
     #print('removing suffix %s' % names[0][-n:])
-    for i in xrange(len(names)):
+    for i in range(len(names)):
       names[i] = names[i][:-n]
 
 # -----------------------------------------------------------------------------

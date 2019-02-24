@@ -1,1 +1,1 @@
-Taken from https://github.com/eblot/pyftdi v0.10.0
+Taken from https://github.com/eblot/pyftdi v0.29.2

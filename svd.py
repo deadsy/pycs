@@ -48,25 +48,25 @@ class svd_object(object):
     return getattr(self.derived_from, name)
 
   def attribute_string(self, s, name):
-    if self.__dict__.has_key(name):
+    if name in self.__dict__:
       s.append("  '%s': '%s'," % (name, self.__dict__[name]))
     else:
       s.append("  # '%s': 'string'," % (name))
 
   def attribute_boolean(self, s, name):
-    if self.__dict__.has_key(name):
+    if name in self.__dict__:
       s.append("  '%s': %s," % (name, str(self.__dict__[name])))
     else:
       s.append("  # '%s': boolean," % (name))
 
   def attribute_integer(self, s, name):
-    if self.__dict__.has_key(name):
+    if name in self.__dict__:
       s.append("  '%s': %d," % (name, self.__dict__[name]))
     else:
       s.append("  # '%s': integer," % (name))
 
   def attribute_header(self, s, name):
-    if self.__dict__.has_key(name):
+    if name in self.__dict__:
       s.append('%s: %s' % (name, str(self.__dict__[name])))
 
 # -----------------------------------------------------------------------------

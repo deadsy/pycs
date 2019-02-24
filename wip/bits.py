@@ -88,12 +88,12 @@ class bits(object):
   def get_bytes(self):
     """return a byte array for the bit buffer"""
     n = (self.n + 7) >> 3
-    return [(self.val >> (i * 8)) & 0xff for i in xrange(n)]
+    return [(self.val >> (i * 8)) & 0xff for i in range(n)]
 
   def set_bytes(self, buf, n):
     """set a bit buffer from a byte array"""
     self.val = 0
-    for i in xrange(len(buf) - 1, -1, -1):
+    for i in range(len(buf) - 1, -1, -1):
       self.val <<= 8
       self.val |= buf[i]
     self.n = n
@@ -112,7 +112,7 @@ class bits(object):
   def bit_str(self):
     """return a 0/1 bit string"""
     s = []
-    for i in xrange(self.n - 1, -1, -1):
+    for i in range(self.n - 1, -1, -1):
       s.append(('0', '1')[self.val & (1 << i) != 0])
     return ''.join(s)
 
@@ -144,7 +144,7 @@ def from_tuple(t):
 
 def from_random(n):
   """return a bit buffer with n random 0/1 bits"""
-  return from_tuple([random.randint(0, 1) for i in xrange(n)])
+  return from_tuple([random.randint(0, 1) for i in range(n)])
 
 def from_val(val, n):
   x = bits()

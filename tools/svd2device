@@ -27,7 +27,7 @@ def main():
     svd = names[-1].split('.')[0]
     devices = names[0:-1]
     devices = [d.strip(' ') for d in devices if len(d)]
-    if svd2device.has_key(svd):
+    if svd in svd2device:
       svd2device[svd].extend(devices)
     else:
       svd2device[svd] = devices

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -----------------------------------------------------------------------------
 """
 pycs - Python Based ARM CoreSight Debug and Trace Tools
@@ -40,7 +40,7 @@ def supported_targets():
   targets = []
   for f in os.listdir('target'):
     name = f.split('.')
-    if name[1] == 'py' and name[0] != '__init__':
+    if len(name) == 2 and name[0] != '__init__' and name[1] == 'py':
       targets.append(['  %s' % name[0], ': %s' % target_description(name[0])])
   return sorted(targets)
 
@@ -75,14 +75,14 @@ def vid_pid_arg(arg):
 # -----------------------------------------------------------------------------
 
 def Print_Usage(argv):
-  print 'Usage: %s [options]' % argv[0]
-  print 'Options:'
-  print '%-15s%s' % ('-l', 'list supported targets')
-  print '%-15s%s' % ('-t <target>', 'target name')
-  print '%-15s%s' % ('-d <vid:pid>', 'vid:pid of usb device')
+  print('Usage: %s [options]' % argv[0])
+  print('Options:')
+  print('%-15s%s' % ('-l', 'list supported targets'))
+  print('%-15s%s' % ('-t <target>', 'target name'))
+  print('%-15s%s' % ('-d <vid:pid>', 'vid:pid of usb device'))
 
 def error(msg, usage=False):
-  print msg
+  print(msg)
   if usage:
     Print_Usage(sys.argv)
   sys.exit(1)
@@ -97,7 +97,7 @@ def Process_Options(argv):
 
   try:
     (opts, args) = getopt.getopt(argv[1:], "t:d:l")
-  except getopt.GetoptError, err:
+  except getopt.GetoptError as err:
     error(str(err), True)
   # process options
   for (opt, val) in opts:

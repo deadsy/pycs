@@ -55,7 +55,7 @@ def hexdump(data, full=False, abbreviate=False):
     result = []
     last = ''
     abv = False
-    for i in xrange(0, len(src), length):
+    for i in range(0, len(src), length):
         s = src[i:i+length]
         if abbreviate:
             if s == last:

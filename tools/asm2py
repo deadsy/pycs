@@ -89,7 +89,7 @@ def process(asm_fname):
     buf8.extend((0,) * (4 - (n & 3)))
 
   # convert to 32-bit little endian
-  buf32 = [(buf8[i] << 0) | (buf8[i + 1] << 8) | (buf8[i + 2] << 16) | (buf8[i + 3] << 24) for i in xrange(0, len(buf8), 4)]
+  buf32 = [(buf8[i] << 0) | (buf8[i + 1] << 8) | (buf8[i + 2] << 16) | (buf8[i + 3] << 24) for i in range(0, len(buf8), 4)]
 
   # output the library routine as a python dictionary
   print('%s = {' % basename)

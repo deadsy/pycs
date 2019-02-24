@@ -97,14 +97,14 @@ STM32F303xC_flash = (
 )
 
 STM32L432KC_flash = (
-  ('flash_main', (2 << 10,) * 128, tuple([page(i) for i in xrange(128)])),
+  ('flash_main', (2 << 10,) * 128, tuple([page(i) for i in range(128)])),
   ('flash_system', (28 << 10,)),
   ('flash_otp', (1 << 10,)),
   ('flash_option', (16,)),
 )
 
 STM32F091xC_flash = (
-  ('flash_main', (2 << 10,) * 128, tuple([page(i) for i in xrange(128)])),
+  ('flash_main', (2 << 10,) * 128, tuple([page(i) for i in range(128)])),
   ('flash_system', (8 << 10,)),
   ('flash_option', (16,)),
 )

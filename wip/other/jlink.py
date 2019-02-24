@@ -284,7 +284,7 @@ class JLink(object):
             self.readbuffer = Array('B')
             self.readoffset = 0
             srcoff = 0
-            for i in xrange(chunks):
+            for i in range(chunks):
               self.readbuffer += tempbuf[srcoff : srcoff + count]
               srcoff += packet_size
             length = len(self.readbuffer)
@@ -483,7 +483,7 @@ class JLink(object):
     """Select the interface to use on the J-Link device"""
     if ifnum == 0:
       ifnum = 1
-    if ifnum-1 not in xrange(config.bNumInterfaces):
+    if ifnum-1 not in range(config.bNumInterfaces):
       raise ValueError("No such interface for this device")
     self.index = ifnum
     self.interface = config[(ifnum-1, 0)]

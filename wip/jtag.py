@@ -94,7 +94,7 @@ class device(object):
   def ir_survey(self):
     """return a string with all IR values and the DR lengths"""
     s = []
-    for ir in xrange((1 << self.irlen)):
+    for ir in range((1 << self.irlen)):
       self.wr_ir(bits.from_val(ir, self.irlen))
       try:
         n = self.chain.dr_length() - self.devs_after - self.devs_before
@@ -122,24 +122,24 @@ class chain(object):
     self.n = self.num_devices()
     # sanity check the number of devices
     if len(chspec) != self.n:
-      raise Error, 'expecting %d devices, found %d' % (len(chspec), self.n)
+      raise Error('expecting %d devices, found %d' % (len(chspec), self.n))
     self.irlen = self.ir_length()
     # sanity check the total ir length
     irlen = chspec_total_irlen(chspec)
     if irlen != self.irlen:
-      raise Error, 'expecting irlen %d bits, found %d bits' % (irlen, self.irlen)
+      raise Error('expecting irlen %d bits, found %d bits' % (irlen, self.irlen))
     # sanity check the device idcodes
     idcode = self.read_idcodes()
     for i, d in enumerate(chspec):
       if d[1] != idcode[i]:
-        raise Error, 'expecting idcode 0x%08x at position %d, found 0x%08x' % (d[1], i, idcode[i])
+        raise Error('expecting idcode 0x%08x at position %d, found 0x%08x' % (d[1], i, idcode[i]))
     # build the devices
     for i in range(len(chspec)):
       self.device.append(device(i, self, chspec))
     # test the IR capture value for all devices
     for d in self.device:
       if not d.test_ir_capture():
-        raise Error, 'failed IR capture for idcode 0x%08x at position %d' % (d.idcode, d.idx)
+        raise Error('failed IR capture for idcode 0x%08x at position %d' % (d.idcode, d.idx))
 
   def read_idcodes(self):
     """return a tuple of idcodes for the JTAG chain"""
@@ -162,7 +162,7 @@ class chain(object):
     s = tdo.bit_str()
     s = s.lstrip('0')
     if len(s.replace('0', '')) != 1:
-      raise Error, 'unexpected result from jtag chain, there should be a single 1'
+      raise Error('unexpected result from jtag chain, there should be a single 1')
     return len(s) - 1
 
   def dr_length(self):

@@ -101,7 +101,7 @@ class usbdev(object):
         ofs += n
       # return the number of bytes written
       return ofs
-    except usb.core.USBError, e:
+    except usb.core.USBError as e:
       raise usbdev_error(str(e))
 
   def read_data(self, size, attempts = 1):
@@ -146,7 +146,7 @@ class usbdev(object):
           data += self.rdbuf
           bytes_to_rd -= n
           # read more data...
-    except usb.core.USBError, e:
+    except usb.core.USBError as e:
       raise usbdev_error(str(e))
     # never reached
     raise usbdev_error("internal error")
@@ -168,7 +168,7 @@ class usbdev(object):
     """select the interface to use"""
     if ifnum == 0:
       ifnum = 1
-    if ifnum-1 not in xrange(config.bNumInterfaces):
+    if ifnum-1 not in range(config.bNumInterfaces):
       raise ValueError("invalid interface for this device")
     self.index = ifnum
     self.interface = config[(ifnum-1, 0)]

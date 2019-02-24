@@ -17,7 +17,7 @@ import util
 
 # ----------------------------------------------------------------------------
 
-printable = string.letters + string.digits + string.punctuation + ' '
+printable = string.ascii_letters + string.digits + string.punctuation + ' '
 
 # ----------------------------------------------------------------------------
 
@@ -430,7 +430,7 @@ class data_buffer(object):
       return False
     if len(self.buf) != len(x.buf):
       return False
-    for i in xrange(len(self.buf)):
+    for i in range(len(self.buf)):
       if self.buf[i] != x.buf[i]:
         return False
     return True

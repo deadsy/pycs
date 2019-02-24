@@ -309,7 +309,7 @@ class stlink(object):
     append_u32(cmd, adr)
     append_u16(cmd, nbytes)
     x = self.send_recv(cmd, nbytes)
-    return [read_u32(x[i:i+4]) for i in xrange(0, nbytes, 4)]
+    return [read_u32(x[i:i+4]) for i in range(0, nbytes, 4)]
 
   def wr_mem32(self, adr, buf):
     """write 32-bit buffer to memory address"""
@@ -337,7 +337,7 @@ class stlink(object):
     if nread == 1:
       nread += 1
     x = self.send_recv(cmd, nread)
-    return [x[i] for i in xrange(n)]
+    return [x[i] for i in range(n)]
 
   def wr_mem8(self, adr, buf):
     """write 8 bit buffer to memory address"""
@@ -473,7 +473,7 @@ class dbgio(object):
     max_n = 0x3fff
     while n > 0:
       nwrite = (n, max_n)[n >= max_n]
-      self.stlink.wr_mem32(adr, [io.rd32() for i in xrange(nwrite)])
+      self.stlink.wr_mem32(adr, [io.rd32() for i in range(nwrite)])
       n -= nwrite
       adr += nwrite * 4
 
@@ -491,7 +491,7 @@ class dbgio(object):
     max_n = 0x40
     while n > 0:
       nwrite = (n, max_n)[n >= max_n]
-      self.stlink.wr_mem8(adr, [io.rd8() for i in xrange(nwrite)])
+      self.stlink.wr_mem8(adr, [io.rd8() for i in range(nwrite)])
       n -= nwrite
       adr += nwrite
 

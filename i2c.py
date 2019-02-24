@@ -53,7 +53,7 @@ class i2c(object):
     self.io.sda_rel()
     # check that scl and sda are both high (no bus contention)
     if (not self.io.sda_rd()) or (not self.io.scl_rd()):
-      raise Error, _I2C_ERR_BUS
+      raise Error(_I2C_ERR_BUS)
     self.io.sda_lo()
     self.io.scl_lo()
 
@@ -80,7 +80,7 @@ class i2c(object):
       delay -= 1
     if delay == 0:
       self.stop()
-      raise Error, _I2C_ERR_SLV
+      raise Error(_I2C_ERR_SLV)
     val = self.io.sda_rd()
     self.io.scl_lo()
     return val
@@ -139,7 +139,7 @@ class i2c(object):
     self.wr_byte((adr << 1) | 1)
     if not self.rd_ack():
       self.stop()
-      raise Error, _I2C_ERR_ADR
+      raise Error(_I2C_ERR_ADR)
     # read data
     buf = []
     for i in range(n):
@@ -159,14 +159,14 @@ class i2c(object):
     self.wr_byte((adr << 1) | 0)
     if not self.rd_ack():
       self.stop()
-      raise Error, _I2C_ERR_ADR
+      raise Error(_I2C_ERR_ADR)
     # write data
     for c in buf:
       self.wr_byte(c)
       if not self.rd_ack():
         # no ack from slave
         self.stop()
-        raise Error, _I2C_ERR_NAK
+        raise Error(_I2C_ERR_NAK)
     self.stop()
     return True
 
@@ -195,7 +195,7 @@ class i2c(object):
       buf = self.rd(adr, n)
       plural = ('', 's')[len(buf) > 1]
       msg = '%s (%d byte%s)' % (' '.join(['%02x' % val for val in buf]), len(buf), plural)
-    except Error, e:
+    except Error as e:
       msg = e
     ui.put('0x%02x: %s\n' % (adr, msg))
 
@@ -218,7 +218,7 @@ class i2c(object):
       self.wr(adr, buf)
       plural = ('', 's')[len(buf) > 1]
       msg = '%s (%d byte%s)' % (' '.join(['%02x' % val for val in buf]), len(buf), plural)
-    except Error, e:
+    except Error as e:
       msg = e
     ui.put('0x%02x: %s\n' % (adr, msg))
 
@@ -233,7 +233,7 @@ class i2c(object):
         self.rd(adr, 1)
         found.append(adr)
         ui.put('X')
-      except Error, e:
+      except Error as e:
         ui.put('.')
       ui.flush()
     if found:

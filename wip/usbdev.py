@@ -168,7 +168,7 @@ class usbdev(object):
     """select the interface to use"""
     if ifnum == 0:
       ifnum = 1
-    if ifnum-1 not in xrange(config.bNumInterfaces):
+    if ifnum-1 not in range(config.bNumInterfaces):
       raise ValueError("invalid interface for this device")
     self.index = ifnum
     self.interface = config[(ifnum-1, 0)]

@@ -621,7 +621,7 @@ class Ftdi(object):
                         self.readbuffer = Array('B')
                         self.readoffset = 0
                         srcoff = 2
-                        for i in xrange(chunks):
+                        for i in range(chunks):
                             self.readbuffer += tempbuf[srcoff:srcoff+count]
                             srcoff += packet_size
                         length = len(self.readbuffer)
@@ -736,7 +736,7 @@ class Ftdi(object):
         """Select the interface to use on the FTDI device"""
         if ifnum == 0:
             ifnum = 1
-        if ifnum-1 not in xrange(config.bNumInterfaces):
+        if ifnum-1 not in range(config.bNumInterfaces):
             raise ValueError("No such interface for this device")
         self.index = ifnum
         self.interface = config[(ifnum-1, 0)]
@@ -830,7 +830,7 @@ class Ftdi(object):
         best_divisor = 0
         best_baud = 0
         best_baud_diff = 0
-        for i in xrange(2):
+        for i in range(2):
             try_divisor = divisor + i
             if not hispeed:
                 # Round up to supported divisor value

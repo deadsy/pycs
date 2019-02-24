@@ -61,7 +61,7 @@ soc_db[s.name] = s
 
 def get_device(ui, name):
   """return the device structure for the named SoC"""
-  if not soc_db.has_key(name):
+  if not name in soc_db:
     assert False, 'unknown SoC name %s' % name
     return None
   info = soc_db[name]
