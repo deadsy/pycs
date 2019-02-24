@@ -164,8 +164,8 @@ class flash(object):
     """write to flash using asm library code"""
     # load the library
     self.device.cpu.loadlib(self.lib)
-    words_to_write = mr.size / 4
-    words_per_buf = self.device.rambuf.size / 4
+    words_to_write = mr.size >> 2
+    words_per_buf = self.device.rambuf.size >> 2
     src = self.device.rambuf.adr
     dst = mr.adr
     while words_to_write > 0:
@@ -566,8 +566,8 @@ class sdrv(object):
     # halt the cpu and load the library
     self.device.cpu.halt()
     self.device.cpu.loadlib(self.lib)
-    words_to_write = mr.size / 4
-    words_per_buf = self.device.rambuf.size / 4
+    words_to_write = mr.size >> 2
+    words_per_buf = self.device.rambuf.size >> 2
     src = self.device.rambuf.adr
     dst = mr.adr
     while words_to_write > 0:
