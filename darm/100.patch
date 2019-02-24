@@ -1,0 +1,28 @@
+--- ./armv7.c	2019-02-23 17:05:38.335168428 -0800
++++ ./armv7.c	2019-02-23 17:09:50.852077479 -0800
+@@ -126,6 +126,7 @@
+                 return 0;
+             }
+         }
++        /* fall through */
+         // otherwise, if the 21th bit is not set, it's either the PLD or the
+         // PLI instruction
+         // we fall-through here, as 0b011 also handles the PLD and PLI
+--- ./thumb.c	2019-02-23 17:06:23.877179514 -0800
++++ ./thumb.c	2019-02-23 17:11:13.181426400 -0800
+@@ -137,6 +137,7 @@
+ 
+         case I_ORR: case I_BIC:
+             d->Rn = w & b111;
++            /* fall through */
+             // fall-through as the mvn handler is almost the same, except
+             // for parsing Rn
+ 
+@@ -183,6 +184,7 @@
+             d->Rn = PC;
+             d->U = B_SET;
+             d->imm <<= 2;
++            /* fall through */
+             // fall-through as adr also has to set Rd
+ 
+         case I_MOV:
