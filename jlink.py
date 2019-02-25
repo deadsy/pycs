@@ -2,9 +2,9 @@
 
 import sys
 import os
-import ctypes
 import struct
 
+import ctypes
 from ctypes import c_uint32, c_int, c_void_p
 
 # ----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ def get_jlink_dll():
 
   if sys.platform == 'win32':
     jlink, backend_info = locate_library('jlinkarm.dll', search_path)
-  elif sys.platform == 'linux2':
+  elif sys.platform.startswith('linux'):
     jlink, backend_info = locate_library('libjlinkarm.so.5', search_path, ctypes.cdll)
   elif sys.platform == 'darwin':
     jlink, backend_info = locate_library('libjlinkarm.so.5.dylib', search_path, ctypes.cdll)
@@ -206,7 +206,7 @@ class JLink(object):
     fn = self.jl.JLINKARM_ExecCommand
     fn.restype = c_int
     fn.argtypes = [ctypes.c_char_p, ctypes.c_char_p, c_int]
-    command = ctypes.create_string_buffer(cmd)
+    command = ctypes.create_string_buffer(cmd.encode('utf-8'))
     result = ctypes.create_string_buffer(128)
     rc = fn(command, result, len(result))
     if rc != 0:

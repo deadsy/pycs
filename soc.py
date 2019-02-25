@@ -298,27 +298,33 @@ class register(object):
     self.cpu = cpu
 
   def adr(self, idx, size):
+    """return the address of an indexed register"""
     return self.parent.address + self.offset + (idx * (size >> 3))
 
   def rd(self, idx=0):
+    """read a register"""
     return self.cpu.rd(self.adr(idx, self.size), self.size)
 
   def rd8(self, idx=0):
+    """read a register as a byte"""
     return self.cpu.rd(self.adr(idx, 8), 8)
 
   def wr(self, val, idx=0):
+    """write a register"""
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
   def set_bit(self, val, idx=0):
+    """set bits in a register"""
     self.wr(self.rd(idx) | val, idx)
 
   def clr_bit(self, val, idx=0):
+    """clear bits in a register"""
     self.wr(self.rd(idx) & ~val, idx)
 
   def field_list(self):
     """return an ordered fields list"""
     # build a list of fields in most significant bit order
-    return sorted(self.fields.values(), key = lambda x : x.msb, reverse=True)
+    return sorted(self.fields.values(), key=lambda x: x.msb, reverse=True)
 
   def display(self, display_fields):
     """return display columns (name, adr, val, descr) for this register"""
@@ -397,7 +403,7 @@ class peripheral(object):
     """return an ordered register list"""
     # build a list of registers in address offset order
     # tie break with the name to give a well-defined sort order
-    return sorted(self.registers.values(), key = lambda x : (x.offset << 16) + sum(bytearray(x.name.encode('utf8'))))
+    return sorted(self.registers.values(), key=lambda x: (x.offset << 16) + sum(bytearray(x.name.encode('utf8'))))
 
   def display(self, register_name=None, fields=False):
     """return a display string for this peripheral"""
@@ -534,12 +540,12 @@ class device(object):
     # build a list of peripherals in base address order
     # base addresses for peripherals are not always unique. e.g. nordic chips
     # so tie break with the name to give a well-defined sort order
-    return sorted(self.peripherals.values(), key = lambda x : (x.address << 16) + sum(bytearray(x.name.encode('utf8'))))
+    return sorted(self.peripherals.values(), key=lambda x: (x.address << 16) + sum(bytearray(x.name.encode('utf8'))))
 
   def interrupt_list(self):
     """return an ordered interrupt list"""
     # sort by irq order
-    return sorted(self.interrupts.values(), key = lambda x : x.irq)
+    return sorted(self.interrupts.values(), key=lambda x: x.irq)
 
   def cmd_map(self, ui, args):
     """display memory map"""
@@ -614,6 +620,7 @@ class device(object):
 # build a device from an svd file
 
 def build_enumval(e, svd_e):
+  """build an enumerated value for a field"""
   if svd_e.enumeratedValue is None:
     e.enumval = None
   else:
@@ -794,6 +801,7 @@ def build_device(svdpath):
 # make peripherals from tables
 
 def make_enumval(parent, enum_set):
+  """make an enumerated value"""
   e = {}
   for (name, value, description) in enum_set:
     ev = enumval()
@@ -805,6 +813,7 @@ def make_enumval(parent, enum_set):
   return e
 
 def make_enumvals(parent, enum_set):
+  """make an enumerated value set"""
   if enum_set is None:
     return None
   # we build a single enumvals structure
@@ -815,6 +824,7 @@ def make_enumvals(parent, enum_set):
   return [e,]
 
 def make_fields(parent, field_set):
+  """make register bit fields"""
   if field_set is None:
     return None
   fields = {}
@@ -834,6 +844,7 @@ def make_fields(parent, field_set):
   return fields
 
 def make_registers(parent, register_set):
+  """make a set of peripheral registers"""
   if register_set is None:
     return None
   registers = {}
@@ -849,6 +860,7 @@ def make_registers(parent, register_set):
   return registers
 
 def make_peripheral(name, address, size, register_set, description):
+  """make a SoC peripheral"""
   p = peripheral()
   p.name = name
   p.description = description
@@ -858,6 +870,7 @@ def make_peripheral(name, address, size, register_set, description):
   return p
 
 def make_interrupt(name, irq, description):
+  """make an interrupt"""
   i = interrupt()
   i.name = name
   i.irq = irq
