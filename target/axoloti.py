@@ -27,6 +27,8 @@ import vendor.st.flash as flash_driver
 import vendor.st.gpio as gpio_driver
 import vendor.st.i2c as i2c_driver
 
+import drivers.adau1391 as codec
+
 # -----------------------------------------------------------------------------
 
 soc_name = 'STM32F427xG'
@@ -182,11 +184,13 @@ class target(object):
     self.gpio = gpio.gpio(gpio_drv)
     self.i2c1 = i2c.i2c(i2c_driver.bitbang(gpio_drv, 'PB8', 'PB9'))
     self.i2c3 = i2c.i2c(i2c_driver.bitbang(gpio_drv, 'PH7', 'PH8'))
+    self.codec = codec.adau1391(self.i2c3, 0x38)
     # setup the rtt client
     ram = self.device.sram
     self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
 
     self.menu_root = (
+      ('codec', self.codec.menu, 'codec functions'),
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
