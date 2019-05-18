@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Analog Devices ADAU1391 Stereo CODEC
+Analog Devices ADAU1961 Stereo CODEC
 
 """
 # -----------------------------------------------------------------------------
@@ -10,7 +10,7 @@ import util
 
 # -----------------------------------------------------------------------------
 
-adau1391_regset = (
+adau1961_regset = (
   (0x4000, 'Clock_Ctl'),
   (0x4002, 'PLL_Ctl'),
   (0x4008, 'Mic_Jack_Detect'),
@@ -57,8 +57,8 @@ adau1391_regset = (
   (0x4036, 'Dejitter_Ctl'),
 )
 
-class adau1391:
-  """Analog Devices ADAU1391 Stereo CODEC"""
+class adau1961:
+  """Analog Devices ADAU1961 Stereo CODEC"""
 
   def __init__(self, bus, adr):
     self.bus = bus
@@ -80,7 +80,7 @@ class adau1391:
     self.bus.wr(self.adr, x)
 
   def rd(self, ofs):
-    """read a codec register"""
+    """read a byte from the codec"""
     return self.rdbuf(ofs, 1)[0]
 
   def pwrup(self):
@@ -95,14 +95,15 @@ class adau1391:
     # codec power up
     self.pwrup()
     self.hw_init = True
-    ui.put('adau1391 init: ok\n')
+    ui.put('adau1961 init: ok\n')
 
   def cmd_status(self, ui, args):
     """display dac status"""
     s = []
-    for (ofs, name) in adau1391_regset:
-      val = self.rd(ofs)
-      s.append(['0x%04x' % ofs, ': 0x%02x' % val, name])
+    for (ofs, name) in adau1961_regset:
+      n = (1, 6)[ofs == 0x4002]
+      val = ' '.join(['%02x' % x for x in self.rdbuf(ofs, n)])
+      s.append(['0x%04x' % ofs, name, val])
     ui.put('%s\n' % util.display_cols(s))
 
 # -----------------------------------------------------------------------------
