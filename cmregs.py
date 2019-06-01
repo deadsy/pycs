@@ -193,7 +193,7 @@ _cm3_scb_regset = (
   ('ID_PFR0', 32, 0x040, None, '(R/ ) Processor Feature Register'),
   ('ID_PFR1', 32, 0x044, None, '(R/ ) Processor Feature Register'),
   ('ID_DFR0', 32, 0x048, None, '(R/ ) Debug Feature Register'),
-  ('ID_ADR0', 32, 0x04C, None, '(R/ ) Auxiliary Feature Register'),
+  ('ID_AFR0', 32, 0x04C, None, '(R/ ) Auxiliary Feature Register'),
   ('ID_MMFR0', 32, 0x050, None, '(R/ ) Memory Model Feature Register'),
   ('ID_MMFR1', 32, 0x054, None, '(R/ ) Memory Model Feature Register'),
   ('ID_MMFR2', 32, 0x058, None, '(R/ ) Memory Model Feature Register'),
@@ -207,8 +207,47 @@ _cm3_scb_regset = (
   ('STIR', 32, 0x200, None, '( /W) Software Trigger Interrupt Register'),
 )
 
+_cm7_scb_regset = (
+  ('CPUID', 32, 0x000, _cpuid_fieldset, '(R/ ) CPUID Base Register'),
+  ('ICSR', 32, 0x004, None, '(R/W) Interrupt Control and State Register'),
+  ('VTOR', 32, 0x008, None, '(R/W) Vector Table Offset Register'),
+  ('AIRCR', 32, 0x00C, None, '(R/W) Application Interrupt and Reset Control Register'),
+  ('SCR', 32, 0x010, None, '(R/W) System Control Register'),
+  ('CCR', 32, 0x014, None, '(R/W) Configuration Control Register'),
+  ('SHPR1', 32, 0x018, None, '(R/W) System Handlers Priority Registers'),
+  ('SHPR2', 32, 0x01c, None, '(R/W) System Handlers Priority Registers'),
+  ('SHPR3', 32, 0x020, None, '(R/W) System Handlers Priority Registers'),
+  ('SHCSR', 32, 0x024, None, '(R/W) System Handler Control and State Register'),
+  ('CFSR', 32, 0x028, None, '(R/W) Configurable Fault Status Register'),
+  ('HFSR', 32, 0x02C, None, '(R/W) HardFault Status Register'),
+  ('DFSR', 32, 0x030, None, '(R/W) Debug Fault Status Register'),
+  ('MMFAR', 32,  0x034, None, '(R/W) MemManage Fault Address Register'),
+  ('BFAR', 32, 0x038, None, '(R/W) BusFault Address Register'),
+  ('AFSR', 32, 0x03C, None, '(R/W) Auxiliary Fault Status Register'),
+  ('ID_PFR0', 32, 0x040, None, '(R/ ) Processor Feature Register'),
+  ('ID_PFR1', 32, 0x044, None, '(R/ ) Processor Feature Register'),
+  ('ID_DFR0', 32, 0x048, None, '(R/ ) Debug Feature Register'),
+  ('ID_AFR0', 32, 0x04C, None, '(R/ ) Auxiliary Feature Register'),
+  ('ID_MMFR0', 32, 0x050, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR1', 32, 0x054, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR2', 32, 0x058, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_MMFR3', 32, 0x05c, None, '(R/ ) Memory Model Feature Register'),
+  ('ID_ISAR0', 32, 0x060, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR1', 32, 0x064, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR2', 32, 0x068, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR3', 32, 0x06c, None, '(R/ ) Instruction Set Attributes Register'),
+  ('ID_ISAR4', 32, 0x070, None, '(R/ ) Instruction Set Attributes Register'),
+  ('CLIDR', 32, 0x078, None, '(R/ ) Cache Level ID Register'),
+  ('CTR', 32, 0x07c, None, '(R/ ) Cache Type Register'),
+  ('CCSIDR', 32, 0x080, None, '(R/ ) Cache Size ID Register'),
+  ('CSSELR', 32, 0x084, None, '(R/W) Cache Size Selection Register'),
+  ('CPACR', 32, 0x088, None, '(R/W) Coprocessor Access Control Register'),
+  ('STIR', 32, 0x200, None, '( /W) Software Trigger Interrupt Register'),
+)
+
 cm0_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm0_scb_regset, 'System Control Block')
 cm3_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm3_scb_regset, 'System Control Block')
+cm7_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm7_scb_regset, 'System Control Block')
 
 # -----------------------------------------------------------------------------
 # Memory Protection Unit
@@ -249,7 +288,17 @@ _cm4_fpu_regset = (
   ('MVFR1', 32, 0x14, None, '(R/ ) Media and FP Feature Register 1'),
 )
 
+_cm7_fpu_regset = (
+  ('FPCCR', 32, 0x04, None, '(R/W) Floating-Point Context Control Register'),
+  ('FPCAR', 32, 0x08, None, '(R/W) Floating-Point Context Address Register'),
+  ('FPDSCR', 32, 0x0C, None, '(R/W) Floating-Point Default Status Control Register'),
+  ('MVFR0', 32, 0x10, None, '(R/ ) Media and FP Feature Register 0'),
+  ('MVFR1', 32, 0x14, None, '(R/ ) Media and FP Feature Register 1'),
+  ('MVFR2', 32, 0x18, None, '(R/ ) Media and FP Feature Register 2'),
+)
+
 cm4_fpu = soc.make_peripheral('FPU', FPU_BASE, 1 << 10, _cm4_fpu_regset, 'Floating Point Unit')
+cm7_fpu = soc.make_peripheral('FPU', FPU_BASE, 1 << 10, _cm7_fpu_regset, 'Floating Point Unit')
 
 # -----------------------------------------------------------------------------
 # Data Watchpoint and Trace Unit
@@ -326,5 +375,12 @@ def cm4_fixup(d):
 
 def cm7_fixup(d):
   d.cpu_info.name = 'CM7'
+  d.insert(cm_romtable)
+  d.insert(systick)
+  d.insert(cm3_mpu)
+  d.insert(cm7_scb)
+  d.insert(cm7_fpu)
+  d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
+  cortexm.add_system_exceptions(d)
 
 # -----------------------------------------------------------------------------

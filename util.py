@@ -325,7 +325,7 @@ def display_cols(clist, csize=None):
     fmts.append('%%-%ds' % n)
   fmt = ''.join(fmts)
   # generate the string
-  s = [(fmt % tuple(l)) for l in clist]
+  s = [(fmt % tuple(l)).rstrip() for l in clist]
   return '\n'.join(s)
 
 # -----------------------------------------------------------------------------
