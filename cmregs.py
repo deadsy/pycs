@@ -324,4 +324,7 @@ def cm4_fixup(d):
   d.insert(build_nvic(d.cpu_info.deviceNumInterrupts))
   cortexm.add_system_exceptions(d)
 
+def cm7_fixup(d):
+  d.cpu_info.name = 'CM7'
+
 # -----------------------------------------------------------------------------
