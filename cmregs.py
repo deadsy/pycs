@@ -27,6 +27,7 @@ Register and peripheral names are taken from the ARM documentation.
 
 import soc
 import cortexm
+import util
 
 # -----------------------------------------------------------------------------
 # Memory mapping of Cortex-Mx Hardware
@@ -159,6 +160,16 @@ _cpuid_fieldset = (
   ('Revision', 3, 0, None, None),
 )
 
+def _tcmcr_SZ_format(x):
+  return (util.memsize((4 << 10) << (x - 3)), 'No TCM implemented')[x == 0]
+
+_tcmcr_fieldset = (
+  ('SZ', 6, 3, _tcmcr_SZ_format, None),
+  ('RETEN', 2, 2, None, None),
+  ('RMW', 1, 1, None, None),
+  ('EN', 0, 0, None, None),
+)
+
 # name, offset, description
 _cm0_scb_regset = (
   ('CPUID', 32, 0x000, _cpuid_fieldset, '(R/ ) CPUID Base Register'),
@@ -243,6 +254,28 @@ _cm7_scb_regset = (
   ('CSSELR', 32, 0x084, None, '(R/W) Cache Size Selection Register'),
   ('CPACR', 32, 0x088, None, '(R/W) Coprocessor Access Control Register'),
   ('STIR', 32, 0x200, None, '( /W) Software Trigger Interrupt Register'),
+  ('CM7_ITCMCR', 32, 0x290, _tcmcr_fieldset, '(R/W) Instruction Tightly-Coupled Memory Control Register'),
+  ('CM7_DTCMCR', 32, 0x294, _tcmcr_fieldset, '(R/W) Data Tightly-Coupled Memory Control Register'),
+  ('CM7_AHBPCR', 32, 0x298, None, '(R/W) AHBP Control Register'),
+  ('CM7_CACR', 32, 0x29c, None, '(R/W) L1 Cache Control Register'),
+  ('CM7_AHBSCR', 32, 0x2a0, None, '(R/W) AHB Slave Control Register'),
+  ('CM7_ABFSR', 32, 0x2a8, None, '(R/W) Auxiliary Bus Fault Status Register'),
+  ('IEBR0', 32, 0x2b0, None, '(R/W) Instruction Error Bank Register 0'),
+  ('IEBR1', 32, 0x2b4, None, '(R/W) Instruction Error Bank Register 1'),
+  ('DEBR0', 32, 0x2b8, None, '(R/W) Data Error Bank Register 0'),
+  ('DEBR1', 32, 0x2bc, None, '(R/W) Data Error Bank Register 1'),
+  ('PID4', 32, 0x2d0, None, 'Peripheral ID Register 4'),
+  ('PID5', 32, 0x2d4, None, 'Peripheral ID Register 5'),
+  ('PID6', 32, 0x2d8, None, 'Peripheral ID Register 6'),
+  ('PID7', 32, 0x2dc, None, 'Peripheral ID Register 7'),
+  ('PID0', 32, 0x2e0, None, 'Peripheral ID Register 0'),
+  ('PID1', 32, 0x2e4, None, 'Peripheral ID Register 1'),
+  ('PID2', 32, 0x2e8, None, 'Peripheral ID Register 2'),
+  ('PID3', 32, 0x2ec, None, 'Peripheral ID Register 3'),
+  ('CID0', 32, 0x2f0, None, 'Component ID Register 0'),
+  ('CID1', 32, 0x2f4, None, 'Component ID Register 1'),
+  ('CID2', 32, 0x2f8, None, 'Component ID Register 2'),
+  ('CID3', 32, 0x2fc, None, 'Component ID Register 3'),
 )
 
 cm0_scb = soc.make_peripheral('SCB', SCB_BASE, 1 << 10, _cm0_scb_regset, 'System Control Block')
