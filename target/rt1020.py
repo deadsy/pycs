@@ -16,6 +16,7 @@ import cortexm
 import mem
 import soc
 import vendor.nxp.imxrt as imxrt
+import vendor.nxp.firmware as firmware
 
 # -----------------------------------------------------------------------------
 
@@ -45,12 +46,14 @@ class target(object):
     self.cpu = cortexm.cortexm(self, ui, self.dbgio, self.device)
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
+    self.fw = firmware.firmware(self.cpu)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
+      ('fw', self.fw.menu, 'firmware functions'),
       ('go', self.cpu.cmd_go),
       ('halt', self.cpu.cmd_halt),
       ('help', self.ui.cmd_help),
