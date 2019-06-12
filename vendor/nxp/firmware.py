@@ -37,6 +37,63 @@ _IVT_regset = (
   ('csf', 32, 0x18, None, 'address of command sequence file'),
 )
 
+_boot_data_regset = (
+  ('start', 32, 0x0, None, 'address of bootable image'),
+  ('length', 32, 0x4, None, 'length of bootable image'),
+  ('plugin', 32, 0x8, None, 'plugin flag'),
+)
+
+_FlexSPI_NOR_Configuration_Block = (
+ ('Tag', 32, 0x000, None, ''),
+ ('Version', 32, 0x004, None, ''),
+ ('readSampleClkSrc', 8, 0x00c, None, ''),
+ ('csHoldTime', 8, 0x00d, None, ''),
+ ('csSetupTime', 8, 0x00e, None, ''),
+ ('columnAdressWidth', 8, 0x00f, None, ''),
+ ('deviceModeCfgEnable', 8, 0x010, None, ''),
+ ('deviceModeType', 8, 0x011, None, ''),
+ ('waitTimeCfgCommands', 16, 0x012, None, ''),
+ ('deviceModeSeq', 32, 0x014, None, ''),
+ ('deviceModeArg', 32, 0x018, None, ''),
+ ('configCmdEnable', 8, 0x01c, None, ''),
+ ('configModeType', 8, 0x01d, None, ''),
+ ('configCmdSeqs0', 32, 0x020, None, ''),
+ ('configCmdSeqs1', 32, 0x024, None, ''),
+ ('configCmdSeqs2', 32, 0x028, None, ''),
+ ('cfgCmdArgs0', 32, 0x030, None, ''),
+ ('cfgCmdArgs1', 32, 0x034, None, ''),
+ ('cfgCmdArgs2', 32, 0x038, None, ''),
+ ('controllerMiscOption', 32, 0x040, None, ''),
+ ('deviceType', 8, 0x044, None, ''),
+ ('sflashPadType', 8, 0x045, None, ''),
+ ('serialClkFreq', 8, 0x046, None, ''),
+ ('lutCustomSeqEnable', 8, 0x047, None, ''),
+ ('sflashA1Size', 32, 0x050, None, ''),
+ ('sflashA2Size', 32, 0x054, None, ''),
+ ('sflashB1Size', 32, 0x058, None, ''),
+ ('sflashB2Size', 32, 0x05c, None, ''),
+ ('csPadSettingOverride', 32, 0x060, None, ''),
+ ('sclkPadSettingOverride', 32, 0x064, None, ''),
+ ('dataPadSettingOverride', 32, 0x068, None, ''),
+ ('dqsPadSettingOverride', 32, 0x06c, None, ''),
+ ('timeoutInMs', 32, 0x070, None, ''),
+ ('commandInterval', 32, 0x074, None, ''),
+ ('dataValidTime', 32, 0x078, None, ''),
+ ('busyOffset', 16, 0x07c, None, ''),
+ ('busyBitPolarity', 16, 0x07e, None, ''),
+ ('lookupTable', 32, 0x080, None, ''), # 0..63
+ ('lutCustomSeq', 32, 0x180, None, ''), # 0..11
+ ('pageSize', 32, 0x1c0, None, ''),
+ ('sectorSize', 32, 0x1c4, None, ''),
+ ('ipCmdSerialClkFreq', 32, 0x1c8, None, ''),
+ ('isUniformBlockSize', 32, 0x1c9, None, ''),
+ ('serialNorType', 8, 0x1cc, None, ''),
+ ('needExitNoCmdMode', 32, 0x1cd, None, ''),
+ ('halfClkForNonReadCmd', 8, 0x1ce, None, ''),
+ ('needrestorNoCmdMode', 8, 0x1cf, None, ''),
+ ('blockSize', 32, 0x1d0, None, ''),
+)
+
 #-----------------------------------------------------------------------------
 
 class firmware:
