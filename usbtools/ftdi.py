@@ -5,7 +5,7 @@
    Require: pyusb
 """
 
-# Copyright (C) 2010-2018 Emmanuel Blot <emmanuel.blot@free.fr>
+# Copyright (C) 2010-2019 Emmanuel Blot <emmanuel.blot@free.fr>
 # Copyright (c) 2016 Emmanuel Bouaziz <ebouaziz@free.fr>
 #   Originally based on the C libftdi project
 #   http://www.intra2net.com/en/developer/libftdi/
@@ -34,8 +34,6 @@ import usb.core
 import usb.util
 from .misc import to_bool
 from .usbtools import UsbTools
-
-__all__ = ['Ftdi', 'FtdiError']
 
 
 class FtdiError(IOError):
@@ -526,6 +524,12 @@ class Ftdi:
         # Set chunk size
         self.write_data_set_chunksize(512)
         self.read_data_set_chunksize(512)
+        # Reset feature mode
+        self.set_bitmode(0, Ftdi.BITMODE_RESET)
+        # Enable MPSSE mode
+        self.set_bitmode(direction, Ftdi.BITMODE_MPSSE)
+        # Reset feature mode
+        self.set_bitmode(0, Ftdi.BITMODE_RESET)
         # Drain buffers
         self.purge_buffers()
         # Disable event and error characters
@@ -766,6 +770,7 @@ class Ftdi:
             baudrate *= Ftdi.BITBANG_CLOCK_MULTIPLIER
         actual, value, index = self._convert_baudrate(baudrate)
         delta = 100*abs(float(actual-baudrate))/baudrate
+        self.log.debug('Actual baudrate: %d %.1f%%', actual, delta)
         if delta > Ftdi.BAUDRATE_TOLERANCE:
             raise ValueError('Baudrate tolerance exceeded: %.02f%% '
                              '(wanted %d, achievable %d)' %
@@ -940,11 +945,43 @@ class Ftdi:
            Either hardware flow control through RTS/CTS UART lines,
            software or no flow control.
 
-           :param str flowctrl: one of 'hw', 'sw', ''
+           :param str flowctrl: one of 'hw', ''
            :raise ValueError: if the flow control argument is invalid
+
+           ..note:: How does RTS/CTS flow control work (from FTDI FAQ):
+
+                FTxxx RTS# pin is an output. It should be connected to the CTS#
+                input pin of the device at the other end of the UART link.
+
+                    * If RTS# is logic 0 it is indicating the FTxxx device can
+                      accept more data on the RXD pin.
+                    * If RTS# is logic 1 it is indicating the FTxxx device
+                      cannot accept more data.
+
+                RTS# changes state when the chip buffer reaches its last 32
+                bytes of space to allow time for the external device to stop
+                sending data to the FTxxx device.
+
+                FTxxx CTS# pin is an input. It should be connected to the RTS#
+                output pin of the device at the other end of the UART link.
+
+                  * If CTS# is logic 0 it is indicating the external device can
+                    accept more data, and the FTxxx will transmit on the TXD
+                    pin.
+                  * If CTS# is logic 1 it is indicating the external device
+                    cannot accept more data. the FTxxx will stop transmitting
+                    within 0~3 characters, depending on what is in the buffer.
+
+                    **This potential 3 character overrun does occasionally
+                    present problems.** Customers shoud be made aware the FTxxx
+                    is a USB device and not a "normal" RS232 device as seen on
+                    a PC. As such the device operates on a packet basis as
+                    opposed to a byte basis.
+
+                Word to the wise. Not only do RS232 level shifting devices
+                level shift, but they also invert the signal.
         """
         ctrl = {'hw': Ftdi.SIO_RTS_CTS_HS,
-                'sw': Ftdi.SIO_XON_XOFF_HS,
                 '': Ftdi.SIO_DISABLE_FLOW_CTRL}
         try:
             value = ctrl[flowctrl] | self.index
@@ -955,15 +992,15 @@ class Ftdi:
                     Ftdi.REQ_OUT, Ftdi.SIO_SET_FLOW_CTRL, 0, value, array('B'),
                     self.usb_write_timeout):
                 raise FtdiError('Unable to set flow control')
-        except usb.core.USBError as ex:
-            raise FtdiError('UsbError: %s' % str(ex))
+        except usb.core.USBError as exc:
+            raise FtdiError('UsbError: %s' % str(exc))
 
     def set_dtr(self, state):
         """Set dtr line
 
            :param bool state: new DTR logical level
         """
-        value = state and Ftdi.SIO_SET_DTR_HIGH or Ftdi.SIO_SET_DTR_LOW
+        value = Ftdi.SIO_SET_DTR_HIGH if state else Ftdi.SIO_SET_DTR_LOW
         if self._ctrl_transfer_out(Ftdi.SIO_SET_MODEM_CTRL, value):
             raise FtdiError('Unable to set DTR line')
 
@@ -972,7 +1009,7 @@ class Ftdi:
 
            :param bool state: new RTS logical level
         """
-        value = state and Ftdi.SIO_SET_RTS_HIGH or Ftdi.SIO_SET_RTS_LOW
+        value = Ftdi.SIO_SET_RTS_HIGH if state else Ftdi.SIO_SET_RTS_LOW
         if self._ctrl_transfer_out(Ftdi.SIO_SET_MODEM_CTRL, value):
             raise FtdiError('Unable to set RTS line')
 
@@ -983,8 +1020,8 @@ class Ftdi:
            :param bool rts: new RTS logical level
         """
         value = 0
-        value |= dtr and Ftdi.SIO_SET_DTR_HIGH or Ftdi.SIO_SET_DTR_LOW
-        value |= rts and Ftdi.SIO_SET_RTS_HIGH or Ftdi.SIO_SET_RTS_LOW
+        value |= Ftdi.SIO_SET_DTR_HIGH if dtr else Ftdi.SIO_SET_DTR_LOW
+        value |= Ftdi.SIO_SET_RTS_HIGH if rts else Ftdi.SIO_SET_RTS_LOW
         if self._ctrl_transfer_out(Ftdi.SIO_SET_FLOW_CTRL, value):
             raise FtdiError('Unable to set DTR/RTS lines')
 
@@ -1564,18 +1601,25 @@ class Ftdi:
         """Convert a frequency value into a TCK divisor setting"""
         if frequency > self.frequency_max:
             raise FtdiFeatureError("Unsupported frequency: %f" % frequency)
-        if frequency <= Ftdi.BUS_CLOCK_BASE:
-            divcode = Ftdi.ENABLE_CLK_DIV5
-            divisor = int((Ftdi.BUS_CLOCK_BASE+frequency-1)/frequency)-1
-            actual_freq = (Ftdi.BUS_CLOCK_BASE+divisor-1)/(divisor+1)
-        elif frequency <= Ftdi.BUS_CLOCK_HIGH:
-            # not supported on non-H device, however it seems that 2232D
-            # devices simply ignore the settings. Could be improved though
-            divcode = Ftdi.DISABLE_CLK_DIV5
-            divisor = int((Ftdi.BUS_CLOCK_HIGH+frequency-1)/frequency)-1
-            actual_freq = (Ftdi.BUS_CLOCK_HIGH+divisor-1)/(divisor+1)
-        else:
-            raise FtdiFeatureError("Unsupported frequency: %f" % frequency)
+        # Calculate base speed clock divider
+        divcode = Ftdi.ENABLE_CLK_DIV5
+        divisor = int((Ftdi.BUS_CLOCK_BASE+frequency/2)/frequency)-1
+        divisor = max(0, min(0xFFFF, divisor))
+        actual_freq = Ftdi.BUS_CLOCK_BASE/(divisor+1)
+        error = (actual_freq/frequency)-1
+        # Should we use high speed clock available in H series?
+        if self.is_H_series:
+            # Calculate high speed clock divider
+            divisor_hs = int((Ftdi.BUS_CLOCK_HIGH+frequency/2)/frequency)-1
+            divisor_hs = max(0, min(0xFFFF, divisor_hs))
+            actual_freq_hs = Ftdi.BUS_CLOCK_HIGH/(divisor_hs+1)
+            error_hs = (actual_freq_hs/frequency)-1
+            # Enable if closer to desired frequency (percentually)
+            if abs(error_hs) < abs(error):
+                divcode = Ftdi.DISABLE_CLK_DIV5
+                divisor = divisor_hs
+                actual_freq = actual_freq_hs
+                error = error_hs
         # FTDI expects little endian
         if self.is_H_series:
             cmd = array('B', (divcode,))
@@ -1587,7 +1631,8 @@ class Ftdi:
         self.validate_mpsse()
         # Drain input buffer
         self.purge_rx_buffer()
-        self.log.debug('Bus frequency: %.3f MHz', (actual_freq/1E6))
+        self.log.debug('Bus frequency: %.6f MHz (error: %+.1f %%)',
+                       (actual_freq/1E6), error*100)
         return actual_freq
 
     def __get_timeouts(self):

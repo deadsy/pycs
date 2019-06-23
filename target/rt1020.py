@@ -26,16 +26,24 @@ prompt = 'rt1020'
 # -----------------------------------------------------------------------------
 
 # jlink device
+#default_itf = {
+  #'name': 'jlink',
+  #'vid': 0x1366,
+  #'pid': 0x0101,
+  #'itf': 0,
+#}
+
+# cmsis-dap device
 default_itf = {
-  'name': 'jlink',
-  'vid': 0x1366,
-  'pid': 0x0101,
-  'itf': 0,
+  'name': 'cmsis-dap',
+  'vid': 0x0d28,
+  'pid': 0x0204,
+  'itf': 1,
 }
 
 # -----------------------------------------------------------------------------
 
-class target(object):
+class target:
   """rt1020 - NXP i.MX RT1020 Evaluation Kit"""
 
   def __init__(self, ui, dbgio):
@@ -76,6 +84,7 @@ class target(object):
       self.device.cmd_regs(ui, args)
 
   def set_prompt(self):
+    """set the command prompt"""
     indicator = ('*', '')[self.dbgio.is_halted()]
     self.ui.cli.set_prompt('%s%s> ' % (prompt, indicator))
 

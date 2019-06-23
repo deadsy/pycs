@@ -50,48 +50,48 @@ def find(vps=None, sn=None):
 #------------------------------------------------------------------------------
 # stlink protocol constants
 
-STLINK_GET_VERSION        = 0xF1
-STLINK_DEBUG_COMMAND      = 0xF2
-STLINK_DFU_COMMAND        = 0xF3
-STLINK_SWIM_COMMAND       = 0xF4
-STLINK_GET_CURRENT_MODE   = 0xF5
+STLINK_GET_VERSION = 0xF1
+STLINK_DEBUG_COMMAND = 0xF2
+STLINK_DFU_COMMAND = 0xF3
+STLINK_SWIM_COMMAND = 0xF4
+STLINK_GET_CURRENT_MODE = 0xF5
 STLINK_GET_TARGET_VOLTAGE = 0xF7
 
 # STLINK_DEBUG_COMMAND + ...
-STLINK_DEBUG_ENTER_JTAG          =  0x00
-STLINK_DEBUG_GETSTATUS           =  0x01
-STLINK_DEBUG_FORCEDEBUG          =  0x02
-STLINK_DEBUG_APIV1_RESETSYS      =  0x03
-STLINK_DEBUG_APIV1_READALLREGS   =  0x04
-STLINK_DEBUG_APIV1_READREG       =  0x05
-STLINK_DEBUG_APIV1_WRITEREG      =  0x06
-STLINK_DEBUG_READMEM_32BIT       =  0x07
-STLINK_DEBUG_WRITEMEM_32BIT      =  0x08
-STLINK_DEBUG_RUNCORE             =  0x09
-STLINK_DEBUG_STEPCORE            =  0x0a
-STLINK_DEBUG_APIV1_SETFP         =  0x0b
-STLINK_DEBUG_READMEM_8BIT        =  0x0c
-STLINK_DEBUG_WRITEMEM_8BIT       =  0x0d
-STLINK_DEBUG_APIV1_CLEARFP       =  0x0e
-STLINK_DEBUG_APIV1_WRITEDEBUGREG =  0x0f
-STLINK_DEBUG_APIV1_SETWATCHPOINT =  0x10
-STLINK_DEBUG_APIV1_ENTER         =  0x20
-STLINK_DEBUG_EXIT                =  0x21
-STLINK_DEBUG_READCOREID          =  0x22
-STLINK_DEBUG_APIV2_ENTER         =  0x30
-STLINK_DEBUG_APIV2_READ_IDCODES  =  0x31
-STLINK_DEBUG_APIV2_RESETSYS      =  0x32
-STLINK_DEBUG_APIV2_READREG       =  0x33
-STLINK_DEBUG_APIV2_WRITEREG      =  0x34
-STLINK_DEBUG_APIV2_WRITEDEBUGREG =  0x35
-STLINK_DEBUG_APIV2_READDEBUGREG  =  0x36
-STLINK_DEBUG_APIV2_READALLREGS   =  0x3A
+STLINK_DEBUG_ENTER_JTAG = 0x00
+STLINK_DEBUG_GETSTATUS = 0x01
+STLINK_DEBUG_FORCEDEBUG = 0x02
+STLINK_DEBUG_APIV1_RESETSYS = 0x03
+STLINK_DEBUG_APIV1_READALLREGS = 0x04
+STLINK_DEBUG_APIV1_READREG = 0x05
+STLINK_DEBUG_APIV1_WRITEREG = 0x06
+STLINK_DEBUG_READMEM_32BIT = 0x07
+STLINK_DEBUG_WRITEMEM_32BIT = 0x08
+STLINK_DEBUG_RUNCORE = 0x09
+STLINK_DEBUG_STEPCORE = 0x0a
+STLINK_DEBUG_APIV1_SETFP = 0x0b
+STLINK_DEBUG_READMEM_8BIT = 0x0c
+STLINK_DEBUG_WRITEMEM_8BIT = 0x0d
+STLINK_DEBUG_APIV1_CLEARFP = 0x0e
+STLINK_DEBUG_APIV1_WRITEDEBUGREG = 0x0f
+STLINK_DEBUG_APIV1_SETWATCHPOINT = 0x10
+STLINK_DEBUG_APIV1_ENTER = 0x20
+STLINK_DEBUG_EXIT = 0x21
+STLINK_DEBUG_READCOREID = 0x22
+STLINK_DEBUG_APIV2_ENTER = 0x30
+STLINK_DEBUG_APIV2_READ_IDCODES = 0x31
+STLINK_DEBUG_APIV2_RESETSYS = 0x32
+STLINK_DEBUG_APIV2_READREG = 0x33
+STLINK_DEBUG_APIV2_WRITEREG = 0x34
+STLINK_DEBUG_APIV2_WRITEDEBUGREG = 0x35
+STLINK_DEBUG_APIV2_READDEBUGREG = 0x36
+STLINK_DEBUG_APIV2_READALLREGS = 0x3A
 STLINK_DEBUG_APIV2_GETLASTRWSTATUS = 0x3B
-STLINK_DEBUG_APIV2_DRIVE_NRST      = 0x3C
-STLINK_DEBUG_APIV2_START_TRACE_RX  = 0x40
-STLINK_DEBUG_APIV2_STOP_TRACE_RX   = 0x41
-STLINK_DEBUG_APIV2_GET_TRACE_NB    = 0x42
-STLINK_DEBUG_APIV2_SWD_SET_FREQ    = 0x43
+STLINK_DEBUG_APIV2_DRIVE_NRST = 0x3C
+STLINK_DEBUG_APIV2_START_TRACE_RX = 0x40
+STLINK_DEBUG_APIV2_STOP_TRACE_RX = 0x41
+STLINK_DEBUG_APIV2_GET_TRACE_NB = 0x42
+STLINK_DEBUG_APIV2_SWD_SET_FREQ = 0x43
 
 # STLINK_DEBUG_COMMAND + STLINK_DEBUG_APIVx_ENTER + ...
 STLINK_DEBUG_ENTER_JTAG = 0x00
@@ -106,7 +106,7 @@ STLINK_SWIM_EXIT = 0x01
 
 # api v1 core state
 STLINK_CORE_RUNNING = 0x80
-STLINK_CORE_HALTED  = 0x81
+STLINK_CORE_HALTED = 0x81
 
 #------------------------------------------------------------------------------
 # map register names to stlink register numbers
@@ -139,7 +139,7 @@ def read_u32(x):
 
 #------------------------------------------------------------------------------
 
-class stlink(object):
+class stlink:
   """ST-Link Device Driver"""
 
   def __init__(self, vid, pid, sn):
@@ -360,7 +360,7 @@ class stlink(object):
 
 #------------------------------------------------------------------------------
 
-class dbgio(object):
+class dbgio:
   """ST-Link implementation of dbgio cpu interface"""
 
   def __init__(self, vid=None, pid=None, idx=None, sn=None):
@@ -434,7 +434,7 @@ class dbgio(object):
       # avoid reads that are a multiple of 16 x 32-bit, they are slow
       if nread & 15 == 0:
         nread -= 1
-      [io.wr32(x) for x in self.stlink.rd_mem32(adr, nread)]
+      _ = [io.wr32(x) for x in self.stlink.rd_mem32(adr, nread)]
       n -= nread
       adr += nread * 4
 
@@ -452,7 +452,7 @@ class dbgio(object):
     max_n = 0x3c
     while n > 0:
       nread = (n, max_n)[n >= max_n]
-      [io.wr8(x) for x in self.stlink.rd_mem8(adr, nread)]
+      _ = [io.wr8(x) for x in self.stlink.rd_mem8(adr, nread)]
       n -= nread
       adr += nread
 

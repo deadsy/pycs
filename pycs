@@ -16,6 +16,7 @@ import util
 
 import jlink
 import stlink
+import dap
 
 # -----------------------------------------------------------------------------
 
@@ -138,6 +139,10 @@ def get_dbgio(target):
     (dev, _) = stlink.find()
     assert dev is not None
     return stlink.dbgio(vid=dev[0], pid=dev[1], sn=dev[2])
+  elif itf['name'] == 'cmsis-dap':
+    (dev, _) = dap.find()
+    assert dev is not None
+    return dap.dbgio(vid=dev[0], pid=dev[1], sn=dev[2])
   else:
     return None
 
