@@ -62,22 +62,20 @@ class usbdev(object):
     self.rdofs = 0
     self.rdbuf_chunksize = 4 << 10
     self.wrbuf_chunksize = 4 << 10
-    self.itf = None
-    self.index = None
     self.ep_in = None
     self.ep_out = None
     self._wrap_api()
 
   # public functions
 
-  def open(self, vendor, product, interface=1, index=0, serial=None, description=None):
+  def open(self, vid, pid, itf=0, idx=0, sn=None, descr=None):
     """open a new interface to the specified device"""
-    self.usb_dev = UsbTools.get_device(vendor, product, index, serial, description)
-    config = self.usb_dev.get_active_configuration()
+    self.usb_dev = UsbTools.get_device(vid, pid, idx, sn, descr)
+    cfg = self.usb_dev.get_active_configuration()
     # check for a valid interface
-    if interface > config.bNumInterfaces:
-      raise usbdev_error('invalid interface: %d' % interface)
-    self._set_interface(config, interface)
+    if itf >= cfg.bNumInterfaces:
+      raise usbdev_error('invalid interface: %d' % itf)
+    self._set_interface(cfg, itf)
 
   def close(self):
     """close the interface"""
@@ -164,14 +162,13 @@ class usbdev(object):
     for m in ('write', 'read'):
       setattr(self, '_%s' % m, getattr(self, '_%s_v%d' % (m, usb_api)))
 
-  def _set_interface(self, config, ifnum):
+  def _set_interface(self, cfg, itf):
     """select the interface to use"""
-    if ifnum == 0:
-      ifnum = 1
-    if ifnum-1 not in range(config.bNumInterfaces):
-      raise ValueError("invalid interface for this device")
-    self.index = ifnum
-    self.interface = config[(ifnum-1, 0)]
+    self.interface = None
+    for i in range(cfg.bNumInterfaces):
+      x = cfg[(i,0)]
+      if x.bInterfaceNumber == itf:
+        self.interface = x
     endpoints = sorted([ep.bEndpointAddress for ep in self.interface])
     self.ep_out, self.ep_in = endpoints[:2]
 

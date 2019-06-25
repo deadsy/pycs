@@ -7,7 +7,7 @@ CMSIS-DAP Driver
 #------------------------------------------------------------------------------
 
 #import struct
-#from array import array as Array
+from array import array as Array
 
 import usbdev
 #import cortexm
@@ -17,7 +17,7 @@ import usbdev
 # supported devices
 
 dap_devices = (
-  (0x0d28, 0x0204, 1), # NXP MIMXRT1020-EVK
+  (0x0d28, 0x0204, 3), # NXP MIMXRT1020-EVK
 )
 
 def itf_lookup(vid, pid):
@@ -34,6 +34,23 @@ def find(vps=None, sn=None):
     vps = [(vid, pid) for (vid, pid, itf) in dap_devices]
   return usbdev.find(vps, sn)
 
+#------------------------------------------------------------------------------
+# cmsis-dap protocol constants
+
+DAP_CMD_INFO = 0x00
+
+# DAP_CMD_INFO
+DAP_CMD_INFO_VID = 0x01 # Get the Vendor ID (string).
+DAP_CMD_INFO_PID = 0x02 # Get the Product ID (string).
+DAP_CMD_INFO_SN = 0x03 # Get the Serial Number (string).
+DAP_CMD_INFO_FW_VERSION = 0x04 # Get the CMSIS-DAP Firmware Version (string).
+DAP_CMD_INFO_VENDOR_NAME = 0x05 # Get the Target Device Vendor (string).
+DAP_CMD_INFO_DEVICE_NAME = 0x06 # Get the Target Device Name (string).
+DAP_CMD_INFO_DBG_CAPS = 0xF0 # Get information about the Capabilities (BYTE) of the Debug Unit
+DAP_CMD_INFO_TDT_PARMS = 0xF1 # Get the Test Domain Timer parameter information
+DAP_CMD_INFO_SWO_TRACE_SIZE = 0xFD # Get the SWO Trace Buffer Size (WORD).
+DAP_CMD_INFO_MAX_PKT_COUNT = 0xFE # Get the maximum Packet Count (BYTE).
+DAP_CMD_INFO_MAX_PKT_SIZE = 0xFF # Get the maximum Packet Size (SHORT).
 
 #------------------------------------------------------------------------------
 # map register names to cmsis-dap register numbers
@@ -61,7 +78,10 @@ class dap:
     self.sn = sn
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
-    self.usb.open(self.vid, self.pid, interface=itf, serial=self.sn)
+    self.usb.open(self.vid, self.pid, itf=itf, sn=self.sn)
+
+    self.get_info_string(DAP_CMD_INFO_VID)
+
 
   def __del__(self):
     if self.usb is not None:
@@ -71,6 +91,52 @@ class dap:
     """close the usb interface"""
     self.usb.close()
     self.usb = None
+
+  def send_recv(self, data, size):
+    """send data, receive size bytes"""
+    if len(data) > 0:
+      self.usb.write_data(data)
+    if size > 0:
+      return self.usb.read_data(size)
+    return None
+
+  # DAP Commands
+
+  def get_info_string(self, id):
+    """Use DAP_Info command to get a device string"""
+    x = self.send_recv(Array('B', (DAP_CMD_INFO, id)), 2)
+    print(x)
+
+
+
+
+  #def DAP_HostStatus(self):
+  #def DAP_Connect(self):
+  #def DAP_Disconnect(self):
+  #def DAP_WriteABORT(self):
+  #def DAP_Delay(self):
+  #def DAP_ResetTarget(self):
+  #def DAP_SWJ_Pins(self):
+  #def DAP_SWJ_Clock(self):
+  #def DAP_SWJ_Sequence(self):
+  #def DAP_SWD_Configure(self):
+  #def DAP_SWD_Sequence(self):
+  #def DAP_SWO_Transport(self):
+  #def DAP_SWO_Mode(self):
+  #def DAP_SWO_Baudrate(self):
+  #def DAP_SWO_Control(self):
+  #def DAP_SWO_Status(self):
+  #def DAP_SWO_ExtendedStatus(self):
+  #def DAP_SWO_Data(self):
+  #def DAP_JTAG_Sequence(self):
+  #def DAP_JTAG_Configure(self):
+  #def DAP_JTAG_IDCODE(self):
+  #def DAP_TransferConfigure(self):
+  #def DAP_Transfer(self):
+  #def DAP_TransferBlock(self):
+  #def DAP_TransferAbort(self):
+  #def DAP_ExecuteCommands(self):
+  #def DAP_QueueCommands(self):
 
   def rd_reg(self, n):
     """read from a register"""
