@@ -1,4 +1,4 @@
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 """
 
 MIMXRT-1020-EVK Evaluation Kit (i.MX RT1020)
@@ -9,7 +9,7 @@ CODEC: Cirrus Logic WM8960G
 Ethernet Phy: Microchip KSZ8081
 
 """
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 import cli
 import cortexm
@@ -17,13 +17,14 @@ import mem
 import soc
 import vendor.nxp.imxrt as imxrt
 import vendor.nxp.firmware as firmware
+import vendor.nxp.flexspi as flexspi
 
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 soc_name = 'MIMXRT1021DAG5A'
 prompt = 'rt1020'
 
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 # cmsis-dap device
 default_itf = {
@@ -31,7 +32,7 @@ default_itf = {
   'name': 'jlink',
 }
 
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
 class target:
   """rt1020 - NXP i.MX RT1020 Evaluation Kit"""
@@ -45,12 +46,14 @@ class target:
     self.device.bind_cpu(self.cpu)
     self.mem = mem.mem(self.cpu)
     self.fw = firmware.firmware(self.cpu)
+    self.flexspi = flexspi.flexspi(self.device)
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
       ('da', self.cpu.cmd_disassemble, cortexm.help_disassemble),
       ('debugger', self.dbgio.menu, 'debugger functions'),
       ('exit', self.cmd_exit),
+      ('flexspi', self.flexspi.menu, 'flexspi functions'),
       ('fw', self.fw.menu, 'firmware functions'),
       ('go', self.cpu.cmd_go),
       ('halt', self.cpu.cmd_halt),
@@ -83,4 +86,17 @@ class target:
     self.dbgio.disconnect()
     ui.exit()
 
-# -----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+# QSPI Flash, IS25LP064A-JBLE
+
+
+# FlexSPI_D3_A, GPIO_SD_B1_06
+# FlexSPI_CLK,  GPIO_SD_B1_07
+# FlexSPI_D0_A, GPIO_SD_B1_08
+# FlexSPI_D2_A, GPIO_SD_B1_09
+# FlexSPI_D1_A, GPIO_SD_B1_10
+# FlexSPI_SS0,  GPIO_SD_B1_11
+
+
+
+#-----------------------------------------------------------------------------
