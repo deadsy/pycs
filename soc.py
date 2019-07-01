@@ -395,6 +395,25 @@ class peripheral(object):
       for r in self.registers.values():
         r.bind_cpu(cpu)
 
+  def insert(self, r):
+    """insert a register into the peripheral"""
+    assert not r.name in self.registers, 'peripheral already has register %s' % r.name
+    r.parent = self
+    self.registers[r.name] = r
+
+  def remove(self, name):
+    """remove a named register from the peripheral"""
+    assert name in self.registers, 'peripheral does not have register %s' % name
+    del self.registers[name]
+
+  def rename_register(self, old, new):
+    """rename a peripheral register old > new"""
+    if old != new and old in self.registers:
+      r = self.registers[old]
+      del self.registers[old]
+      self.registers[new] = r
+      r.name = new
+
   def contains(self, x):
     """return True if region x is entirely within the memory space of this peripheral"""
     return (self.address <= x.adr) and ((self.address + self.size - 1) >= x.end)
@@ -420,14 +439,6 @@ class peripheral(object):
       return util.display_cols(clist, [0, 0, 0, 0])
     else:
       return 'no registers for %s' % self.name
-
-  def rename_register(self, old, new):
-    """rename a peripheral register old > new"""
-    if old != new and old in self.registers:
-      r = self.registers[old]
-      del self.registers[old]
-      self.registers[new] = r
-      r.name = new
 
   def __str__(self):
     s = []

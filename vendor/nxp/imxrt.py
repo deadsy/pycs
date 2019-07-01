@@ -69,10 +69,76 @@ def flexspi_decodes(d):
 
 #-----------------------------------------------------------------------------
 
+def rt1020_iomuxc_fixup(d):
+  p = d.IOMUXC
+
+  # remove some registers
+  for i in range(16):
+    p.remove('SW_MUX_CTL_PAD_GPIO_B0_%02d' % i)
+    p.remove('SW_MUX_CTL_PAD_GPIO_B1_%02d' % i)
+    p.remove('SW_PAD_CTL_PAD_GPIO_B0_%02d' % i)
+    p.remove('SW_PAD_CTL_PAD_GPIO_B1_%02d' % i)
+
+  for i in (2,3,4,5,6,7,8,9,20,21,22,23,24,25):
+    p.remove('XBAR1_IN%02d_SELECT_INPUT' % i)
+
+  for i in (2,3,4,5,6,7,8,9):
+    p.remove('CSI_DATA%02d_SELECT_INPUT' % i)
+
+#CSI_HSYNC_SELECT_INPUT          : 401f8420[31:0] = 0            CSI_HSYNC_SELECT_INPUT DAISY Register
+#CSI_PIXCLK_SELECT_INPUT         : 401f8424[31:0] = 0            CSI_PIXCLK_SELECT_INPUT DAISY Register
+#CSI_VSYNC_SELECT_INPUT          : 401f8428[31:0] = 0            CSI_VSYNC_SELECT_INPUT DAISY Register
+
+
+  # add some registers
+  add_regs = (
+    'SW_MUX_CTL_PAD_GPIO_SD_B0_06',
+    'SW_PAD_CTL_PAD_GPIO_SD_B0_06',
+    'XBAR1_IN10_SELECT_INPUT',
+    'XBAR1_IN12_SELECT_INPUT',
+    'XBAR1_IN13_SELECT_INPUT',
+  )
+  for name in add_regs:
+    r = soc.register()
+    r.name = name
+    r.size = 32
+    p.insert(r)
+
+  # change some offsets
+  for i in range(7):
+    r = p.registers['SW_MUX_CTL_PAD_GPIO_SD_B0_%02d' % i]
+    r.offset = 0x13c + (i * 4)
+    r = p.registers['SW_PAD_CTL_PAD_GPIO_SD_B0_%02d' % i]
+    r.offset = 0x2b0 + (i * 4)
+
+  for i in range(12):
+    r = p.registers['SW_MUX_CTL_PAD_GPIO_SD_B1_%02d' % i]
+    r.offset = 0x158 + (i * 4)
+    r = p.registers['SW_PAD_CTL_PAD_GPIO_SD_B1_%02d' % i]
+    r.offset = 0x2cc + (i * 4)
+
+  for i in range(42):
+    r = p.registers['SW_PAD_CTL_PAD_GPIO_EMC_%02d' % i]
+    r.offset = 0x188 + (i * 4)
+
+  for i in range(16):
+    r = p.registers['SW_PAD_CTL_PAD_GPIO_AD_B0_%02d' % i]
+    r.offset = 0x230 + (i * 4)
+    r = p.registers['SW_PAD_CTL_PAD_GPIO_AD_B1_%02d' % i]
+    r.offset = 0x270 + (i * 4)
+
+  for i,v in enumerate((14,15,16,17,10,12,13,18,19)):
+    r = p.registers['XBAR1_IN%02d_SELECT_INPUT' % v]
+    r.offset = 0x4a0 + (i * 4)
+
+
+
 def MIMXRT1021_fixup(d):
   d.soc_name = 'MIMXRT1021'
   d.cpu_info.nvicPrioBits = 4
   d.cpu_info.deviceNumInterrupts = 176
+  # fix up some peripherals
+  rt1020_iomuxc_fixup(d)
   # more decodes for peripheral registers
   flexspi_decodes(d)
   # memory
