@@ -1,8 +1,13 @@
 # Host System
 
-PyCS is developed on a Linux box with Python 2.7.11.
+PyCS is developed on a Linux box with Python 3.
 
-PyCS is written in Python and is not very host specific.
+## Dependencies
+  * sudo -H pip3 install hid
+  * etc...
+
+## Other Platforms
+
 I've never run it on Mac or Windows, but it will probably work with a bit of modification.
 Mac being more Unix-like probably has less issues than Windows.
 

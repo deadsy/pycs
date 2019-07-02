@@ -6,7 +6,7 @@ Python Based ARM CoreSight Debug and Trace Tools
  * It reads the SoC SVD files to give full peripheral/register decodes for a wide variety of Cortex-M based chips.
 
 ## What do I need?
- * A PC with Python installed [(Host System)](https://github.com/deadsy/pycs/blob/master/docs/host.md)
+ * A PC with Python3 installed [(Host System)](https://github.com/deadsy/pycs/blob/master/docs/host.md)
  * A target system with a Cortex-M ARM cpu [(Targets)](https://github.com/deadsy/pycs/blob/master/docs/targets.md)
  * An SWD debug interface [(Debug Interface)](https://github.com/deadsy/pycs/blob/master/docs/debug_itf.md)
 

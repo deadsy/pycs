@@ -9,30 +9,46 @@ CMSIS-DAP Driver
 #import struct
 from array import array as Array
 
-import usbdev
+#import usbdev
 #import cortexm
 #import iobuf
+
+import hid
 
 #------------------------------------------------------------------------------
 # supported devices
 
-dap_devices = (
+# these are the cmsis-dap devices we know about (vid, pid, itf)
+known_devices = (
   (0x0d28, 0x0204, 3), # NXP MIMXRT1020-EVK
+  (0x17ef, 0x608d, 0), # Lenovo Mouse
 )
 
 def itf_lookup(vid, pid):
   """return the interface to use for a given device"""
-  for (v, p, i) in dap_devices:
+  for (v, p, i) in known_devices:
     if (v == vid) and (p == pid):
       return i
   return None
 
-def find(vps=None, sn=None):
-  """find an cmsis-dap device based on vid, pid and serial number"""
-  if vps is None:
-    # look for any dap device
-    vps = [(vid, pid) for (vid, pid, itf) in dap_devices]
-  return usbdev.find(vps, sn)
+def find(sn=None):
+  """find the cmsis-dap device, the serial number is used to uniqify the match"""
+  # get the set of HIDs
+  hid_devices = hid.enumerate()
+  # find cmsis-dap devices
+  devices = []
+  for (vid, pid, _) in known_devices:
+    for dev in hid_devices:
+      # filter out devices that don't match
+      if vid != dev['vendor_id']:
+        continue
+      if pid != dev['product_id']:
+        continue
+      if sn is not None and sn != dev['serial_number']:
+        continue
+      # we have a match
+      devices.append(dev)
+  return devices
 
 #------------------------------------------------------------------------------
 # cmsis-dap protocol constants
@@ -72,41 +88,39 @@ regmap = {
 class dap:
   """CMSIS-DAP Device Driver"""
 
-  def __init__(self, vid, pid, sn):
-    self.vid = vid
-    self.pid = pid
-    self.sn = sn
-    itf = itf_lookup(self.vid, self.pid)
-    self.usb = usbdev.usbdev()
-    self.usb.open(self.vid, self.pid, itf=itf, sn=self.sn)
+  def __init__(self, dev):
+    self.vid = dev['vendor_id']
+    self.pid = dev['product_id']
+    self.sn = dev['serial_number']
+    self.hid = hid.Device(self.vid, self.pid, self.sn)
 
-    self.get_info_string(DAP_CMD_INFO_VID)
+    #     |  close(self)
+    #     |  get_feature_report(self, report_id, size)
+    #     |  get_indexed_string(self, index, max_length=255)
+    #     |  read(self, size, timeout=None)
+    #     |  send_feature_report(self, data)
+    #     |  write(self, data)
 
+
+    x = self.hid.get_feature_report(1, 255)
+    print(x)
+
+    #self.get_info_string(DAP_CMD_INFO_VID)
 
   def __del__(self):
-    if self.usb is not None:
-      self.close()
+    self.close()
 
   def close(self):
-    """close the usb interface"""
-    self.usb.close()
-    self.usb = None
-
-  def send_recv(self, data, size):
-    """send data, receive size bytes"""
-    if len(data) > 0:
-      self.usb.write_data(data)
-    if size > 0:
-      return self.usb.read_data(size)
-    return None
+    """close the HID"""
+    self.hid.close()
 
   # DAP Commands
 
   def get_info_string(self, id):
     """Use DAP_Info command to get a device string"""
-    x = self.send_recv(Array('B', (DAP_CMD_INFO, id)), 2)
+    self.hid.write(bytes((DAP_CMD_INFO, id)))
+    x = self.hid.read(255)
     print(x)
-
 
 
 
@@ -168,7 +182,6 @@ class dap:
     """return a string for basic device description"""
     s = []
     s.append('CMSIS-DAP usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
-    #s.append('target voltage %.3fV' % (float(self.get_voltage()) / 1000.0))
     return '\n'.join(s)
 
 #------------------------------------------------------------------------------
@@ -176,14 +189,9 @@ class dap:
 class dbgio:
   """CMSIS-DAP implementation of dbgio cpu interface"""
 
-  def __init__(self, vid=None, pid=None, idx=None, sn=None):
-    """no actual operations, record the selected usb device"""
-    self.vid = vid
-    self.pid = pid
-    self.idx = idx
-    self.sn = sn
+  def __init__(self, dev):
+    self.dev = dev
     self.cpu_name = None
-    self.itf = None
     self.menu = (
       ('info', self.cmd_info),
     )
@@ -192,7 +200,7 @@ class dbgio:
     """connect the debugger to the target"""
     self.cpu_name = cpu_name
     self.dbg_itf = itf
-    self.dap = dap(self.vid, self.pid, self.sn)
+    self.dap = dap(self.dev)
 
   def disconnect(self):
     """disconnect the debugger from the target"""
