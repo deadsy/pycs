@@ -21,7 +21,6 @@ import hid
 # these are the cmsis-dap devices we know about (vid, pid, itf)
 known_devices = (
   (0x0d28, 0x0204, 3), # NXP MIMXRT1020-EVK
-  (0x17ef, 0x608d, 0), # Lenovo Mouse
 )
 
 def itf_lookup(vid, pid):
@@ -93,6 +92,8 @@ class dap:
     self.pid = dev['product_id']
     self.sn = dev['serial_number']
     self.hid = hid.Device(self.vid, self.pid, self.sn)
+    self.packet_size = 64 + 1
+    self.ver = self.get_info_string(DAP_CMD_INFO_FW_VERSION)
 
     #     |  close(self)
     #     |  get_feature_report(self, report_id, size)
@@ -101,12 +102,6 @@ class dap:
     #     |  send_feature_report(self, data)
     #     |  write(self, data)
 
-
-    x = self.hid.get_feature_report(1, 255)
-    print(x)
-
-    #self.get_info_string(DAP_CMD_INFO_VID)
-
   def __del__(self):
     self.close()
 
@@ -114,14 +109,22 @@ class dap:
     """close the HID"""
     self.hid.close()
 
-  # DAP Commands
+  def cmd_dap_info(self, info):
+    tx = bytes((0, DAP_CMD_INFO, info))
+    self.hid.write(tx)
+    rx = self.hid.read(65)
+    return rx[1:]
 
-  def get_info_string(self, id):
-    """Use DAP_Info command to get a device string"""
-    self.hid.write(bytes((DAP_CMD_INFO, id)))
-    x = self.hid.read(255)
+  def get_info_string(self, info):
+    x = self.cmd_dap_info(info)
+    n = x[0]
+    if n:
+      return x[1:n].decode("utf-8")
+    return None
+
+  def get_caps_info(self):
+    x = self.cmd_dap_info(DAP_CMD_INFO_DBG_CAPS)
     print(x)
-
 
 
   #def DAP_HostStatus(self):
@@ -181,8 +184,11 @@ class dap:
   def __str__(self):
     """return a string for basic device description"""
     s = []
-    s.append('CMSIS-DAP usb %04x:%04x serial %r' % (self.vid, self.pid, self.sn))
-    return '\n'.join(s)
+    s.append('CMSIS-DAP')
+    s.append('%04x:%04x' % (self.vid, self.pid))
+    s.append('version %s' % self.ver)
+    s.append('serial %r' % self.sn)
+    return ' '.join(s)
 
 #------------------------------------------------------------------------------
 
