@@ -52,20 +52,31 @@ def find(sn=None):
 #------------------------------------------------------------------------------
 # cmsis-dap protocol constants
 
-DAP_CMD_INFO = 0x00
+# CMSIS-DAP General Commands
+CMD_DAP_INFO = 0x00
+CMD_DAP_LED = 0x01
+CMD_DAP_CONNECT = 0x02
+CMD_DAP_DISCONNECT = 0x03
+CMD_DAP_WRITE_ABORT = 0x08
+CMD_DAP_DELAY = 0x09
+CMD_DAP_RESET_TARGET = 0x0A
 
 # DAP_CMD_INFO
-DAP_CMD_INFO_VID = 0x01 # Get the Vendor ID (string).
-DAP_CMD_INFO_PID = 0x02 # Get the Product ID (string).
-DAP_CMD_INFO_SN = 0x03 # Get the Serial Number (string).
-DAP_CMD_INFO_FW_VERSION = 0x04 # Get the CMSIS-DAP Firmware Version (string).
-DAP_CMD_INFO_VENDOR_NAME = 0x05 # Get the Target Device Vendor (string).
-DAP_CMD_INFO_DEVICE_NAME = 0x06 # Get the Target Device Name (string).
-DAP_CMD_INFO_DBG_CAPS = 0xF0 # Get information about the Capabilities (BYTE) of the Debug Unit
-DAP_CMD_INFO_TDT_PARMS = 0xF1 # Get the Test Domain Timer parameter information
-DAP_CMD_INFO_SWO_TRACE_SIZE = 0xFD # Get the SWO Trace Buffer Size (WORD).
-DAP_CMD_INFO_MAX_PKT_COUNT = 0xFE # Get the maximum Packet Count (BYTE).
-DAP_CMD_INFO_MAX_PKT_SIZE = 0xFF # Get the maximum Packet Size (SHORT).
+INFO_ID_VID = 0x01            # Get the Vendor ID (string)
+INFO_ID_PID = 0x02            # Get the Product ID (string)
+INFO_ID_SN = 0x03             # Get the Serial Number (string)
+INFO_ID_FW_VERSION = 0x04     # Get the CMSIS-DAP Firmware Version (string)
+INFO_ID_VENDOR_NAME = 0x05    # Get the Target Device Vendor (string)
+INFO_ID_DEVICE_NAME = 0x06    # Get the Target Device Name (string)
+INFO_ID_DBG_CAPS = 0xF0       # Get information about the Capabilities (BYTE) of the Debug Unit
+INFO_ID_TDT_PARMS = 0xF1      # Get the Test Domain Timer parameter information
+INFO_ID_SWO_TRACE_SIZE = 0xFD # Get the SWO Trace Buffer Size (WORD)
+INFO_ID_MAX_PKT_COUNT = 0xFE  # Get the maximum Packet Count (BYTE)
+INFO_ID_MAX_PKT_SIZE = 0xFF   # Get the maximum Packet Size (SHORT)
+
+# DAP Status Code
+DAP_OK = 0
+DAP_ERROR = 0xFF
 
 #------------------------------------------------------------------------------
 # map register names to cmsis-dap register numbers
@@ -82,6 +93,12 @@ regmap = {
   # 20 ?
 }
 
+def dump_buf(x):
+  s = []
+  for c in x:
+    s.append('%02x' % c)
+  print(' '.join(s))
+
 #------------------------------------------------------------------------------
 
 class dap:
@@ -92,8 +109,16 @@ class dap:
     self.pid = dev['product_id']
     self.sn = dev['serial_number']
     self.hid = hid.Device(self.vid, self.pid, self.sn)
-    self.packet_size = 64 + 1
-    self.ver = self.get_info_string(DAP_CMD_INFO_FW_VERSION)
+    self.pkt_size = 64
+    self.pkt_size = self.get_info_short(INFO_ID_MAX_PKT_SIZE)
+    self.pkt_count = self.get_info_byte(INFO_ID_MAX_PKT_COUNT)
+    self.ver = self.get_info_string(INFO_ID_FW_VERSION)
+    self.caps = self.get_info_byte(INFO_ID_DBG_CAPS)
+
+    print('ver %s' % self.ver)
+    print('caps %d' % self.caps)
+    print('pkt_count %d' % self.pkt_count)
+    print('pkt_size %d' % self.pkt_size)
 
     #     |  close(self)
     #     |  get_feature_report(self, report_id, size)
@@ -109,22 +134,58 @@ class dap:
     """close the HID"""
     self.hid.close()
 
-  def cmd_dap_info(self, info):
-    tx = bytes((0, DAP_CMD_INFO, info))
+  def xfer(self, tx):
+    """tx and rx some bytes to the HID"""
     self.hid.write(tx)
-    rx = self.hid.read(65)
+    return self.hid.read(self.pkt_size + 1)
+
+  def cmd_dap_info(self, id):
+    rx = self.xfer(bytes((0, CMD_DAP_INFO, id)))
     return rx[1:]
 
   def get_info_string(self, info):
-    x = self.cmd_dap_info(info)
-    n = x[0]
+    """get an information string from the debugger"""
+    rx = self.cmd_dap_info(info)
+    n = rx[0]
     if n:
-      return x[1:n].decode("utf-8")
+      return rx[1:n].decode("utf-8")
     return None
 
-  def get_caps_info(self):
-    x = self.cmd_dap_info(DAP_CMD_INFO_DBG_CAPS)
-    print(x)
+  def get_info_byte(self, info):
+    """get an information byte/u8 from the debugger"""
+    rx = self.cmd_dap_info(info)
+    if rx[0] == 1:
+      return rx[1]
+    return None
+
+  def get_info_short(self, info):
+    """get an information short/u16 from the debugger"""
+    rx = self.cmd_dap_info(info)
+    if rx[0] == 2:
+      return rx[1] + (rx[2] << 8)
+    return None
+
+  def get_info_word(self, info):
+    """get an information word/u32 from the debugger"""
+    rx = self.cmd_dap_info(info)
+    if rx[0] == 4:
+      return rx[1] + (rx[2] << 8) + (rx[3] << 16) + (rx[4] << 24)
+    return None
+
+  def led_ctrl(self, val):
+    """control the debugger leds"""
+    rx = self.xfer(bytes((0, CMD_DAP_LED, 0, val)))
+    assert rx[1] == 0
+
+  def dap_connect(self, mode):
+    rx = self.xfer(bytes((0, CMD_DAP_CONNECT, mode)))
+    assert rx[1] == mode
+
+  def dap_disconnect(self):
+    rx = self.xfer(bytes((0, CMD_DAP_DISCONNECT)))
+    assert rx[1] == DAP_OK
+
+
 
 
   #def DAP_HostStatus(self):
@@ -133,11 +194,14 @@ class dap:
   #def DAP_WriteABORT(self):
   #def DAP_Delay(self):
   #def DAP_ResetTarget(self):
+
   #def DAP_SWJ_Pins(self):
   #def DAP_SWJ_Clock(self):
   #def DAP_SWJ_Sequence(self):
+
   #def DAP_SWD_Configure(self):
   #def DAP_SWD_Sequence(self):
+
   #def DAP_SWO_Transport(self):
   #def DAP_SWO_Mode(self):
   #def DAP_SWO_Baudrate(self):
@@ -145,9 +209,11 @@ class dap:
   #def DAP_SWO_Status(self):
   #def DAP_SWO_ExtendedStatus(self):
   #def DAP_SWO_Data(self):
+
   #def DAP_JTAG_Sequence(self):
   #def DAP_JTAG_Configure(self):
   #def DAP_JTAG_IDCODE(self):
+
   #def DAP_TransferConfigure(self):
   #def DAP_Transfer(self):
   #def DAP_TransferBlock(self):
