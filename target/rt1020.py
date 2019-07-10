@@ -28,8 +28,8 @@ prompt = 'rt1020'
 
 # cmsis-dap device
 default_itf = {
-  'name': 'cmsis-dap',
-  #'name': 'jlink',
+  #'name': 'cmsis-dap',
+  'name': 'jlink',
 }
 
 #-----------------------------------------------------------------------------

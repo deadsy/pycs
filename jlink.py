@@ -103,9 +103,9 @@ def get_jlink_dll():
   if sys.platform == 'win32':
     jlink, backend_info = locate_library('jlinkarm.dll', search_path)
   elif sys.platform.startswith('linux'):
-    jlink, backend_info = locate_library('libjlinkarm.so.5', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.6', search_path, ctypes.cdll)
   elif sys.platform == 'darwin':
-    jlink, backend_info = locate_library('libjlinkarm.so.5.dylib', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.6.dylib', search_path, ctypes.cdll)
   return jlink, backend_info
 
 # ----------------------------------------------------------------------------
@@ -437,7 +437,7 @@ class dbgio(object):
     # check the hardware
     state = self.jlink.get_hw_status()
     assert state['vref'] > 1500, 'Vref is too low. Check target power.'
-    assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
+    #assert state['srst'] == 1, '~SRST signal is asserted. Target is held in reset.'
     # setup the jlink interface
     self.jlink.exec_command('device=%s' % cpu_names[cpu_name])
     self.jlink.set_speed(4000)

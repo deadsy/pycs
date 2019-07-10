@@ -28,9 +28,9 @@ import iobuf
 # supported devices
 
 stlink_devices = (
-  (0x0483, 0x3744, 1), # Version 1
-  (0x0483, 0x3748, 1), # Version 2
-  (0x0483, 0x374B, 1), # Version 2.1
+  (0x0483, 0x3744, 0), # Version 1
+  (0x0483, 0x3748, 0), # Version 2
+  (0x0483, 0x374B, 0), # Version 2.1
 )
 
 def itf_lookup(vid, pid):
@@ -148,7 +148,7 @@ class stlink:
     self.sn = sn
     itf = itf_lookup(self.vid, self.pid)
     self.usb = usbdev.usbdev()
-    self.usb.open(self.vid, self.pid, interface=itf, serial=self.sn)
+    self.usb.open(self.vid, self.pid, itf=itf, sn=self.sn)
     # get the interface information
     ver = self.get_version()
     assert ver['stlink_v'] == 2, 'only version 2 of stlink is supported'
