@@ -109,6 +109,12 @@ STM32F091xC_flash = (
   ('flash_option', (16,)),
 )
 
+STM32F103x8_flash = (
+  ('flash_main', (1 << 10,) * 64, tuple([page(i) for i in range(64)])),
+  ('flash_system', (2 << 10,)),
+  ('flash_option', (16,)),
+)
+
 # map device.soc_name to the flash map
 flash_map = {
   'STM32F303xC': STM32F303xC_flash,
@@ -117,6 +123,7 @@ flash_map = {
   'STM32F429xI': STM32F429xI_flash,
   'STM32L432KC': STM32L432KC_flash,
   'STM32F091xC': STM32F091xC_flash,
+  'STM32F103x8': STM32F103x8_flash,
 }
 
 #-----------------------------------------------------------------------------
@@ -230,7 +237,7 @@ class stm32f0xx(flash):
 
   def __init__(self, device):
     self.device = device
-    self.hw = self.device.Flash
+    self.hw = self.device.FLASH
     self.pages = mem.flash_regions(self.device, flash_map[self.device.soc_name])
     self.lib = lib.stm32f0xx_flash
 

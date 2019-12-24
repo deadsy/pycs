@@ -668,6 +668,29 @@ soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
 
+def STM32F103x8_fixup(d):
+  d.soc_name = 'STM32F103x8'
+  d.cpu_info.nvicPrioBits = 4
+  d.cpu_info.deviceNumInterrupts = 68
+  # remove some core peripherals - we'll replace them in the cpu fixup
+  d.remove(d.NVIC)
+
+  # memory and misc periperhals
+  d.insert(soc.make_peripheral('sram', 0x20000000, 20 << 10, None, 'sram'))
+  d.insert(soc.make_peripheral('flash_main', 0x08000000, 64 << 10, None, 'flash main memory'))
+  d.insert(soc.make_peripheral('flash_system', 0x1ffff000, 2 << 10, None, 'flash system memory'))
+  d.insert(soc.make_peripheral('flash_option', 0x1ffff800, 16, None, 'flash option memory'))
+  d.insert(soc.make_peripheral('FLASH_SIZE', 0x1ffff7e0, 2, _flash_size_regset, 'Flash Size'))
+  d.insert(soc.make_peripheral('UID', 0x1ffff7e8, 12, _uuid_regset, 'Unique Device ID'))
+
+s = soc_info()
+s.name = 'STM32F103x8'
+s.svd = 'STM32F103xx'
+s.fixups = (STM32F103x8_fixup, cmregs.cm3_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
+
 def get_device(ui, name):
   """return the device structure for the named SoC"""
   if not name in soc_db:
