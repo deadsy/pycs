@@ -579,6 +579,8 @@ def STM32F303xC_fixup(d):
   # remove some core peripherals - we'll replace them in the cpu fixup
   d.remove(d.NVIC)
   d.remove(d.FPU)
+  # fix up the name of the FLASH peripheral
+  d.rename_peripheral('Flash', 'FLASH')
   # More decode for the DBGMCU registers
   f = d.DBGMCU.IDCODE.REV_ID
   f.enumvals = soc.make_enumvals(f, _rev_id_enumset)

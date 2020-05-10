@@ -546,6 +546,14 @@ class device(object):
     assert p.name in self.peripherals, 'device does not have peripheral %s' % p.name
     del self.peripherals[p.name]
 
+  def rename_peripheral(self, old, new):
+    """rename a peripheral old -> new"""
+    if old != new and old in self.peripherals:
+      p = self.peripherals[old]
+      del self.peripherals[old]
+      self.peripherals[new] = p
+      p.name = new
+
   def peripheral_list(self):
     """return an ordered peripheral list"""
     # build a list of peripherals in base address order
