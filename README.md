@@ -31,6 +31,11 @@ Python Based ARM CoreSight Debug and Trace Tools
       saml21        : Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B)
       tepo          : Teenage Engineering Pocket Operator (EFM32LG890F128)
 
+## Dependencies
+
+* sudo apt-get install python3-lxml
+* sudo apt-get install python3-hid
+
 ## Using the Tool
 
     $ ./pycs -t mb997c
