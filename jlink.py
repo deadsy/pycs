@@ -103,9 +103,9 @@ def get_jlink_dll():
   if sys.platform == 'win32':
     jlink, backend_info = locate_library('jlinkarm.dll', search_path)
   elif sys.platform.startswith('linux'):
-    jlink, backend_info = locate_library('libjlinkarm.so.6', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.7', search_path, ctypes.cdll)
   elif sys.platform == 'darwin':
-    jlink, backend_info = locate_library('libjlinkarm.so.6.dylib', search_path, ctypes.cdll)
+    jlink, backend_info = locate_library('libjlinkarm.so.7.dylib', search_path, ctypes.cdll)
   return jlink, backend_info
 
 # ----------------------------------------------------------------------------
