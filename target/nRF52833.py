@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Nordic nRF52DK Development Board (nRF52832)
+Nordic nRF52833-DK Development Board (nRF52833)
 
 """
 # -----------------------------------------------------------------------------
@@ -22,8 +22,8 @@ import vendor.nordic.i2c as i2c_driver
 
 # -----------------------------------------------------------------------------
 
-soc_name = 'nRF52832'
-prompt = 'nRF52dk'
+soc_name = 'nRF52833'
+prompt = 'nRF52833dk'
 
 # -----------------------------------------------------------------------------
 
@@ -36,59 +36,60 @@ default_itf = {
 }
 
 # -----------------------------------------------------------------------------
-"""
-
-Notes:
-
-1) The GPIO pin usage depends on if a shield is plugged in.
-If there is no shield the GPIOs are used directly for LEDs and buttons.
-If there is a shield the GPIOs are used for the headers (ala arduino), and
-the LEDs and buttons are accessed via an I2C port expander.
-
-2) The UART pins aren't specified by the target hardware, but for convenience
-I'm setting them per the default pin selects in the SDK (used for logging).
-
-"""
+# GPIO Pin Assignments
 
 # pin, sense_mode, drive_mode, pull_mode, input_mode, dir_mode, name
 gpio_cfg = (
+  # Port 0
+  #('P0.0', None, None, None, None, None, '',),
   #('P0.1', None, None, None, None, None, '',),
   #('P0.2', None, None, None, None, None, '',),
   #('P0.3', None, None, None, None, None, '',),
   #('P0.4', None, None, None, None, None, '',),
-  ('P0.5', None, None, None, None, None, 'UART_RTS',),
-  ('P0.6', None, None, None, None, None, 'UART_TX',),
-  ('P0.7', None, None, None, None, None, 'UART_CTS',),
-  ('P0.8', None, None, None, None, None, 'UART_RX',),
+  #('P0.5', None, None, None, None, None, '',),
+  #('P0.6', None, None, None, None, None, '',),
+  #('P0.7', None, None, None, None, None, '',),
+  #('P0.8', None, None, None, None, None, '',),
   #('P0.9', None, None, None, None, None, '',),
   #('P0.10', None, None, None, None, None, '',),
   #('P0.11', None, None, None, None, None, '',),
   #('P0.12', None, None, None, None, None, '',),
-  ('P0.13', None, None, 'pu', 'connect', 'i', 'BUTTON_1 (no shield)',),
-  ('P0.14', None, None, 'pu', 'connect', 'i', 'BUTTON_2 (no shield)',),
-  ('P0.15', None, None, 'pu', 'connect', 'i', 'BUTTON_3 (no shield)',),
-  ('P0.16', None, None, 'pu', 'connect', 'i', 'BUTTON_4 (no shield)',),
-  ('P0.17', None, None, None, None, None, 'LED_1 (no shield) INT_EXT (shield)',),
-  ('P0.18', None, None, None, None, None, 'LED_2 (no shield)',),
-  ('P0.19', None, None, None, None, None, 'LED_3 (no shield)',),
-  ('P0.20', None, None, None, None, None, 'LED_4 (no shield)',),
+  #('P0.13', None, None, None, None, None, '',),
+  #('P0.14', None, None, None, None, None, '',),
+  #('P0.15', None, None, None, None, None, '',),
+  #('P0.16', None, None, None, None, None, '',),
+  #('P0.17', None, None, None, None, None, '',),
+  #('P0.18', None, None, None, None, None, '',),
+  #('P0.19', None, None, None, None, None, '',),
+  #('P0.20', None, None, None, None, None, '',),
   #('P0.21', None, None, None, None, None, '',),
   #('P0.22', None, None, None, None, None, '',),
   #('P0.23', None, None, None, None, None, '',),
   #('P0.24', None, None, None, None, None, '',),
   #('P0.25', None, None, None, None, None, '',),
-  ('P0.26', None, None, None, None, None, 'SDA_EXT (shield)',),
-  ('P0.27', None, None, None, None, None, 'SCL_EXT (shield)',),
+  #('P0.26', None, None, None, None, None, '',),
+  #('P0.27', None, None, None, None, None, '',),
   #('P0.28', None, None, None, None, None, '',),
   #('P0.29', None, None, None, None, None, '',),
   #('P0.30', None, None, None, None, None, '',),
   #('P0.31', None, None, None, None, None, '',),
+  # Port 1
+  #('P1.0', None, None, None, None, None, '',),
+  #('P1.1', None, None, None, None, None, '',),
+  #('P1.2', None, None, None, None, None, '',),
+  #('P1.3', None, None, None, None, None, '',),
+  #('P1.4', None, None, None, None, None, '',),
+  #('P1.5', None, None, None, None, None, '',),
+  #('P1.6', None, None, None, None, None, '',),
+  #('P1.7', None, None, None, None, None, '',),
+  #('P1.8', None, None, None, None, None, '',),
+  #('P1.9', None, None, None, None, None, '',),
 )
 
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """nRF52dk- Nordic nRF52 Developer's Kit"""
+  """nRF52dk- Nordic nRF52833 Developer's Kit"""
 
   def __init__(self, ui, dbgio):
     self.ui = ui

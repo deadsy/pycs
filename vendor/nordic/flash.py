@@ -51,10 +51,17 @@ nRF52832_flash = (
   ('UICR', (4<<10,) * 1),
 )
 
+# nRF52833
+nRF52833_flash = (
+  ('flash', (4<<10,) * 128),
+  ('UICR', (4<<10,) * 1),
+)
+
 # map device.soc_name to the flash map
 flash_map = {
   'nRF51822': nRF51822_flash,
   'nRF52832': nRF52832_flash,
+  'nRF52833': nRF52833_flash,
 }
 
 #-----------------------------------------------------------------------------

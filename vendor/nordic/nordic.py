@@ -58,6 +58,25 @@ s.fixups = (nRF52832_fixup, cmregs.cm4_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
+# nRF52833
+
+def nRF52833_fixup(d):
+  d.soc_name = 'nRF52833'
+  d.cpu_info.nvicPrioBits = 3
+  d.cpu_info.deviceNumInterrupts = 39 # Note: reference manual has 37, svd file has 39
+  # remove some core peripherals - we'll replace them in the cpu fixup
+  d.remove(d.FPU)
+  # memory and misc peripherals
+  d.insert(soc.make_peripheral('ram', 0x20000000, 128 << 10, None, 'Data RAM'))
+  d.insert(soc.make_peripheral('flash', 0, 512 << 10, None, 'Code FLASH'))
+
+s = soc_info()
+s.name = 'nRF52833'
+s.svd = 'nrf52'
+s.fixups = (nRF52833_fixup, cmregs.cm4_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
 
 def get_device(ui, name):
   """return the device structure for the named SoC"""
