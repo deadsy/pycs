@@ -20,33 +20,29 @@ class drv(object):
   def __init__(self, device, cfg = None):
     self.device = device
     self.cfg = cfg
-    self.ports = ['P0',]
     self.hw_init = False
     # work out the pin to name mapping from the configuration
     self.pin2name = {}
     for (pin, sense, drive, pupd, in_enable, dirn, name) in self.cfg:
       self.pin2name[pin] = name
 
-  def __status(self, port):
-    """return a status string for the named gpio port"""
-    s = []
+  def __status(self, port, bit):
+    """return a status string for the named gpio port and bit"""
     hw = self.device.peripherals[port]
-    for i in range(32):
-      # standard pin name
-      pin_name = '%s.%d' % (port, i)
-      # target name
-      tgt_name = self.pin2name.get(pin_name, None)
-      # configuration for this pin
-      conf = hw.registers['PIN_CNF%d' % i]
-      mode_name = conf.DIR.field_name(conf.rd())
-      if mode_name == 'Input':
-        mode_name = 'i'
-        val_name = '%d' % self.rd_input(port, i)
-      elif mode_name == 'Output':
-        mode_name = 'o'
-        val_name = '%d' % self.rd_output(port, i)
-      s.append([pin_name, mode_name, val_name, tgt_name])
-    return s
+    # standard pin name
+    pin_name = '%s.%d' % (port, bit)
+    # target name
+    tgt_name = self.pin2name.get(pin_name, None)
+    # configuration for this pin
+    conf = hw.registers['PIN_CNF%d' % bit]
+    mode_name = conf.DIR.field_name(conf.rd())
+    if mode_name == 'Input':
+      mode_name = 'i'
+      val_name = '%d' % self.rd_input(port, bit)
+    elif mode_name == 'Output':
+      mode_name = 'o'
+      val_name = '%d' % self.rd_output(port, bit)
+    return (pin_name, mode_name, val_name, tgt_name)
 
   # The following functions are the common API
 
@@ -72,8 +68,6 @@ class drv(object):
     if not name.startswith('P'):
       return None
     port = name[:2]
-    if not port in self.ports:
-      return None
     try:
       pin = int(name[3:])
     except:
@@ -115,8 +109,9 @@ class drv(object):
 
   def __str__(self):
     s = []
-    for p in self.ports:
-      s.extend(self.__status(p))
+    for (pin, _, _, _, _, _, _) in self.cfg:
+      (port, bit) = self.pin_arg(pin)
+      s.append(self.__status(port, bit))
     return util.display_cols(s)
 
   # The following functions are Nordic specific
