@@ -25,9 +25,14 @@ ATSAML21J18B_flash = (
   ('flash', (256,) * 1024),
 )
 
+ATSAMD21G18A_flash = (
+  ('flash', (64,) * 4096),
+)
+
 # map device.soc_name to the flash map
 flash_map = {
   'ATSAML21J18B': ATSAML21J18B_flash,
+  'ATSAMD21G18A': ATSAMD21G18A_flash,
 }
 
 #-----------------------------------------------------------------------------

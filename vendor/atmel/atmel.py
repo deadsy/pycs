@@ -79,6 +79,24 @@ s.fixups = (ATSAML21J18B_fixup, cmregs.cm0plus_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------
+# ATSAMD21G18A
+
+def ATSAMD21G18A_fixup(d):
+  d.soc_name = 'ATSAMD21G18A'
+  d.cpu_info.deviceNumInterrupts = 32
+  # memory and misc periperhals
+  d.insert(soc.make_peripheral('flash', 0x00000000, 256 << 10, None, 'Flash'))
+  d.insert(soc.make_peripheral('sram', 0x20000000, 32 << 10, None, 'SRAM'))
+  #d.insert(soc.make_peripheral('lp_sram', 0x30000000, 8 << 10, None, 'Low Power SRAM'))
+  #d.insert(soc.make_peripheral('NVMUR', 0x00804000, 8, _nvm_user_row_regset, 'NVM User Row'))
+
+s = soc_info()
+s.name = 'ATSAMD21G18A'
+s.svd = 'ATSAMD21G18A'
+s.fixups = (ATSAMD21G18A_fixup, cmregs.cm0plus_fixup)
+soc_db[s.name] = s
+
+#-----------------------------------------------------------------------------
 
 def get_device(ui, name):
   """return the device structure for the named SoC"""

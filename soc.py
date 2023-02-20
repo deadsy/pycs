@@ -313,6 +313,10 @@ class register(object):
     """write a register"""
     return self.cpu.wr(self.adr(idx, self.size), val, self.size)
 
+  def wr8(self, val, idx=0):
+    """write a register as a byte"""
+    return self.cpu.wr(self.adr(idx, 8), val, 8)
+
   def set_bit(self, val, idx=0):
     """set bits in a register"""
     self.wr(self.rd(idx) | val, idx)
