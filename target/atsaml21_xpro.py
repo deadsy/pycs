@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 """
 
-Atmel SAM L21 Xplained Pro Evaluation Board (ATSAML21J18B)
+Microchip SAML21 Xplained Pro Evaluation Board (ATSAML21J18A)
 
 """
 # -----------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import mem
 import soc
 import flash
 import gpio
+import rtt
 
 import vendor.atmel.atmel as atmel
 import vendor.atmel.flash as flash_driver
@@ -19,8 +20,8 @@ import vendor.atmel.gpio as gpio_driver
 
 # -----------------------------------------------------------------------------
 
-soc_name = 'ATSAML21J18B'
-prompt = 'saml21'
+soc_name = 'ATSAML21J18A'
+prompt = 'saml21_xpro'
 
 # -----------------------------------------------------------------------------
 
@@ -35,11 +36,18 @@ default_itf = {
 # -----------------------------------------------------------------------------
 # gpio configuration
 
+# None = not configured
+# i = input (no internal pull up/down)
+# i_pu = input (with internal pull up)
+# i_pd = input (with internal pull down)
+# o = output (normal drive strength)
+# o_s = output (strong drive strength)
+
 # pin, mode, name
 gpio_cfg = (
     ('PA00', None, ''),
     ('PA01', None, ''),
-    ('PA02', None, ''),
+    ('PA02', 'i_pu', 'SW0'),
     ('PA03', None, ''),
     ('PA04', None, ''),
     ('PA05', None, ''),
@@ -106,7 +114,7 @@ gpio_cfg = (
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """saml21 - Atmel SAM L21 Xplained Pro Evaluation Board"""
+  """atsaml21_xpro - Microchip SAML21 Xplained Pro Evaluation Board"""
 
   def __init__(self, ui, dbgio):
     self.ui = ui
@@ -119,6 +127,9 @@ class target(object):
     self.flash = flash.flash(flash_driver.flash(self.device), self.device, self.mem)
     gpio_drv = (gpio_driver.drv(self.device, gpio_cfg))
     self.gpio = gpio.gpio(gpio_drv)
+    # setup the rtt client
+    ram = self.device.sram
+    self.rtt = rtt.rtt(self.cpu, mem.region('ram', ram.address, ram.size))
 
     self.menu_root = (
       ('cpu', self.cpu.menu, 'cpu functions'),
@@ -135,6 +146,7 @@ class target(object):
       ('mem', self.mem.menu, 'memory functions'),
       ('program', self.flash.cmd_program, flash.help_program),
       ('regs', self.cmd_regs, soc.help_regs),
+      ('rtt', self.rtt.menu, 'rtt client functions'),
       ('vtable', self.cpu.cmd_vtable),
     )
 

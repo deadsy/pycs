@@ -18,7 +18,7 @@ import vendor.atmel.flash as flash_driver
 # -----------------------------------------------------------------------------
 
 soc_name = 'ATSAMD21G18A'
-prompt = 'samd21'
+prompt = 'maduino_zero'
 
 # -----------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ default_itf = {
 # -----------------------------------------------------------------------------
 
 class target(object):
-  """samd21 - Makerfabs Maduino Zero"""
+  """maduino_zero - Makerfabs Maduino Zero"""
 
   def __init__(self, ui, dbgio):
     self.ui = ui

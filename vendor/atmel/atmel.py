@@ -62,8 +62,8 @@ _nvm_user_row_regset = (
 #-----------------------------------------------------------------------------
 # ATSAML21J18B
 
-def ATSAML21J18B_fixup(d):
-  d.soc_name = 'ATSAML21J18B'
+def ATSAML21J18A_fixup(d):
+  d.soc_name = 'ATSAML21J18A'
   d.cpu_info.deviceNumInterrupts = 32
   # memory and misc periperhals
   d.insert(soc.make_peripheral('flash', 0x00000000, 256 << 10, None, 'Flash'))
@@ -73,9 +73,9 @@ def ATSAML21J18B_fixup(d):
   d.insert(soc.make_peripheral('NVMUR', 0x00804000, 8, _nvm_user_row_regset, 'NVM User Row'))
 
 s = soc_info()
-s.name = 'ATSAML21J18B'
-s.svd = 'ATSAML21J18B'
-s.fixups = (ATSAML21J18B_fixup, cmregs.cm0plus_fixup)
+s.name = 'ATSAML21J18A'
+s.svd = 'ATSAML21J18A'
+s.fixups = (ATSAML21J18A_fixup, cmregs.cm0plus_fixup)
 soc_db[s.name] = s
 
 #-----------------------------------------------------------------------------

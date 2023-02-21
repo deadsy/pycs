@@ -14,6 +14,14 @@ import util
 
 #-----------------------------------------------------------------------------
 
+# PINCFG bits
+PINCFG_DRVSTR = 1 << 6  # Output Driver Strength Selection
+PINCFG_PULLEN = 1 << 2  # Pull Enable
+PINCFG_INEN = 1 << 1    # Input Enable
+PINCFG_PMUXEN = 1 << 0  # Peripheral Multiplexer Enable
+
+#-----------------------------------------------------------------------------
+
 class drv(object):
   """GPIO driver for Microchip ATSAM devices"""
 
@@ -66,9 +74,21 @@ class drv(object):
       (port, bit) = self.pin_arg(pin)
       if mode == 'i':
         self.set_dir_in(port, bit)
-        self.enable_input(port, bit)
+        self.wr_cfg(port, bit, PINCFG_INEN)
+      elif mode == 'i_pu':
+        self.set_dir_in(port, bit)
+        self.wr_cfg(port, bit, PINCFG_INEN | PINCFG_PULLEN)
+        self.set_bit(port, bit)
+      elif mode == 'i_pd':
+        self.set_dir_in(port, bit)
+        self.wr_cfg(port, bit, PINCFG_INEN | PINCFG_PULLEN)
+        self.clr_bit(port, bit)
       elif mode == 'o':
         self.set_dir_out(port, bit)
+        self.wr_cfg(port, bit, 0)
+      elif mode == 'o_s':
+        self.set_dir_out(port, bit)
+        self.wr_cfg(port, bit, PINCFG_DRVSTR)
     self.hw_init = True
     ui.put('gpio init: ok\n')
 
@@ -173,11 +193,5 @@ class drv(object):
     n = {'PA':0, 'PB':1}[port]
     hw = self.device.peripherals['PORT'].registers['DIRSET%d' % n]
     hw.wr(1 << (bit & 31))
-
-  def enable_input(self, port, bit):
-    """enable input buffering for a pin"""
-    val = self.rd_cfg(port, bit)
-    val |= (1 << 1)
-    self.wr_cfg(port, bit, val)
 
 #-----------------------------------------------------------------------------

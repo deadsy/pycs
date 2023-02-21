@@ -21,7 +21,7 @@ import mem
 #-----------------------------------------------------------------------------
 # Define the rows of flash memory for various devices
 
-ATSAML21J18B_flash = (
+ATSAML21J18A_flash = (
   ('flash', (256,) * 1024),
 )
 
@@ -31,7 +31,7 @@ ATSAMD21G18A_flash = (
 
 # map device.soc_name to the flash map
 flash_map = {
-  'ATSAML21J18B': ATSAML21J18B_flash,
+  'ATSAML21J18A': ATSAML21J18A_flash,
   'ATSAMD21G18A': ATSAMD21G18A_flash,
 }
 
