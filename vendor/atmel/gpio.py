@@ -179,7 +179,7 @@ class drv(object):
     hw = self.device.peripherals['PORT'].registers['PMUX%d_%d' % (n, bit >> 1)]
     val = hw.rd8()
     if bit & 1 != 0:
-      val >>= 15
+      val >>= 4
     return val & 15
 
   def set_dir_in(self, port, bit):
